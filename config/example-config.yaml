@@ -1,0 +1,23 @@
+# Example configuration file for SwarmUI CLI
+
+# SwarmUI API endpoint
+api-url: http://localhost:7801
+
+# API authentication (optional)
+# api-key: your-api-key-here
+
+# Default output format (table, json, yaml)
+format: table
+
+# Verbosity settings
+verbose: false
+quiet: false
+
+# Default generation parameters
+generate:
+  model: stable-diffusion-xl
+  steps: 20
+  width: 512
+  height: 512
+  cfg-scale: 7.5
+  sampler: euler_a
