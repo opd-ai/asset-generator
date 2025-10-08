@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sort"
 	"strings"
 	"syscall"
 
@@ -209,17 +210,91 @@ func validateModel(assetClient *client.AssetClient, modelName string) error {
 
 	// Model not found - provide helpful error with suggestions
 	if len(models) > 0 {
-		var suggestions []string
-		for i, model := range models {
-			if i < 5 { // Limit to first 5 suggestions
-				suggestions = append(suggestions, model.Name)
-			}
+		// Find most similar model names using fuzzy matching
+		type modelScore struct {
+			name  string
+			score int
 		}
-		return fmt.Errorf("model '%s' not found\n\nAvailable models:\n  %s\n\nUse 'asset-generator models list' to see all available models",
+
+		var scored []modelScore
+		for _, model := range models {
+			score := stringSimilarity(strings.ToLower(modelName), strings.ToLower(model.Name))
+			scored = append(scored, modelScore{name: model.Name, score: score})
+		}
+
+		// Sort by similarity score (higher is more similar)
+		sort.Slice(scored, func(i, j int) bool {
+			return scored[i].score > scored[j].score
+		})
+
+		// Take top 5 most similar models
+		var suggestions []string
+		for i := 0; i < len(scored) && i < 5; i++ {
+			suggestions = append(suggestions, scored[i].name)
+		}
+
+		return fmt.Errorf("model '%s' not found\n\nDid you mean one of these?\n  %s\n\nUse 'asset-generator models list' to see all available models",
 			modelName, strings.Join(suggestions, "\n  "))
 	}
 
 	return fmt.Errorf("model '%s' not found (no models available from API)", modelName)
+}
+
+// stringSimilarity calculates a simple similarity score between two strings.
+// Uses a combination of substring matching and common prefix length.
+// Higher scores indicate more similar strings.
+func stringSimilarity(s1, s2 string) int {
+	score := 0
+
+	// Exact match gets highest score
+	if s1 == s2 {
+		return 1000
+	}
+
+	// Check if one is a substring of the other
+	if strings.Contains(s2, s1) {
+		score += 500
+	} else if strings.Contains(s1, s2) {
+		score += 400
+	}
+
+	// Common prefix length
+	prefixLen := 0
+	minLen := len(s1)
+	if len(s2) < minLen {
+		minLen = len(s2)
+	}
+	for i := 0; i < minLen; i++ {
+		if s1[i] == s2[i] {
+			prefixLen++
+		} else {
+			break
+		}
+	}
+	score += prefixLen * 10
+
+	// Count common characters (case-insensitive)
+	commonChars := 0
+	s1Chars := make(map[rune]int)
+	for _, ch := range s1 {
+		s1Chars[ch]++
+	}
+	for _, ch := range s2 {
+		if s1Chars[ch] > 0 {
+			commonChars++
+			s1Chars[ch]--
+		}
+	}
+	score += commonChars
+
+	// Penalize length difference
+	lenDiff := len(s1) - len(s2)
+	if lenDiff < 0 {
+		lenDiff = -lenDiff
+	}
+	score -= lenDiff
+
+	return score
 }
 
 func setupSignalHandler(cancel context.CancelFunc) {
