@@ -51,7 +51,7 @@ Examples:
   asset-generator generate image \
     --prompt "futuristic city at sunset" \
     --model "stable-diffusion-xl" \
-    --width 1024 --height 1024 \
+    --width 1024 --length 1024 \
     --steps 30 --cfg-scale 7.5
   
   # Save to specific file
@@ -84,7 +84,7 @@ func init() {
 	viper.BindPFlag("generate.model", generateImageCmd.Flags().Lookup("model"))
 	viper.BindPFlag("generate.steps", generateImageCmd.Flags().Lookup("steps"))
 	viper.BindPFlag("generate.width", generateImageCmd.Flags().Lookup("width"))
-	viper.BindPFlag("generate.height", generateImageCmd.Flags().Lookup("height"))
+	viper.BindPFlag("generate.length", generateImageCmd.Flags().Lookup("length"))
 	viper.BindPFlag("generate.cfg-scale", generateImageCmd.Flags().Lookup("cfg-scale"))
 	viper.BindPFlag("generate.sampler", generateImageCmd.Flags().Lookup("sampler"))
 }
