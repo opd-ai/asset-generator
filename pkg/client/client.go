@@ -458,9 +458,9 @@ func (c *SwarmClient) GetModel(name string) (*Model, error) {
 	}
 
 	var apiResp struct {
-		Model   Model  `json:"model"`
-		Error   string `json:"error,omitempty"`
-		ErrorID string `json:"error_id,omitempty"`
+		Models  []Model `json:"models"`
+		Error   string  `json:"error,omitempty"`
+		ErrorID string  `json:"error_id,omitempty"`
 	}
 
 	if err := json.Unmarshal(bodyBytes, &apiResp); err != nil {
@@ -475,7 +475,14 @@ func (c *SwarmClient) GetModel(name string) (*Model, error) {
 		return nil, fmt.Errorf("SwarmUI error: %s", apiResp.Error)
 	}
 
-	return &apiResp.Model, nil
+	// Find the specific model by name
+	for _, model := range apiResp.Models {
+		if model.Name == name {
+			return &model, nil
+		}
+	}
+
+	return nil, fmt.Errorf("model '%s' not found", name)
 }
 
 // simulateProgress provides progress updates for HTTP-based generation
