@@ -335,6 +335,30 @@ func (c *SwarmClient) cleanupOldSessions(maxAge time.Duration) {
 	}
 }
 
+// parseSwarmUIError attempts to parse a SwarmUI error response from raw body bytes
+// Returns nil if no SwarmUI error format is detected
+func parseSwarmUIError(body []byte) error {
+	var errResp struct {
+		Error   string `json:"error,omitempty"`
+		ErrorID string `json:"error_id,omitempty"`
+	}
+	
+	// Try to parse as JSON
+	if err := json.Unmarshal(body, &errResp); err != nil {
+		return nil // Not a JSON error response
+	}
+	
+	// Check if SwarmUI error fields are present
+	if errResp.Error != "" {
+		if errResp.ErrorID != "" {
+			return fmt.Errorf("SwarmUI error (%s): %s", errResp.ErrorID, errResp.Error)
+		}
+		return fmt.Errorf("SwarmUI error: %s", errResp.Error)
+	}
+	
+	return nil // No SwarmUI error detected
+}
+
 // ListModels lists all available models
 func (c *SwarmClient) ListModels() ([]Model, error) {
 	endpoint := fmt.Sprintf("%s/API/ListModels", c.config.BaseURL)
@@ -358,17 +382,35 @@ func (c *SwarmClient) ListModels() ([]Model, error) {
 	}
 	defer resp.Body.Close()
 
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Check for non-OK status and parse SwarmUI error format
 	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
+		if swarmErr := parseSwarmUIError(bodyBytes); swarmErr != nil {
+			return nil, swarmErr
+		}
 		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	var apiResp struct {
-		Models []Model `json:"models"`
+		Models  []Model `json:"models"`
+		Error   string  `json:"error,omitempty"`
+		ErrorID string  `json:"error_id,omitempty"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+	if err := json.Unmarshal(bodyBytes, &apiResp); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// Handle SwarmUI-specific errors in successful responses
+	if apiResp.Error != "" {
+		if apiResp.ErrorID != "" {
+			return nil, fmt.Errorf("SwarmUI error (%s): %s", apiResp.ErrorID, apiResp.Error)
+		}
+		return nil, fmt.Errorf("SwarmUI error: %s", apiResp.Error)
 	}
 
 	return apiResp.Models, nil
@@ -398,17 +440,38 @@ func (c *SwarmClient) GetModel(name string) (*Model, error) {
 	}
 	defer resp.Body.Close()
 
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Check for non-OK status and parse SwarmUI error format
 	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
+		if swarmErr := parseSwarmUIError(bodyBytes); swarmErr != nil {
+			return nil, swarmErr
+		}
 		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
-	var model Model
-	if err := json.NewDecoder(resp.Body).Decode(&model); err != nil {
+	var apiResp struct {
+		Model   Model  `json:"model"`
+		Error   string `json:"error,omitempty"`
+		ErrorID string `json:"error_id,omitempty"`
+	}
+
+	if err := json.Unmarshal(bodyBytes, &apiResp); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	return &model, nil
+	// Handle SwarmUI-specific errors in successful responses
+	if apiResp.Error != "" {
+		if apiResp.ErrorID != "" {
+			return nil, fmt.Errorf("SwarmUI error (%s): %s", apiResp.ErrorID, apiResp.Error)
+		}
+		return nil, fmt.Errorf("SwarmUI error: %s", apiResp.Error)
+	}
+
+	return &apiResp.Model, nil
 }
 
 // simulateProgress provides progress updates for HTTP-based generation
