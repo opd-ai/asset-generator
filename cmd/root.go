@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/opd-ai/asset-generator/internal/config"
 	"github.com/opd-ai/asset-generator/pkg/client"
@@ -120,6 +121,8 @@ func initConfigWithValidation(validate bool) error {
 
 	// Read in environment variables that match
 	viper.SetEnvPrefix("ASSET_GENERATOR")
+	// Replace dashes with underscores for environment variable compatibility
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
 
 	// Set defaults
