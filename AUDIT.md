@@ -88,26 +88,22 @@ generateImageCmd.Flags().IntVar(&generateHeight, "height", 512, "image height")
 
 ---
 
-### Gap #3: Environment Variable Naming Incompatibility
+### Gap #3: Environment Variable Naming Incompatibility ✅ **RESOLVED**
+**Status:** Fixed in commit bdf65d2 (2025-10-08)
+
 **Documentation Reference:** 
 > "export ASSET_GENERATOR_API_URL=http://localhost:7801" (README.md:147)
 
-**Implementation Location:** `cmd/root.go:122-123`
+**Implementation Location:** `cmd/root.go:122-125`
 
-**Expected Behavior:** Environment variable `ASSET_GENERATOR_API_URL` (with underscores) should be recognized
+**Resolution:** Added `viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))` after line 123 to translate config key dashes to environment variable underscores. Also added `strings` import.
 
-**Actual Implementation:** Viper is configured with prefix but without key replacer:
-```go
-viper.SetEnvPrefix("ASSET_GENERATOR")
-viper.AutomaticEnv()
-```
+**Verification:** Build successful. Environment variables with underscores (e.g., `ASSET_GENERATOR_API_URL`) now correctly map to dash-separated config keys (e.g., `api-url`).
 
-**Gap Details:** Viper's `AutomaticEnv()` expects environment variables to match config keys exactly after the prefix. Since config keys use dashes (e.g., `api-url`), viper looks for `ASSET_GENERATOR_API-URL` (with dash), not `ASSET_GENERATOR_API_URL` (with underscore) as documented. Shell environment variables cannot contain dashes, so the documented format will silently fail to be recognized.
+**Original Issue:**
+Environment variable `ASSET_GENERATOR_API_URL` (with underscores) was not recognized because Viper expected `ASSET_GENERATOR_API-URL` (with dash), which is invalid in shell environments.
 
-The fix requires adding:
-```go
-viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
-```
+---
 
 **Reproduction:**
 ```bash
