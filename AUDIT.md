@@ -14,64 +14,30 @@ This audit focuses on subtle implementation gaps in a mature Go application appr
 
 ## Detailed Findings
 
-### Gap #1: Config Commands Bypass Client Initialization (Critical)
+### Gap #1: Config Commands Bypass Client Initialization (Critical) ✅ RESOLVED
+
+**Status:** Resolved in commit 475ed15 (2025-10-08)
 
 **Documentation Reference:** 
 > "Configuration can be provided through multiple sources with the following precedence: 1. Command-line flags (highest priority) 2. Environment variables (prefixed with `ASSET_GENERATOR_`) 3. Configuration file (`~/.asset-generator/config.yaml`) 4. Default values (lowest priority)" (README.md:118-121)
 
-**Implementation Location:** `cmd/root.go:37-57`, `cmd/config.go:1-201`
+**Implementation Location:** `cmd/root.go:37-67`
 
-**Expected Behavior:** Config commands should work independently without requiring API client initialization
+**Resolution:**
+Modified `PersistentPreRunE` to detect config commands and skip both validation and client initialization for them:
+- Added `isConfigCommand` check to identify config subcommands
+- Created `initConfigWithValidation(validate bool)` to make validation optional
+- Config commands now call `initConfigWithValidation(false)` to load config without validation
+- API commands call `initConfigWithValidation(true)` to enforce validation
+- Client initialization is now skipped entirely for config commands
 
-**Actual Implementation:** The `PersistentPreRunE` in `root.go` always attempts to create an `AssetClient`, even for config commands that don't need it
+**Verification:**
+- Config commands can now execute when API URL is invalid
+- Users can fix invalid configuration using `config set`
+- Normal API commands still properly validate configuration
+- No unnecessary client initialization for config operations
 
-**Gap Details:** The root command's `PersistentPreRunE` runs for ALL commands including `config init`, `config set`, `config view`, and `config get`. This causes two issues:
-1. If the API URL is invalid or unreachable, config commands fail unnecessarily
-2. Config commands perform unnecessary client initialization, wasting resources
-
-**Reproduction:**
-```bash
-# Set invalid API URL
-export ASSET_GENERATOR_API_URL=invalid-url
-
-# Try to fix it with config command
-asset-generator config set api-url http://localhost:7801
-# FAILS: "failed to initialize config: invalid api-url: failed to parse URL..."
-
-# Or with unreachable endpoint
-asset-generator config set api-url http://unreachable:9999
-# SUCCESS but wastes time trying to init client that config commands don't need
-```
-
-**Production Impact:** Critical - Users cannot fix configuration issues using config commands when the current config is invalid, creating a catch-22 situation.
-
-**Evidence:**
-```go
-// cmd/root.go:37-57
-PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-    // Initialize configuration
-    if err := initConfig(); err != nil {
-        return fmt.Errorf("failed to initialize config: %w", err)
-    }
-
-    // Initialize client - THIS RUNS FOR ALL COMMANDS INCLUDING CONFIG
-    clientCfg := &client.Config{
-        BaseURL: viper.GetString("api-url"),
-        APIKey:  viper.GetString("api-key"),
-        Verbose: verbose,
-    }
-
-    var err error
-    assetClient, err = client.NewAssetClient(clientCfg)
-    if err != nil {
-        return fmt.Errorf("failed to create asset generation client: %w", err)
-    }
-
-    return nil
-},
-```
-
-**Recommended Fix:** Add `PreRun` to config command to skip parent's `PersistentPreRunE`, or check command path before initializing client.
+**Recommended Fix:** ~~Add `PreRun` to config command to skip parent's `PersistentPreRunE`, or check command path before initializing client.~~ **IMPLEMENTED**
 
 ---
 
