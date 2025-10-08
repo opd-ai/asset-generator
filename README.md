@@ -73,7 +73,7 @@ asset-generator generate image --prompt "a futuristic cityscape"
 asset-generator generate image \
   --prompt "astronaut riding a horse" \
   --width 1024 \
-  --height 1024 \
+  --length 1024 \
   --steps 30 \
   --cfg-scale 7.5 \
   --sampler euler_a
@@ -176,7 +176,7 @@ Available for all commands:
 | `--prompt` | `-p` | Generation prompt (required) | |
 | `--model` | | Model to use | |
 | `--width` | `-w` | Image width | `512` |
-| `--height` | | Image height | `512` |
+| `--length` | `-l` | Image length (height) | `512` |
 | `--steps` | | Inference steps | `20` |
 | `--cfg-scale` | | CFG scale (guidance) | `7.5` |
 | `--sampler` | | Sampling method | `euler_a` |
@@ -198,7 +198,7 @@ asset-generator generate image --prompt "a serene lake at sunset"
 asset-generator generate image \
   --prompt "professional portrait photo of a scientist" \
   --width 1024 \
-  --height 1024 \
+  --length 1024 \
   --steps 50 \
   --cfg-scale 8.0
 ```
