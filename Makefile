@@ -1,7 +1,7 @@
 .PHONY: build test clean install lint fmt help run
 
 # Binary name
-BINARY_NAME=swarmui
+BINARY_NAME=asset-generator
 INSTALL_PATH=/usr/local/bin
 
 # Go parameters

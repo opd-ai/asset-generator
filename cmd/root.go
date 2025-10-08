@@ -24,16 +24,16 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "swarmui",
+	Use:   "asset-generator",
 	Short: "CLI client for SwarmUI API",
-	Long: `swarmui is a command-line interface for interacting with the SwarmUI API.
+	Long: `asset-generator is a command-line interface for interacting with the SwarmUI API.
 It provides tools for generating assets, managing models, and configuring
 the SwarmUI service.
 
 Examples:
-  swarmui generate image --prompt "a beautiful landscape"
-  swarmui models list
-  swarmui config set api-url https://api.swarm.example.com`,
+  asset-generator generate image --prompt "a beautiful landscape"
+  asset-generator models list
+  asset-generator config set api-url https://api.swarm.example.com`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// Initialize configuration
 		if err := initConfig(); err != nil {
@@ -64,7 +64,7 @@ func Execute() error {
 
 func init() {
 	// Global flags
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.swarmui/config.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.asset-generator/config.yaml)")
 	rootCmd.PersistentFlags().StringVar(&apiURL, "api-url", "", "SwarmUI API base URL")
 	rootCmd.PersistentFlags().StringVar(&apiKey, "api-key", "", "SwarmUI API key")
 	rootCmd.PersistentFlags().StringVarP(&outputFmt, "format", "f", "table", "output format (table, json, yaml)")
@@ -93,11 +93,11 @@ func initConfig() error {
 			return fmt.Errorf("failed to get home directory: %w", err)
 		}
 
-		// Search config in home directory with name ".swarmui" (without extension)
-		configDir := home + "/.swarmui"
+		// Search config in home directory with name ".asset-generator" (without extension)
+		configDir := home + "/.asset-generator"
 		viper.AddConfigPath(configDir)
 		viper.AddConfigPath("./config")
-		viper.AddConfigPath("/etc/swarmui")
+		viper.AddConfigPath("/etc/asset-generator")
 		viper.SetConfigName("config")
 		viper.SetConfigType("yaml")
 
