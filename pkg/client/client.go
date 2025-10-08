@@ -27,6 +27,7 @@ type SwarmClient struct {
 	wsConn     *websocket.Conn // Reserved for future WebSocket implementation
 	mu         sync.RWMutex
 	sessions   map[string]*GenerationSession
+	sessionID  string // Current session ID for API calls
 }
 
 // ProgressCallback is called with progress updates during generation
@@ -135,8 +136,8 @@ func (c *SwarmClient) GetNewSession(ctx context.Context) (string, error) {
 
 // GenerateImage generates an image using the SwarmUI API
 func (c *SwarmClient) GenerateImage(ctx context.Context, req *GenerationRequest) (*GenerationResult, error) {
-	// Get a new session ID from SwarmUI API
-	sessionID, err := c.GetNewSession(ctx)
+	// Get or reuse session ID
+	sessionID, err := c.ensureSession()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get session: %w", err)
 	}
@@ -359,12 +360,150 @@ func parseSwarmUIError(body []byte) error {
 	return nil // No SwarmUI error detected
 }
 
+// ensureSession ensures we have a valid session ID, getting a new one if needed
+func (c *SwarmClient) ensureSession() (string, error) {
+	c.mu.RLock()
+	sessionID := c.sessionID
+	c.mu.RUnlock()
+
+	if sessionID != "" {
+		return sessionID, nil
+	}
+
+	// Need to get a new session
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// Check again in case another goroutine got a session while we waited
+	if c.sessionID != "" {
+		return c.sessionID, nil
+	}
+
+	newSessionID, err := c.getNewSession()
+	if err != nil {
+		return "", err
+	}
+
+	c.sessionID = newSessionID
+	return newSessionID, nil
+}
+
+// getNewSession gets a new session ID from SwarmUI
+func (c *SwarmClient) getNewSession() (string, error) {
+	endpoint := fmt.Sprintf("%s/API/GetNewSession", c.config.BaseURL)
+
+	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer([]byte("{}")))
+	if err != nil {
+		return "", fmt.Errorf("failed to create session request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if c.config.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+c.config.APIKey)
+	}
+
+	if c.config.Verbose {
+		fmt.Printf("Getting new session: POST %s\n", endpoint)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("session request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read session response: %w", err)
+	}
+
+	if c.config.Verbose {
+		fmt.Printf("Session Response Status: %d\nSession Response Body: %s\n", resp.StatusCode, string(bodyBytes))
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("session API returned status %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	var sessionResp struct {
+		SessionID string `json:"session_id"`
+		Error     string `json:"error,omitempty"`
+		ErrorID   string `json:"error_id,omitempty"`
+	}
+
+	if err := json.Unmarshal(bodyBytes, &sessionResp); err != nil {
+		return "", fmt.Errorf("failed to decode session response: %w", err)
+	}
+
+	if sessionResp.Error != "" {
+		if sessionResp.ErrorID != "" {
+			return "", fmt.Errorf("SwarmUI session error (%s): %s", sessionResp.ErrorID, sessionResp.Error)
+		}
+		return "", fmt.Errorf("SwarmUI session error: %s", sessionResp.Error)
+	}
+
+	if sessionResp.SessionID == "" {
+		return "", fmt.Errorf("session response did not contain session_id")
+	}
+
+	return sessionResp.SessionID, nil
+}
+
 // ListModels lists all available models
 func (c *SwarmClient) ListModels() ([]Model, error) {
+	return c.ListModelsWithOptions(ListModelsOptions{})
+}
+
+// ListModelsOptions configures the ListModels API call
+type ListModelsOptions struct {
+	Path        string // What folder path to search within. Use empty string for root.
+	Depth       int    // Maximum depth (number of recursive folders) to search.
+	Subtype     string // Model sub-type - LoRA, Wildcards, etc. Default: "Stable-Diffusion"
+	SortBy      string // What to sort the list by - Name, DateCreated, or DateModified. Default: "Name"
+	AllowRemote bool   // If true, allow remote models. If false, only local models. Default: true
+	SortReverse bool   // If true, the sorting should be done in reverse. Default: false
+	DataImages  bool   // If true, provide model images in raw data format. If false, use URLs. Default: false
+}
+
+// ListModelsWithOptions lists available models with specific options
+func (c *SwarmClient) ListModelsWithOptions(options ListModelsOptions) ([]Model, error) {
+	// Get session ID if we don't have one
+	sessionID, err := c.ensureSession()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get session: %w", err)
+	}
+
 	endpoint := fmt.Sprintf("%s/API/ListModels", c.config.BaseURL)
 
-	// SwarmUI API requires POST requests with JSON body (even if empty)
-	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer([]byte("{}")))
+	// Set defaults for required parameters
+	if options.Subtype == "" {
+		options.Subtype = "Stable-Diffusion"
+	}
+	if options.SortBy == "" {
+		options.SortBy = "Name"
+	}
+	if options.Depth == 0 {
+		options.Depth = 5 // Reasonable default depth
+	}
+
+	// Build request payload
+	payload := map[string]interface{}{
+		"session_id":  sessionID,
+		"path":        options.Path,
+		"depth":       options.Depth,
+		"subtype":     options.Subtype,
+		"sortBy":      options.SortBy,
+		"allowRemote": options.AllowRemote,
+		"sortReverse": options.SortReverse,
+		"dataImages":  options.DataImages,
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(payloadBytes))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -375,7 +514,7 @@ func (c *SwarmClient) ListModels() ([]Model, error) {
 	}
 
 	if c.config.Verbose {
-		fmt.Printf("Request: POST %s\n", endpoint)
+		fmt.Printf("Request: POST %s\nPayload: %s\n", endpoint, string(payloadBytes))
 	}
 
 	resp, err := c.httpClient.Do(req)
@@ -389,6 +528,10 @@ func (c *SwarmClient) ListModels() ([]Model, error) {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
+	if c.config.Verbose {
+		fmt.Printf("Response Status: %d\nResponse Body: %s\n", resp.StatusCode, string(bodyBytes))
+	}
+
 	// Check for non-OK status and parse SwarmUI error format
 	if resp.StatusCode != http.StatusOK {
 		if swarmErr := parseSwarmUIError(bodyBytes); swarmErr != nil {
@@ -398,9 +541,10 @@ func (c *SwarmClient) ListModels() ([]Model, error) {
 	}
 
 	var apiResp struct {
-		Models  []Model `json:"models"`
-		Error   string  `json:"error,omitempty"`
-		ErrorID string  `json:"error_id,omitempty"`
+		Folders []string `json:"folders"`
+		Files   []Model  `json:"files"`
+		Error   string   `json:"error,omitempty"`
+		ErrorID string   `json:"error_id,omitempty"`
 	}
 
 	if err := json.Unmarshal(bodyBytes, &apiResp); err != nil {
@@ -409,74 +553,33 @@ func (c *SwarmClient) ListModels() ([]Model, error) {
 
 	// Handle SwarmUI-specific errors in successful responses
 	if apiResp.Error != "" {
+		// Handle session expiration
+		if apiResp.ErrorID == "invalid_session_id" {
+			// Clear session and retry once
+			c.mu.Lock()
+			c.sessionID = ""
+			c.mu.Unlock()
+			return c.ListModelsWithOptions(options)
+		}
 		if apiResp.ErrorID != "" {
 			return nil, fmt.Errorf("SwarmUI error (%s): %s", apiResp.ErrorID, apiResp.Error)
 		}
 		return nil, fmt.Errorf("SwarmUI error: %s", apiResp.Error)
 	}
 
-	return apiResp.Models, nil
+	return apiResp.Files, nil
 }
 
 // GetModel gets details about a specific model
 func (c *SwarmClient) GetModel(name string) (*Model, error) {
-	// Using correct SwarmUI API endpoint pattern
-	endpoint := fmt.Sprintf("%s/API/ListModels", c.config.BaseURL)
-
-	// SwarmUI API requires POST requests with JSON body (even if empty)
-	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer([]byte("{}")))
+	// Get all models and find the specific one
+	models, err := c.ListModels()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	if c.config.APIKey != "" {
-		req.Header.Set("Authorization", "Bearer "+c.config.APIKey)
-	}
-
-	if c.config.Verbose {
-		fmt.Printf("Request: POST %s\n", endpoint)
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	// Check for non-OK status and parse SwarmUI error format
-	if resp.StatusCode != http.StatusOK {
-		if swarmErr := parseSwarmUIError(bodyBytes); swarmErr != nil {
-			return nil, swarmErr
-		}
-		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(bodyBytes))
-	}
-
-	var apiResp struct {
-		Models  []Model `json:"models"`
-		Error   string  `json:"error,omitempty"`
-		ErrorID string  `json:"error_id,omitempty"`
-	}
-
-	if err := json.Unmarshal(bodyBytes, &apiResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	// Handle SwarmUI-specific errors in successful responses
-	if apiResp.Error != "" {
-		if apiResp.ErrorID != "" {
-			return nil, fmt.Errorf("SwarmUI error (%s): %s", apiResp.ErrorID, apiResp.Error)
-		}
-		return nil, fmt.Errorf("SwarmUI error: %s", apiResp.Error)
+		return nil, fmt.Errorf("failed to list models: %w", err)
 	}
 
 	// Find the specific model by name
-	for _, model := range apiResp.Models {
+	for _, model := range models {
 		if model.Name == name {
 			return &model, nil
 		}
