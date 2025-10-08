@@ -223,24 +223,32 @@ if req.Model != "" {
 
 ## Edge Cases and Minor Issues
 
-### 9. EDGE CASE BUG: Race Condition in Session Management
+### 9. EDGE CASE BUG: Race Condition in Session Management  
 **File:** `pkg/client/client.go:81-86, 163-166`  
 **Severity:** Low  
 **Impact:** Memory leak potential if sessions accumulate over time
+**Status:** ✅ **RESOLVED** (Commit: 7d95d52, Date: 2025-10-08)
 
-The session management has potential race condition between session creation and cleanup, though currently mitigated by simple HTTP approach.
+~~The session management has potential race condition between session creation and cleanup, though currently mitigated by simple HTTP approach.~~
+
+**Resolution:** Added automatic session cleanup using defer in GenerateImage function. Sessions are now properly removed from memory after completion or error.
 
 **Expected Behavior:** Should have proper synchronization for concurrent session access
 
-**Actual Behavior:** Session map access is protected by mutex but session cleanup is not implemented
+**Actual Behavior:** ~~Session map access is protected by mutex but session cleanup is not implemented~~ Now has proper session lifecycle with automatic cleanup.
 
-**Reproduction:** Run many generation commands in quick succession
+**Reproduction:** ~~Run many generation commands in quick succession~~ Fixed - sessions are automatically cleaned up preventing memory leaks.
 
 **Code Reference:**
 ```go
-c.mu.Lock()
-c.sessions[sessionID] = session  // Added but never cleaned up
-c.mu.Unlock()
+// FIXED: Added automatic session cleanup
+defer c.cleanupSession(sessionID)
+
+func (c *SwarmClient) cleanupSession(sessionID string) {
+    c.mu.Lock()
+    defer c.mu.Unlock()
+    delete(c.sessions, sessionID) // Prevents memory leak
+}
 ```
 
 ## Architectural Assessment
