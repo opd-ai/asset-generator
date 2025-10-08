@@ -24,17 +24,21 @@ type Config struct {
 type SwarmClient struct {
 	config     *Config
 	httpClient *http.Client
-	wsConn     *websocket.Conn
+	wsConn     *websocket.Conn // Reserved for future WebSocket implementation
 	mu         sync.RWMutex
 	sessions   map[string]*GenerationSession
 }
 
+// ProgressCallback is called with progress updates during generation
+type ProgressCallback func(progress float64, status string)
+
 // GenerationRequest represents a request to generate an asset
 type GenerationRequest struct {
-	Prompt     string                 `json:"prompt"`
-	Model      string                 `json:"model,omitempty"`
-	Parameters map[string]interface{} `json:"parameters"`
-	SessionID  string                 `json:"session_id,omitempty"`
+	Prompt           string                 `json:"prompt"`
+	Model            string                 `json:"model,omitempty"`
+	Parameters       map[string]interface{} `json:"parameters"`
+	SessionID        string                 `json:"session_id,omitempty"`
+	ProgressCallback ProgressCallback       `json:"-"` // Not serialized, used for progress updates
 }
 
 // GenerationResult represents the result of a generation
@@ -232,11 +236,34 @@ func (c *SwarmClient) GenerateImage(ctx context.Context, req *GenerationRequest)
 		fmt.Printf("Request: POST %s\n", endpoint)
 	}
 
+	// Report initial progress
+	if req.ProgressCallback != nil {
+		req.ProgressCallback(0.0, "Starting generation...")
+		session.Progress = 0.0
+		session.Status = "starting"
+	}
+
+	// Start progress simulation in background for HTTP requests
+	// Since we're using HTTP (not WebSocket), we simulate progress
+	var progressDone chan bool
+	if req.ProgressCallback != nil {
+		progressDone = make(chan bool, 1)
+		go c.simulateProgress(sessionID, req.ProgressCallback, progressDone)
+	}
+
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
+		if progressDone != nil {
+			progressDone <- true // Stop progress simulation
+		}
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
+
+	// Stop progress simulation
+	if progressDone != nil {
+		progressDone <- true
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -279,6 +306,11 @@ func (c *SwarmClient) GenerateImage(ctx context.Context, req *GenerationRequest)
 	session.Progress = 1.0
 	session.Result = result
 	c.mu.Unlock()
+
+	// Report completion
+	if req.ProgressCallback != nil {
+		req.ProgressCallback(1.0, "Generation completed")
+	}
 
 	return result, nil
 }
@@ -377,6 +409,41 @@ func (c *SwarmClient) GetModel(name string) (*Model, error) {
 	}
 
 	return &model, nil
+}
+
+// simulateProgress provides progress updates for HTTP-based generation
+// This is a temporary solution until WebSocket support is implemented
+// TODO: Replace with actual WebSocket implementation using GenerateText2ImageWS endpoint
+func (c *SwarmClient) simulateProgress(sessionID string, callback ProgressCallback, done chan bool) {
+	ticker := time.NewTicker(500 * time.Millisecond) // Update every 500ms
+	defer ticker.Stop()
+	
+	progress := 0.1 // Start at 10%
+	increment := 0.05 // Increase by 5% each tick
+	
+	for {
+		select {
+		case <-done:
+			return
+		case <-ticker.C:
+			progress += increment
+			if progress > 0.9 { // Cap at 90% until completion
+				progress = 0.9
+				increment = 0.01 // Slow down near completion
+			}
+			
+			// Update session progress
+			c.mu.Lock()
+			if session, exists := c.sessions[sessionID]; exists {
+				session.Progress = progress
+				session.Status = "generating"
+			}
+			c.mu.Unlock()
+			
+			// Call progress callback
+			callback(progress, "Generating...")
+		}
+	}
 }
 
 // Close closes any open connections
