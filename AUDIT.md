@@ -117,7 +117,9 @@ if apiResp.ErrorID == "invalid_session_id" {
 
 ---
 
-### Gap #4: Batch Size Parameter Translation Inconsistency (Moderate)
+### Gap #4: Batch Size Parameter Translation Inconsistency (Moderate) ✅ RESOLVED
+
+**Status:** Resolved in commit aa48079 (2025-10-08)
 
 **Documentation Reference:** 
 > "| `--batch` | `-b` | Number of images to generate | `1` |" (README.md:178)
@@ -128,11 +130,24 @@ if apiResp.ErrorID == "invalid_session_id" {
 
 **Implementation Location:** `pkg/client/client.go:170-176`, `cmd/generate.go:107-112`
 
+**Resolution:**
+Standardized on SwarmUI's native `images` parameter name throughout the codebase:
+- Changed CLI to set `Parameters["images"]` directly instead of `Parameters["batch_size"]`
+- Removed translation logic in client that converted `batch_size` to `images`
+- Simplified code path: CLI → `images` parameter → API body (no intermediate translation)
+- Updated comments to clarify parameter matches SwarmUI API convention
+
+**Verification:**
+- **Code path analysis:** Batch size flows directly from CLI flag to API without translation
+- **Build verification:** Successful compilation confirms no regressions
+- **Maintainability:** Future developers can now set "images" directly without confusion
+- **API compatibility:** Parameter name matches SwarmUI API documentation
+
 **Expected Behavior:** The `--batch` flag should consistently generate the specified number of images
 
-**Actual Implementation:** Code correctly translates `batch_size` parameter to `images` field for SwarmUI API, but the variable naming creates confusion
+**Actual Implementation:** ~~Code correctly translates `batch_size` parameter to `images` field for SwarmUI API, but the variable naming creates confusion~~
 
-**Gap Details:** The CLI uses `--batch` flag which sets `batch_size` in parameters. The client then translates this to `images` field (which SwarmUI expects). However, the parameter is initially set as `"batch_size"` in the request map, then later checked and translated. This works but creates unnecessary intermediate translation. The code comment acknowledges this: "SwarmUI uses 'images' not 'batch_size'".
+**Gap Details:** ~~The CLI uses `--batch` flag which sets `batch_size` in parameters. The client then translates this to `images` field (which SwarmUI expects). However, the parameter is initially set as `"batch_size"` in the request map, then later checked and translated. This works but creates unnecessary intermediate translation. The code comment acknowledges this: "SwarmUI uses 'images' not 'batch_size'".~~ **RESOLVED:** Now uses SwarmUI's `images` parameter directly.
 
 **Reproduction:**
 ```bash
@@ -140,38 +155,36 @@ if apiResp.ErrorID == "invalid_session_id" {
 asset-generator generate image --prompt "test" --batch 4
 # Correctly generates 4 images
 
-# But internally it does:
-# 1. CLI: batch flag -> Parameters["batch_size"] = 4
-# 2. Client: checks Parameters["batch_size"], sets body["images"] = 4
+# Internally (after fix):
+# 1. CLI: batch flag -> Parameters["images"] = 4
+# 2. Client: uses Parameters["images"] directly, sets body["images"] = 4
 # 3. API receives: {"images": 4} ✓
-
-# Extra translation step is unnecessary
 ```
 
-**Production Impact:** Moderate - No user-facing issues, but code maintainability concern. Future developers might set "images" directly, causing duplication.
+**Production Impact:** ~~Moderate - No user-facing issues, but code maintainability concern. Future developers might set "images" directly, causing duplication.~~ **RESOLVED:** Code now maintainable and consistent.
 
 **Evidence:**
 ```go
-// cmd/generate.go:107-112
+// cmd/generate.go:112 (after fix)
 req := &client.GenerationRequest{
     Prompt: generatePrompt,
     Parameters: map[string]interface{}{
         // ... 
-        "batch_size": generateBatchSize, // Sets batch_size
+        "images": generateBatchSize, // Uses SwarmUI parameter name directly
         // ...
     },
 }
 
-// pkg/client/client.go:170-176
-// Add batch size parameter if specified (SwarmUI expects "images" field)
-if batchSize, ok := req.Parameters["batch_size"]; ok && batchSize != nil {
-    if bs, isInt := batchSize.(int); isInt && bs > 0 {
-        body["images"] = bs  // Translates to images
+// pkg/client/client.go:170-175 (after fix)
+// Override images count if specified in parameters
+if images, ok := req.Parameters["images"]; ok && images != nil {
+    if img, isInt := images.(int); isInt && img > 0 {
+        body["images"] = img  // Direct usage, no translation
     }
 }
 ```
 
-**Recommended Improvement:** Document this translation layer or standardize on SwarmUI parameter names throughout.
+**Recommended Improvement:** ~~Document this translation layer or standardize on SwarmUI parameter names throughout.~~ **IMPLEMENTED**
 
 ---
 
