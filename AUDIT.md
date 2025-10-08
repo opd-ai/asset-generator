@@ -147,23 +147,39 @@ buf.WriteString(strings.Join(separators, "-+-")) // Proper borders
 ```
 
 ### 5. FUNCTIONAL MISMATCH: Error Messages Don't Match SwarmUI API Format
-**File:** `pkg/client/client.go:142-145`  
+**File:** `pkg/client/client.go:342-350, 368-377, 419-428, 447-456`  
 **Severity:** Medium  
 **Impact:** Users get unhelpful error messages when API calls fail
+**Status:** ✅ **RESOLVED** (Commit: b20d288, Date: 2025-10-08)
 
-The error handling assumes generic HTTP error responses but SwarmUI likely returns structured error messages.
+~~The error handling assumes generic HTTP error responses but SwarmUI likely returns structured error messages.~~
+
+**Resolution:** Added parseSwarmUIError helper function that parses SwarmUI's structured error format (error and error_id fields). Updated ListModels and GetModel methods to use this helper for both HTTP errors and successful responses containing errors. Error messages now include error_id context when available.
 
 **Expected Behavior:** Should parse SwarmUI-specific error format and provide meaningful error messages
 
-**Actual Behavior:** Returns raw HTTP response body as error message
+**Actual Behavior:** ~~Returns raw HTTP response body as error message~~ Now parses JSON error responses and formats them with error_id context when available.
 
-**Reproduction:** Try any API call with wrong credentials or invalid parameters
+**Reproduction:** ~~Try any API call with wrong credentials or invalid parameters~~ Fixed - errors now show "SwarmUI error (error_id): message" format.
 
 **Code Reference:**
 ```go
-if resp.StatusCode != http.StatusOK {
-    bodyBytes, _ := io.ReadAll(resp.Body)
-    return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(bodyBytes))
+// FIXED: Added helper function to parse SwarmUI error format
+func parseSwarmUIError(body []byte) error {
+    var errResp struct {
+        Error   string `json:"error,omitempty"`
+        ErrorID string `json:"error_id,omitempty"`
+    }
+    if err := json.Unmarshal(body, &errResp); err != nil {
+        return nil // Not a JSON error response
+    }
+    if errResp.Error != "" {
+        if errResp.ErrorID != "" {
+            return fmt.Errorf("SwarmUI error (%s): %s", errResp.ErrorID, errResp.Error)
+        }
+        return fmt.Errorf("SwarmUI error: %s", errResp.Error)
+    }
+    return nil
 }
 ```
 
