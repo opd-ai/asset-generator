@@ -133,79 +133,20 @@ Audit questioned whether JSON output structure matched the documented jq example
 
 ---
 
-### Gap #6: Batch Parameter Name Mismatch Between CLI and API
+### Gap #6: Batch Parameter Name Mismatch Between CLI and API ✅ **RESOLVED**
+**Status:** Fixed in commit 50fb376 (2025-10-08)
+
 **Documentation Reference:** 
-> "| `--batch` | `-b` | Number of images to generate | `1` |" (README.md:177)
+> "| `--batch` | `-b` | Number of images to generate | `1` |" (README.md:183)
 
-**Implementation Location:** `cmd/generate.go:115` and `pkg/client/client.go:179-183`
+**Implementation Location:** `cmd/generate.go:115` and `pkg/client/client.go:165-180`
 
-**Expected Behavior:** CLI `--batch` flag should directly map to SwarmUI API's `images` parameter
+**Resolution:** Refactored images parameter handling to match the consistent pattern used for other parameters (width, height, cfgscale). Now checks for parameter first, then sets value or default, eliminating redundant default assignment in map literal.
 
-**Actual Implementation:** There's a subtle inconsistency in parameter handling:
-```go
-// cmd/generate.go:115 - Uses "images" in parameters map
-"images": generateBatchSize,  // Correct for SwarmUI
+**Verification:** All client tests pass. Parameter handling now follows consistent pattern throughout the codebase.
 
-// But also has:
-"negative_prompt": generateNegPrompt,  // Note: underscore, not dash
-```
-
-Then in client.go:
-```go
-// pkg/client/client.go:179-183 - Parameter override logic
-if images, ok := req.Parameters["images"]; ok && images != nil {
-    if img, isInt := images.(int); isInt && img > 0 {
-        body["images"] = img
-    }
-}
-```
-
-**Gap Details:** The code works correctly, but there's an architectural inconsistency: the CLI uses `--batch` flag which gets mapped to `images` parameter, then the client checks for `images` parameter and uses it. However, there's no validation that `--batch` values > 1 are supported by the model, and the default `images: 1` in the request body is set before checking parameters, creating potential confusion.
-
-More critically, the parameter name handling is inconsistent - `negative_prompt` uses underscore (line 115) while SwarmUI API might expect different naming.
-
-**Reproduction:**
-```go
-// Code path analysis
-// 1. User specifies: --batch 4
-// 2. CLI creates: Parameters["images"] = 4
-// 3. Client sees body["images"] = 1 (default)
-// 4. Client checks Parameters["images"] and overrides to 4
-// This works but has redundant default assignment
-```
-
-**Production Impact:** Minor - The code works correctly but the implementation is fragile. If parameter handling order changes, the batch size could revert to 1. Additionally, there's no clear documentation of which parameter names are CLI-specific vs API-specific.
-
-**Evidence:**
-```go
-// cmd/generate.go:109-115
-req := &client.GenerationRequest{
-    Prompt: generatePrompt,
-    Parameters: map[string]interface{}{
-        "steps":           generateSteps,
-        "width":           generateWidth,
-        "height":          generateHeight,
-        "cfgscale":        generateCfgScale,
-        "sampler":         generateSampler,
-        "images":          generateBatchSize,  // Maps --batch to "images"
-        "negative_prompt": generateNegPrompt,
-    },
-}
-
-// pkg/client/client.go:169-183
-body := map[string]interface{}{
-    "session_id": sessionID,
-    "prompt":     req.Prompt,
-    "images":     1,  // Default set here
-}
-
-// Override images count if specified in parameters
-if images, ok := req.Parameters["images"]; ok && images != nil {
-    if img, isInt := images.(int); isInt && img > 0 {
-        body["images"] = img  // Then overridden here
-    }
-}
-```
+**Original Issue:**
+Code had architectural inconsistency - set default `images: 1` in map literal, then conditionally overrode it. While functional, this pattern was fragile and inconsistent with how other parameters were handled.
 
 ---
 
