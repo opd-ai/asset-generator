@@ -31,39 +31,24 @@ Flag was defined without short version, causing "unknown shorthand flag: 'n'" er
 
 ---
 
-### Gap #2: Missing Short Flags for `--width` and `--height` Parameters
+### Gap #2: Missing Short Flags for `--width` and `--height` Parameters ✅ **PARTIALLY RESOLVED**
+**Status:** Partially fixed in commit 5ca637b (2025-10-08)
+
 **Documentation Reference:** 
-> "| `--width` | `-w` | Image width | `512` |" (README.md:172)  
-> "| `--height` | `-h` | Image height | `512` |" (README.md:173)
+> "| `--width` | `-w` | Image width | `512` |" (README.md:178)  
+> "| `--height` | `-h` | Image height | `512` |" (README.md:179)
 
 **Implementation Location:** `cmd/generate.go:72-73`
 
-**Expected Behavior:** Width and height should support short flags `-w` and `-h` respectively
+**Resolution:** 
+- Added `-w` short flag for `--width` by changing to `IntVarP`
+- Removed `-h` documentation for `--height` in README.md due to conflict with Cobra's standard help flag
+- Height parameter accessible only via `--height` (long form)
 
-**Actual Implementation:** Flags defined without short versions:
-```go
-generateImageCmd.Flags().IntVar(&generateWidth, "width", 512, "image width")
-generateImageCmd.Flags().IntVar(&generateHeight, "height", 512, "image height")
-```
+**Verification:** Build successful. Command `./asset-generator generate image --help` shows `-w, --width int` for width and `--height int` (no short flag) for height.
 
-**Gap Details:** Documentation explicitly lists `-w` and `-h` as short flags for width and height, but implementation uses `IntVar` instead of `IntVarP`. This is particularly problematic as `-h` conflicts with the common help flag pattern, though cobra handles this gracefully by prioritizing command-specific flags.
-
-**Reproduction:**
-```bash
-# These documented commands will fail
-asset-generator generate image --prompt "landscape" -w 1024 -h 768
-# Error: unknown shorthand flag: 'w' in -w
-# Error: unknown shorthand flag: 'h' in -h
-```
-
-**Production Impact:** Moderate - Affects power users and scripting scenarios where short flags improve readability and reduce typing. Documentation explicitly promises this functionality.
-
-**Evidence:**
-```go
-// cmd/generate.go:72-73 - Should be IntVarP with "w" and "h"
-generateImageCmd.Flags().IntVar(&generateWidth, "width", 512, "image width")
-generateImageCmd.Flags().IntVar(&generateHeight, "height", 512, "image height")
-```
+**Original Issue:**
+Both width and height flags lacked short versions. However, `-h` conflicts with the universal help flag convention in Cobra, making it unsuitable. Solution: only width gets short flag `-w`, height remains long-form only.
 
 ---
 
