@@ -1,6 +1,17 @@
 # Asset Generator CLI
 
-A powerful command-line interface for interacting with AI asset generation APIs. Generate assets, manage models, and configure your asset generation workflow with ease.
+A powerful command-line interface for interacting with AI asset generation APIs. Generate assets, manage models, and configure your a| Flag | Short | Description | Default |
+|------|-------|-------------|---------|
+| `--prompt` | `-p` | Image prompt (required) | |
+| `--model` | | Model to use | |
+| `--width` | | Image width | `512` |
+| `--height` | | Image height | `512` |
+| `--steps` | | Inference steps | `20` |
+| `--cfg-scale` | | CFG scale (guidance) | `7.5` |
+| `--sampler` | | Sampling method | `euler_a` |
+| `--batch` | `-b` | Number of images to generate | `1` |
+| `--seed` | | Random seed (-1 for random) | `-1` |
+| `--negative-prompt` | | Negative prompt | |ion workflow with ease.
 
 ## Features
 
