@@ -127,12 +127,18 @@ Configuration can be provided through multiple sources with the following preced
 
 1. **Command-line flags** (highest priority)
 2. **Environment variables** (prefixed with `ASSET_GENERATOR_`)
-3. **Configuration file** (`~/.asset-generator/config.yaml`)
+3. **Configuration file** (searches multiple locations)
 4. **Default values** (lowest priority)
 
 ### Configuration File
 
-Location: `~/.asset-generator/config.yaml`
+The application searches for `config.yaml` in the following locations (in order of precedence):
+
+1. `./config/config.yaml` - Current directory (highest precedence)
+2. `~/.asset-generator/config.yaml` - User's home directory
+3. `/etc/asset-generator/config.yaml` - System-wide configuration (lowest precedence)
+
+You can also specify a custom config file location using the `--config` flag, which takes highest precedence among configuration files.
 
 ```yaml
 api-url: http://localhost:7801
