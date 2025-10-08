@@ -1,0 +1,439 @@
+# Implementation Gap Analysis
+Generated: 2025-10-08T17:00:28-04:00
+Codebase Version: e250dd9 (HEAD -> main)
+
+## Executive Summary
+Total Gaps Found: 7
+- Critical: 2
+- Moderate: 3
+- Minor: 2
+
+This audit focuses on subtle implementation gaps in a mature Go application approaching production readiness. The analysis identified precise discrepancies between documented behavior and actual implementation, particularly in edge cases, error handling, and configuration management.
+
+---
+
+## Detailed Findings
+
+### Gap #1: Config Commands Bypass Client Initialization (Critical)
+
+**Documentation Reference:** 
+> "Configuration can be provided through multiple sources with the following precedence: 1. Command-line flags (highest priority) 2. Environment variables (prefixed with `ASSET_GENERATOR_`) 3. Configuration file (`~/.asset-generator/config.yaml`) 4. Default values (lowest priority)" (README.md:118-121)
+
+**Implementation Location:** `cmd/root.go:37-57`, `cmd/config.go:1-201`
+
+**Expected Behavior:** Config commands should work independently without requiring API client initialization
+
+**Actual Implementation:** The `PersistentPreRunE` in `root.go` always attempts to create an `AssetClient`, even for config commands that don't need it
+
+**Gap Details:** The root command's `PersistentPreRunE` runs for ALL commands including `config init`, `config set`, `config view`, and `config get`. This causes two issues:
+1. If the API URL is invalid or unreachable, config commands fail unnecessarily
+2. Config commands perform unnecessary client initialization, wasting resources
+
+**Reproduction:**
+```bash
+# Set invalid API URL
+export ASSET_GENERATOR_API_URL=invalid-url
+
+# Try to fix it with config command
+asset-generator config set api-url http://localhost:7801
+# FAILS: "failed to initialize config: invalid api-url: failed to parse URL..."
+
+# Or with unreachable endpoint
+asset-generator config set api-url http://unreachable:9999
+# SUCCESS but wastes time trying to init client that config commands don't need
+```
+
+**Production Impact:** Critical - Users cannot fix configuration issues using config commands when the current config is invalid, creating a catch-22 situation.
+
+**Evidence:**
+```go
+// cmd/root.go:37-57
+PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+    // Initialize configuration
+    if err := initConfig(); err != nil {
+        return fmt.Errorf("failed to initialize config: %w", err)
+    }
+
+    // Initialize client - THIS RUNS FOR ALL COMMANDS INCLUDING CONFIG
+    clientCfg := &client.Config{
+        BaseURL: viper.GetString("api-url"),
+        APIKey:  viper.GetString("api-key"),
+        Verbose: verbose,
+    }
+
+    var err error
+    assetClient, err = client.NewAssetClient(clientCfg)
+    if err != nil {
+        return fmt.Errorf("failed to create asset generation client: %w", err)
+    }
+
+    return nil
+},
+```
+
+**Recommended Fix:** Add `PreRun` to config command to skip parent's `PersistentPreRunE`, or check command path before initializing client.
+
+---
+
+### Gap #2: Negative Prompt Flag Short Form Conflicts with Height (Moderate)
+
+**Documentation Reference:** 
+> "| `--negative-prompt` | `-n` | Negative prompt | |" (README.md:177)
+> "| `--height` | `-h` | Image height | `512` |" (README.md:171)
+
+**Implementation Location:** `cmd/generate.go:75-76`
+
+**Expected Behavior:** Both `-n` (negative-prompt) and `-h` (height) short flags should work independently
+
+**Actual Implementation:** The `-n` short flag is defined but `-h` is also used by Cobra's built-in help flag, creating ambiguity
+
+**Gap Details:** README.md documents `-h` as the short form for `--height` (line 171) and `-n` for `--negative-prompt` (line 177). However, `-h` is a standard flag for help in most CLI tools and Cobra reserves it. The code correctly does NOT implement `-h` short flag for height (avoiding the conflict), but the documentation promises it.
+
+**Reproduction:**
+```bash
+# Documentation says this should work:
+asset-generator generate image --prompt "test" -h 1024
+# ERROR: unknown shorthand flag: 'h' in -h
+
+# This works (as implemented):
+asset-generator generate image --prompt "test" --height 1024
+
+# But documentation created false expectation
+```
+
+**Production Impact:** Moderate - Users following documentation will encounter unexpected errors. No data loss, but frustrating UX.
+
+**Evidence:**
+```go
+// cmd/generate.go:70-71 - Correctly avoids -h conflict
+generateImageCmd.Flags().IntVar(&generateWidth, "width", 512, "image width")
+generateImageCmd.Flags().IntVar(&generateHeight, "height", 512, "image height")
+// No short flag defined, but README.md:171 promises -h
+
+// cmd/generate.go:75 - -n is implemented
+generateImageCmd.Flags().StringVar(&generateNegPrompt, "negative-prompt", "", "negative prompt")
+// But no short flag bound either, despite README.md:177 showing -n
+```
+
+**Correction:** Actually reviewing more carefully, the code at line 75 does NOT bind the `-n` short flag shown in the table. The documentation table is incorrect for both flags.
+
+---
+
+### Gap #3: Session Reuse Without Validation (Critical)
+
+**Documentation Reference (from API.md):**
+> "All API routes, with the exception of `GetNewSession`, require a `session_id` input in the JSON." (API.md:17)
+> "If the `error_id` is `invalid_session_id`, you must recall `/API/GetNewSession` and try again." (API.md:24)
+
+**Implementation Location:** `pkg/client/client.go:354-377`, `pkg/client/client.go:544-556`
+
+**Expected Behavior:** Client should detect invalid session errors and automatically retry with new session for all API calls
+
+**Actual Implementation:** Only `ListModelsWithOptions` handles `invalid_session_id` retry (line 544-548). `GenerateImage` does NOT retry on invalid session.
+
+**Gap Details:** The client caches `sessionID` in `c.sessionID` field and reuses it across multiple API calls. If the session expires on the server side (SwarmUI sessions can expire), the `GenerateImage` method will fail without attempting to get a new session. Only `ListModels` implements the retry logic documented in API.md.
+
+**Reproduction:**
+```go
+// Scenario: Session expires between calls
+client, _ := client.NewAssetClient(config)
+
+// First call succeeds, caches session
+models, _ := client.ListModels()
+
+// Time passes, server expires the session
+// (SwarmUI may expire sessions after inactivity)
+
+// Second call fails without retry
+req := &client.GenerationRequest{Prompt: "test"}
+result, err := client.GenerateImage(ctx, req)
+// Returns error: "SwarmUI error (invalid_session_id)"
+// Does NOT automatically retry with new session
+```
+
+**Production Impact:** Critical - Long-running CLI sessions or automated scripts will fail intermittently when sessions expire, requiring manual restart.
+
+**Evidence:**
+```go
+// pkg/client/client.go:544-548 - ListModels HAS retry logic
+if apiResp.Error != "" {
+    // Handle session expiration
+    if apiResp.ErrorID == "invalid_session_id" {
+        // Clear session and retry once
+        c.mu.Lock()
+        c.sessionID = ""
+        c.mu.Unlock()
+        return c.ListModelsWithOptions(options)
+    }
+
+// pkg/client/client.go:285-292 - GenerateImage LACKS retry logic
+if apiResp.Error != "" {
+    return nil, fmt.Errorf("SwarmUI error: %s", apiResp.Error)
+}
+
+if apiResp.ErrorID != "" {
+    return nil, fmt.Errorf("SwarmUI error (ID: %s)", apiResp.ErrorID)
+}
+// No check for invalid_session_id or retry mechanism
+```
+
+---
+
+### Gap #4: Batch Size Parameter Translation Inconsistency (Moderate)
+
+**Documentation Reference:** 
+> "| `--batch` | `-b` | Number of images to generate | `1` |" (README.md:178)
+> "# Batch generation
+> asset-generator generate image \
+>   --prompt \"beautiful landscape\" \
+>   --batch 4" (README.md:79-81)
+
+**Implementation Location:** `pkg/client/client.go:170-176`, `cmd/generate.go:107-112`
+
+**Expected Behavior:** The `--batch` flag should consistently generate the specified number of images
+
+**Actual Implementation:** Code correctly translates `batch_size` parameter to `images` field for SwarmUI API, but the variable naming creates confusion
+
+**Gap Details:** The CLI uses `--batch` flag which sets `batch_size` in parameters. The client then translates this to `images` field (which SwarmUI expects). However, the parameter is initially set as `"batch_size"` in the request map, then later checked and translated. This works but creates unnecessary intermediate translation. The code comment acknowledges this: "SwarmUI uses 'images' not 'batch_size'".
+
+**Reproduction:**
+```bash
+# This works as documented:
+asset-generator generate image --prompt "test" --batch 4
+# Correctly generates 4 images
+
+# But internally it does:
+# 1. CLI: batch flag -> Parameters["batch_size"] = 4
+# 2. Client: checks Parameters["batch_size"], sets body["images"] = 4
+# 3. API receives: {"images": 4} ✓
+
+# Extra translation step is unnecessary
+```
+
+**Production Impact:** Moderate - No user-facing issues, but code maintainability concern. Future developers might set "images" directly, causing duplication.
+
+**Evidence:**
+```go
+// cmd/generate.go:107-112
+req := &client.GenerationRequest{
+    Prompt: generatePrompt,
+    Parameters: map[string]interface{}{
+        // ... 
+        "batch_size": generateBatchSize, // Sets batch_size
+        // ...
+    },
+}
+
+// pkg/client/client.go:170-176
+// Add batch size parameter if specified (SwarmUI expects "images" field)
+if batchSize, ok := req.Parameters["batch_size"]; ok && batchSize != nil {
+    if bs, isInt := batchSize.(int); isInt && bs > 0 {
+        body["images"] = bs  // Translates to images
+    }
+}
+```
+
+**Recommended Improvement:** Document this translation layer or standardize on SwarmUI parameter names throughout.
+
+---
+
+### Gap #5: Missing WebSocket Progress Support (Moderate)
+
+**Documentation Reference (from API.md):**
+> "Some API routes, designated with a `WS` suffix, take WebSocket connections. Usually these take one up front input, and give several outputs slowly over time (for example `GenerateText2ImageWS` gives progress updates as it goes and preview images)." (API.md:13)
+
+**Implementation Location:** `pkg/client/client.go:28`, `pkg/client/client.go:598-618`
+
+**Expected Behavior:** Real-time progress updates during generation via WebSocket
+
+**Actual Implementation:** WebSocket infrastructure is scaffolded but not implemented. Progress is simulated using a ticker.
+
+**Gap Details:** The codebase includes `gorilla/websocket` dependency and has a `wsConn` field in `AssetClient`, but it's never used. The `simulateProgress` function provides fake progress updates instead of real WebSocket progress from `GenerateText2ImageWS` endpoint.
+
+**Reproduction:**
+```go
+// Current behavior:
+client.GenerateImage(ctx, req)
+// Progress updates are simulated: 10%, 15%, 20%... capped at 90%
+// Real generation might be at 5% or 95% - user has no idea
+
+// Expected behavior (from API.md):
+// Connect to /API/GenerateText2ImageWS via WebSocket
+// Receive real progress: {"progress": 0.23, "preview_image": "..."}
+```
+
+**Production Impact:** Moderate - Users get inaccurate progress information. Long Flux generations (5-10 minutes) show fake progress, harming UX.
+
+**Evidence:**
+```go
+// pkg/client/client.go:28
+wsConn     *websocket.Conn // Reserved for future WebSocket implementation
+
+// pkg/client/client.go:598-618 - Simulated progress
+func (c *AssetClient) simulateProgress(sessionID string, callback ProgressCallback, done chan bool) {
+    ticker := time.NewTicker(500 * time.Millisecond)
+    defer ticker.Stop()
+
+    progress := 0.1   // Start at 10%
+    increment := 0.05 // Increase by 5% each tick
+
+    for {
+        select {
+        case <-done:
+            return
+        case <-ticker.C:
+            progress += increment
+            if progress > 0.9 { // Cap at 90% until completion
+                progress = 0.9
+                increment = 0.01 // Slow down near completion
+            }
+            // ... simulated progress, not real
+```
+
+**Recommended Fix:** Implement WebSocket connection to `GenerateText2ImageWS` endpoint for real progress.
+
+---
+
+### Gap #6: Config View Doesn't Load Config File (Minor)
+
+**Documentation Reference:**
+> "Configuration can be provided through multiple sources with the following precedence: 1. Command-line flags (highest priority) 2. Environment variables (prefixed with `ASSET_GENERATOR_`) 3. Configuration file (`~/.asset-generator/config.yaml`) 4. Default values (lowest priority)" (README.md:118-121)
+
+**Implementation Location:** `cmd/config.go:76-104`, `cmd/root.go:37-38`
+
+**Expected Behavior:** `asset-generator config view` should display the merged configuration from all sources
+
+**Actual Implementation:** `config view` command runs WITHOUT the `PersistentPreRunE` that calls `initConfig()`, so it only shows in-memory viper values, not the actual loaded config
+
+**Gap Details:** Because of Gap #1 (config commands should bypass client init), if we fix that issue, `config view` would also bypass `initConfig()`. Currently it's in a weird state: it relies on the side effect of `initConfig()` in `PersistentPreRunE`, but that function is the source of Gap #1.
+
+**Reproduction:**
+```bash
+# Create config file with api-url
+echo "api-url: http://example.com:7801" > ~/.asset-generator/config.yaml
+
+# View config
+asset-generator config view
+# Shows: api-url: http://example.com:7801 ✓
+
+# BUT if config file fails to load (permission error, etc.)
+# OR if we fix Gap #1 by skipping PersistentPreRunE
+# config view would show empty or incomplete settings
+```
+
+**Production Impact:** Minor - Works in normal cases but fragile. Will break if Gap #1 is fixed without also updating config commands.
+
+**Evidence:**
+```go
+// cmd/config.go:76-82
+func runConfigView(cmd *cobra.Command, args []string) error {
+    settings := viper.AllSettings() // Gets in-memory viper state
+    
+    if len(settings) == 0 {
+        fmt.Println("No configuration found...")
+        return nil
+    }
+    // Does NOT call initConfig() itself, relies on PersistentPreRunE
+```
+
+**Recommended Fix:** Explicitly call `initConfig()` in config commands that need to read settings, separate from client initialization.
+
+---
+
+### Gap #7: Model Validation Error Provides Truncated Suggestions (Minor)
+
+**Documentation Reference:**
+> "# Get details about a specific model
+> asset-generator models get stable-diffusion-xl" (README.md:98-99)
+
+**Implementation Location:** `cmd/generate.go:192-220`
+
+**Expected Behavior:** Helpful error message with relevant model suggestions when specified model not found
+
+**Actual Implementation:** Suggestions are limited to first 5 models, which may not include the most relevant models
+
+**Gap Details:** When model validation fails, the error suggests up to 5 models from the available list. However, these are the *first* 5 models alphabetically, not necessarily the most relevant or commonly used models. For a deployment with 50+ models, showing the first 5 alphabetically isn't helpful.
+
+**Reproduction:**
+```bash
+# Assume 50 models available, first 5 alphabetically are obscure LoRAs
+asset-generator generate image --prompt "test" --model "stable-diffusion-3"
+# Error: model 'stable-diffusion-3' not found
+# 
+# Available models:
+#   anime-lora-v1
+#   anime-lora-v2
+#   cartoon-style-lora
+#   experimental-model-a
+#   experimental-model-b
+#
+# User wanted to know about stable-diffusion-xl but it's not in first 5
+```
+
+**Production Impact:** Minor - Error handling is functional but not optimal. Users get unhelpful suggestions.
+
+**Evidence:**
+```go
+// cmd/generate.go:208-213
+if len(models) > 0 {
+    var suggestions []string
+    for i, model := range models {
+        if i < 5 { // Limit to first 5 suggestions - arbitrary
+            suggestions = append(suggestions, model.Name)
+        }
+    }
+```
+
+**Recommended Improvement:** Use fuzzy string matching to find similar model names, or at least include models with "stable-diffusion" in the name if user's query contained it.
+
+---
+
+## Summary of Impacts
+
+### Critical Issues (2)
+1. **Gap #1**: Config commands fail when API config is invalid - blocks self-recovery
+2. **Gap #3**: Session expiration causes failures without retry - impacts long-running usage
+
+### Moderate Issues (3)
+1. **Gap #2**: Documentation promises non-existent short flags - confuses users
+2. **Gap #4**: Unnecessary parameter translation layer - maintainability concern
+3. **Gap #5**: Missing WebSocket support - poor progress feedback for long operations
+
+### Minor Issues (2)
+1. **Gap #6**: Config view fragile due to initialization dependency
+2. **Gap #7**: Model suggestions not optimized for relevance
+
+## Recommendations
+
+**Priority 1 (Immediate):**
+- Fix Gap #1: Separate config initialization from client initialization
+- Fix Gap #3: Implement session retry logic in GenerateImage
+
+**Priority 2 (Before v1.0):**
+- Fix Gap #2: Update README.md to remove incorrect short flag documentation
+- Fix Gap #5: Implement WebSocket support for real progress updates
+
+**Priority 3 (Enhancement):**
+- Fix Gap #4: Refactor parameter naming for consistency
+- Fix Gap #6: Make config view explicitly load configuration
+- Fix Gap #7: Improve model suggestion algorithm
+
+## Testing Recommendations
+
+Add integration tests for:
+1. Config commands with invalid API configuration
+2. Session expiration and automatic retry
+3. Long-running generation with progress callbacks
+4. Batch generation with various batch sizes
+
+## Conclusion
+
+This mature codebase demonstrates solid engineering fundamentals with comprehensive error handling and testing. The gaps identified are subtle edge cases that previous audits may have missed:
+
+- **Architecture gaps**: Commands have unintended dependencies (Gaps #1, #6)
+- **Documentation drift**: Promises not matching implementation (Gap #2)
+- **Incomplete features**: Scaffolding without implementation (Gap #5)
+- **Consistency issues**: Translation layers and naming (Gap #4)
+- **Edge case handling**: Session expiration, error messages (Gaps #3, #7)
+
+None of these gaps represent fundamental design flaws, but addressing them will improve production readiness and user experience significantly.
