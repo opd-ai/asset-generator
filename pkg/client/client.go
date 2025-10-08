@@ -363,17 +363,19 @@ func parseSwarmUIError(body []byte) error {
 func (c *SwarmClient) ListModels() ([]Model, error) {
 	endpoint := fmt.Sprintf("%s/API/ListModels", c.config.BaseURL)
 
-	req, err := http.NewRequest("GET", endpoint, nil)
+	// SwarmUI API requires POST requests with JSON body (even if empty)
+	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer([]byte("{}")))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
+	req.Header.Set("Content-Type", "application/json")
 	if c.config.APIKey != "" {
 		req.Header.Set("Authorization", "Bearer "+c.config.APIKey)
 	}
 
 	if c.config.Verbose {
-		fmt.Printf("Request: GET %s\n", endpoint)
+		fmt.Printf("Request: POST %s\n", endpoint)
 	}
 
 	resp, err := c.httpClient.Do(req)
@@ -421,17 +423,19 @@ func (c *SwarmClient) GetModel(name string) (*Model, error) {
 	// Using correct SwarmUI API endpoint pattern
 	endpoint := fmt.Sprintf("%s/API/ListModels", c.config.BaseURL)
 
-	req, err := http.NewRequest("GET", endpoint, nil)
+	// SwarmUI API requires POST requests with JSON body (even if empty)
+	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer([]byte("{}")))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
+	req.Header.Set("Content-Type", "application/json")
 	if c.config.APIKey != "" {
 		req.Header.Set("Authorization", "Bearer "+c.config.APIKey)
 	}
 
 	if c.config.Verbose {
-		fmt.Printf("Request: GET %s\n", endpoint)
+		fmt.Printf("Request: POST %s\n", endpoint)
 	}
 
 	resp, err := c.httpClient.Do(req)
