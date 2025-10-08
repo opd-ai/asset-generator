@@ -57,11 +57,14 @@ Entry Point:
 ## DETAILED FINDINGS
 
 ---
-
 ### CRITICAL BUG: Parameter Name Mismatch for CFG Scale
 
 **File:** `cmd/generate.go:109`, `pkg/client/client.go:194`  
-**Severity:** High
+**Severity:** High  
+**Status:** ✅ **RESOLVED** (Commit: 0f81a5d, Date: 2025-10-08)
+
+**Resolution:**  
+Changed parameter key from `"cfg_scale"` to `"cfgscale"` in `cmd/generate.go:109` to match both the client library expectation and SwarmUI API specification. User-specified CFG scale values now correctly flow through to the API.
 
 **Description:**  
 The command-line interface passes the CFG scale parameter as `"cfg_scale"` (with underscore), but the client library expects `"cfgscale"` (no separator) when building the API request. This causes the CFG scale value set by users to be silently ignored, and the default value of 7.5 is always used instead.
@@ -121,7 +124,11 @@ if cfgScale, ok := req.Parameters["cfgscale"]; ok {  // ❌ Looking for wrong ke
 ### CRITICAL BUG: Default Width/Height Mismatch
 
 **File:** `pkg/client/client.go:185-192`, `README.md:161-162`, `cmd/generate.go:70-71`  
-**Severity:** High
+**Severity:** High  
+**Status:** ✅ **RESOLVED** (Commit: 0401ae7, Date: 2025-10-08)
+
+**Resolution:**  
+Changed fallback defaults in `pkg/client/client.go` from 1024×1024 to 512×512 to match CLI flag defaults and README documentation. Ensures consistent behavior when dimensions are not explicitly provided in the Parameters map.
 
 **Description:**  
 The README and CLI flags document default image dimensions as 512×512, but the client library uses 1024×1024 as the default when dimensions are not explicitly provided. This creates a significant discrepancy between documented and actual behavior.

@@ -86,7 +86,7 @@ func NewSwarmClient(config *Config) (*SwarmClient, error) {
 // GetNewSession gets a new session ID from SwarmUI API
 func (c *SwarmClient) GetNewSession(ctx context.Context) (string, error) {
 	endpoint := fmt.Sprintf("%s/API/GetNewSession", c.config.BaseURL)
-	
+
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", endpoint, bytes.NewBuffer([]byte("{}")))
 	if err != nil {
 		return "", fmt.Errorf("failed to create session request: %w", err)
@@ -326,7 +326,7 @@ func (c *SwarmClient) cleanupSession(sessionID string) {
 func (c *SwarmClient) cleanupOldSessions(maxAge time.Duration) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	cutoff := time.Now().Add(-maxAge)
 	for sessionID, session := range c.sessions {
 		if session.StartTime.Before(cutoff) {
@@ -342,12 +342,12 @@ func parseSwarmUIError(body []byte) error {
 		Error   string `json:"error,omitempty"`
 		ErrorID string `json:"error_id,omitempty"`
 	}
-	
+
 	// Try to parse as JSON
 	if err := json.Unmarshal(body, &errResp); err != nil {
 		return nil // Not a JSON error response
 	}
-	
+
 	// Check if SwarmUI error fields are present
 	if errResp.Error != "" {
 		if errResp.ErrorID != "" {
@@ -355,7 +355,7 @@ func parseSwarmUIError(body []byte) error {
 		}
 		return fmt.Errorf("SwarmUI error: %s", errResp.Error)
 	}
-	
+
 	return nil // No SwarmUI error detected
 }
 
@@ -480,10 +480,10 @@ func (c *SwarmClient) GetModel(name string) (*Model, error) {
 func (c *SwarmClient) simulateProgress(sessionID string, callback ProgressCallback, done chan bool) {
 	ticker := time.NewTicker(500 * time.Millisecond) // Update every 500ms
 	defer ticker.Stop()
-	
-	progress := 0.1 // Start at 10%
+
+	progress := 0.1   // Start at 10%
 	increment := 0.05 // Increase by 5% each tick
-	
+
 	for {
 		select {
 		case <-done:
@@ -494,7 +494,7 @@ func (c *SwarmClient) simulateProgress(sessionID string, callback ProgressCallba
 				progress = 0.9
 				increment = 0.01 // Slow down near completion
 			}
-			
+
 			// Update session progress
 			c.mu.Lock()
 			if session, exists := c.sessions[sessionID]; exists {
@@ -502,7 +502,7 @@ func (c *SwarmClient) simulateProgress(sessionID string, callback ProgressCallba
 				session.Status = "generating"
 			}
 			c.mu.Unlock()
-			
+
 			// Call progress callback
 			callback(progress, "Generating...")
 		}

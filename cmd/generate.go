@@ -215,7 +215,7 @@ func validateModel(swarmClient *client.SwarmClient, modelName string) error {
 				suggestions = append(suggestions, model.Name)
 			}
 		}
-		return fmt.Errorf("model '%s' not found\n\nAvailable models:\n  %s\n\nUse 'swarmui models list' to see all available models", 
+		return fmt.Errorf("model '%s' not found\n\nAvailable models:\n  %s\n\nUse 'swarmui models list' to see all available models",
 			modelName, strings.Join(suggestions, "\n  "))
 	}
 
