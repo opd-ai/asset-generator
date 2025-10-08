@@ -305,65 +305,25 @@ if images, ok := req.Parameters["images"]; ok && images != nil {
 
 ---
 
-### Gap #7: Config File Location Search Order Not Fully Documented
+### Gap #7: Config File Location Search Order Not Fully Documented ✅ **RESOLVED**
+**Status:** Fixed in commit 4f5aae7 (2025-10-08)
+
 **Documentation Reference:** 
 > "Configuration file: `~/.asset-generator/config.yaml`" (README.md:137)
 
-**Implementation Location:** `cmd/root.go:110-114`
+**Implementation Location:** `cmd/root.go:110-112`
 
-**Expected Behavior:** Documentation should list all config file search locations in precedence order
+**Resolution:** Updated README.md to document all three config file search locations and their precedence order:
+1. `./config/config.yaml` (current directory - highest precedence)
+2. `~/.asset-generator/config.yaml` (home directory)
+3. `/etc/asset-generator/config.yaml` (system-wide - lowest precedence)
 
-**Actual Implementation:** Code searches multiple locations:
-```go
-viper.AddConfigPath(configDir)           // ~/.asset-generator/
-viper.AddConfigPath("./config")          // ./config/ (current directory)
-viper.AddConfigPath("/etc/asset-generator")  // /etc/asset-generator/ (system-wide)
-```
+Also documented that `--config` flag overrides all automatic search paths.
 
-**Gap Details:** The README only documents `~/.asset-generator/config.yaml` but the implementation also checks `./config/config.yaml` and `/etc/asset-generator/config.yaml`. This is actually a feature (follows Linux conventions), but undocumented behavior can confuse users when:
-1. A local `./config/config.yaml` overrides their home directory config
-2. System admins expect to use `/etc/asset-generator/` but it's not mentioned
+**Verification:** Documentation now accurately reflects the implementation's config file search behavior.
 
-The precedence order is:
-1. `--config` flag (if specified)
-2. `./config/config.yaml` (current directory) - **UNDOCUMENTED**
-3. `~/.asset-generator/config.yaml` (home directory) - **DOCUMENTED**
-4. `/etc/asset-generator/config.yaml` (system-wide) - **UNDOCUMENTED**
-
-**Reproduction:**
-```bash
-# Create config in current directory
-mkdir -p ./config
-echo "api-url: http://local:8000" > ./config/config.yaml
-
-# Create config in home directory  
-mkdir -p ~/.asset-generator
-echo "api-url: http://home:7801" > ~/.asset-generator/config.yaml
-
-# Run command - will use ./config/config.yaml (local), not home
-asset-generator config view
-# Shows: api-url: http://local:8000
-# User expects: api-url: http://home:7801 (based on README)
-```
-
-**Production Impact:** Critical - Users may be confused about which config file is being used, especially in scenarios where:
-- Development projects have local configs that unexpectedly override user preferences
-- System administrators deploy `/etc/asset-generator/config.yaml` expecting it to work as default
-- Debugging config issues becomes harder without knowing all search paths
-
-**Evidence:**
-```go
-// cmd/root.go:110-114
-configDir := home + "/.asset-generator"
-viper.AddConfigPath(configDir)              // ~/.asset-generator/
-viper.AddConfigPath("./config")             // ./config/ - UNDOCUMENTED
-viper.AddConfigPath("/etc/asset-generator") // /etc/asset-generator/ - UNDOCUMENTED
-viper.SetConfigName("config")
-viper.SetConfigType("yaml")
-
-// README.md:137 - Only mentions one location
-// "Location: `~/.asset-generator/config.yaml`"
-```
+**Original Issue:**
+Documentation only mentioned `~/.asset-generator/config.yaml`, but implementation also searches `./config/` and `/etc/asset-generator/` directories. This could confuse users when local configs unexpectedly override their home directory preferences.
 
 ---
 
