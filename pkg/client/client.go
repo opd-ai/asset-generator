@@ -331,8 +331,12 @@ func (c *AssetClient) GenerateImage(ctx context.Context, req *GenerationRequest)
 	return result, nil
 }
 
-// GenerateImageWS generates an image using WebSocket for real-time progress updates
-// This connects to the GenerateText2ImageWS endpoint for live progress information
+// GenerateImageWS generates an image using WebSocket for real-time progress updates.
+// This connects to the GenerateText2ImageWS endpoint for live progress information.
+// Falls back to HTTP GenerateImage() if WebSocket connection fails.
+//
+// WebSocket provides authentic progress updates from SwarmUI instead of simulated progress.
+// This is particularly beneficial for long-running generations (e.g., Flux models: 5-10 minutes).
 func (c *AssetClient) GenerateImageWS(ctx context.Context, req *GenerationRequest) (*GenerationResult, error) {
 	// Get or create session ID
 	sessionID, err := c.ensureSession()
@@ -341,6 +345,7 @@ func (c *AssetClient) GenerateImageWS(ctx context.Context, req *GenerationReques
 	}
 
 	// Build WebSocket URL (convert http:// to ws:// or https:// to wss://)
+	// SwarmUI WebSocket endpoint: ws://host/API/GenerateText2ImageWS
 	wsURL := c.config.BaseURL
 	if len(wsURL) > 7 && wsURL[:7] == "http://" {
 		wsURL = "ws://" + wsURL[7:]
@@ -382,7 +387,8 @@ func (c *AssetClient) GenerateImageWS(ctx context.Context, req *GenerationReques
 
 	conn, _, err := dialer.DialContext(ctx, wsURL, nil)
 	if err != nil {
-		// Fallback to HTTP if WebSocket fails
+		// Fallback to HTTP if WebSocket fails (e.g., server doesn't support WS, network issues)
+		// This ensures backward compatibility and graceful degradation
 		if c.config.Verbose {
 			fmt.Printf("WebSocket connection failed, falling back to HTTP: %v\n", err)
 		}
@@ -390,7 +396,7 @@ func (c *AssetClient) GenerateImageWS(ctx context.Context, req *GenerationReques
 	}
 	defer conn.Close()
 
-	// Send initial request
+	// Send initial request - SwarmUI expects same JSON format as HTTP endpoint
 	if err := conn.WriteJSON(body); err != nil {
 		return nil, fmt.Errorf("failed to send WebSocket request: %w", err)
 	}
@@ -408,6 +414,9 @@ func (c *AssetClient) GenerateImageWS(ctx context.Context, req *GenerationReques
 	c.mu.Unlock()
 
 	// Listen for progress updates
+	// SwarmUI sends multiple JSON messages over the WebSocket connection:
+	// 1. Progress updates: {"progress": 0.45, "status": "generating"}
+	// 2. Final result: {"images": ["path/to/image.png"], "info": {...}}
 	var finalResult *GenerationResult
 	for {
 		select {
@@ -417,22 +426,23 @@ func (c *AssetClient) GenerateImageWS(ctx context.Context, req *GenerationReques
 			// Read message from WebSocket
 			var msg map[string]interface{}
 			if err := conn.ReadJSON(&msg); err != nil {
-				// Check if it's a normal close
+				// Check if it's a normal close (generation complete)
 				if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
 					break
 				}
 				return nil, fmt.Errorf("WebSocket read error: %w", err)
 			}
 
-			// Handle error messages
+			// Handle error messages from SwarmUI
 			if errMsg, ok := msg["error"].(string); ok && errMsg != "" {
-				// Handle session expiration
+				// Handle session expiration - retry with new session (same as HTTP behavior)
 				if errID, hasErrID := msg["error_id"].(string); hasErrID && errID == "invalid_session_id" {
 					c.mu.Lock()
 					oldSessionID := c.sessionID
 					c.sessionID = ""
 					c.mu.Unlock()
 
+					// Only retry if we had a cached session (prevents infinite recursion)
 					if oldSessionID != "" {
 						return c.GenerateImageWS(ctx, req)
 					}
@@ -440,7 +450,8 @@ func (c *AssetClient) GenerateImageWS(ctx context.Context, req *GenerationReques
 				return nil, fmt.Errorf("SwarmUI error: %s", errMsg)
 			}
 
-			// Parse progress update
+			// Parse real-time progress updates from SwarmUI
+			// Unlike simulated progress, these reflect actual generation state
 			if progress, ok := msg["progress"].(float64); ok {
 				c.mu.Lock()
 				session.Progress = progress
@@ -456,6 +467,7 @@ func (c *AssetClient) GenerateImageWS(ctx context.Context, req *GenerationReques
 			}
 
 			// Check for completion (images field indicates generation is complete)
+			// This is the final message from SwarmUI containing the result
 			if images, ok := msg["images"].([]interface{}); ok && len(images) > 0 {
 				// Convert images to string slice
 				imagePaths := make([]string, len(images))
