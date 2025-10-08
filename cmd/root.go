@@ -99,25 +99,25 @@ func initConfigWithValidation(validate bool) error {
 		// Use config file from the flag
 		viper.SetConfigFile(cfgFile)
 	} else {
-	// Find home directory
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("failed to get home directory: %w", err)
-	}
+		// Find home directory
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to get home directory: %w", err)
+		}
 
-	// Search config in home directory with name ".asset-generator" (without extension)
-	configDir := home + "/.asset-generator"
-	
-	// NOTE: Viper searches config paths in REVERSE order (last added = first searched)
-	// We add paths in reverse of their desired precedence to achieve:
-	//   1st search (highest precedence): ./config/config.yaml
-	//   2nd search (medium precedence):  ~/.asset-generator/config.yaml
-	//   3rd search (lowest precedence):  /etc/asset-generator/config.yaml
-	viper.AddConfigPath("/etc/asset-generator") // Searched last (lowest precedence)
-	viper.AddConfigPath(configDir)              // Searched second
-	viper.AddConfigPath("./config")             // Searched first (highest precedence)
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")		// Create config directory if it doesn't exist
+		// Search config in home directory with name ".asset-generator" (without extension)
+		configDir := home + "/.asset-generator"
+
+		// NOTE: Viper searches config paths in REVERSE order (last added = first searched)
+		// We add paths in reverse of their desired precedence to achieve:
+		//   1st search (highest precedence): ./config/config.yaml
+		//   2nd search (medium precedence):  ~/.asset-generator/config.yaml
+		//   3rd search (lowest precedence):  /etc/asset-generator/config.yaml
+		viper.AddConfigPath("/etc/asset-generator") // Searched last (lowest precedence)
+		viper.AddConfigPath(configDir)              // Searched second
+		viper.AddConfigPath("./config")             // Searched first (highest precedence)
+		viper.SetConfigName("config")
+		viper.SetConfigType("yaml") // Create config directory if it doesn't exist
 		if err := os.MkdirAll(configDir, 0755); err != nil {
 			return fmt.Errorf("failed to create config directory: %w", err)
 		}
