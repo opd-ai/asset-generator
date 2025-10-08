@@ -41,7 +41,7 @@ body:
       label: Usage Example
       description: Show how this feature would be used
       placeholder: |
-        swarmui new-command --flag value
+        asset-generator new-command --flag value
       render: bash
     validations:
       required: false
