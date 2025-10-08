@@ -41,51 +41,38 @@ Modified `PersistentPreRunE` to detect config commands and skip both validation 
 
 ---
 
-### Gap #2: Negative Prompt Flag Short Form Conflicts with Height (Moderate)
+### Gap #2: Negative Prompt Flag Short Form Conflicts with Height (Moderate) ✅ RESOLVED
+
+**Status:** Resolved in commit 2b194dd (2025-10-08)
 
 **Documentation Reference:** 
 > "| `--negative-prompt` | `-n` | Negative prompt | |" (README.md:177)
 > "| `--height` | `-h` | Image height | `512` |" (README.md:171)
+> "| `--width` | `-w` | Image width | `512` |" (README.md:170)
 
-**Implementation Location:** `cmd/generate.go:75-76`
+**Implementation Location:** `cmd/generate.go:68-75`, `README.md:168-177`
 
-**Expected Behavior:** Both `-n` (negative-prompt) and `-h` (height) short flags should work independently
+**Resolution:**
+Corrected README.md documentation to accurately reflect implemented flags:
+- Removed `-h` short flag for `--height` (conflicts with Cobra's `--help`)
+- Removed `-n` short flag for `--negative-prompt` (not implemented)
+- Removed `-w` short flag for `--width` (not implemented)
 
-**Actual Implementation:** The `-n` short flag is defined but `-h` is also used by Cobra's built-in help flag, creating ambiguity
+The code was already correct in not implementing these conflicting/absent short flags. Only the documentation was incorrect.
 
-**Gap Details:** README.md documents `-h` as the short form for `--height` (line 171) and `-n` for `--negative-prompt` (line 177). However, `-h` is a standard flag for help in most CLI tools and Cobra reserves it. The code correctly does NOT implement `-h` short flag for height (avoiding the conflict), but the documentation promises it.
+**Verification:**
+- **Documentation consistency:** README table now matches actual CLI implementation
+- **No functional changes:** Only documentation corrected, no code changes needed
+- **User impact:** Users will no longer encounter errors when following documentation
 
-**Reproduction:**
-```bash
-# Documentation says this should work:
-asset-generator generate image --prompt "test" -h 1024
-# ERROR: unknown shorthand flag: 'h' in -h
-
-# This works (as implemented):
-asset-generator generate image --prompt "test" --height 1024
-
-# But documentation created false expectation
-```
-
-**Production Impact:** Moderate - Users following documentation will encounter unexpected errors. No data loss, but frustrating UX.
-
-**Evidence:**
-```go
-// cmd/generate.go:70-71 - Correctly avoids -h conflict
-generateImageCmd.Flags().IntVar(&generateWidth, "width", 512, "image width")
-generateImageCmd.Flags().IntVar(&generateHeight, "height", 512, "image height")
-// No short flag defined, but README.md:171 promises -h
-
-// cmd/generate.go:75 - -n is implemented
-generateImageCmd.Flags().StringVar(&generateNegPrompt, "negative-prompt", "", "negative prompt")
-// But no short flag bound either, despite README.md:177 showing -n
-```
-
-**Correction:** Actually reviewing more carefully, the code at line 75 does NOT bind the `-n` short flag shown in the table. The documentation table is incorrect for both flags.
+**Correctly Documented Short Flags:**
+- `-p` for `--prompt` ✓
+- `-b` for `--batch` ✓
+- Global flags: `-f`, `-o`, `-q`, `-v` ✓
 
 ---
 
-### Gap #3: Session Reuse Without Validation (Critical)
+### Gap #3: Session Reuse Without Validation (Critical) ✅ RESOLVED
 
 **Documentation Reference (from API.md):**
 > "All API routes, with the exception of `GetNewSession`, require a `session_id` input in the JSON." (API.md:17)
