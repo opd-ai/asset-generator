@@ -1,16 +1,16 @@
 # Asset Generation Pipeline for 2D Games
 
-This guide demonstrates how to integrate `asset-generator` (SwarmUI CLI) into a 2D game asset generation pipeline.
+This guide demonstrates how to integrate `asset-generator` into a 2D game asset generation pipeline.
 
 ## Overview
 
-`asset-generator` provides a command-line interface to SwarmUI, enabling automated generation of game assets like sprites, backgrounds, UI elements, and textures through text-to-image AI models.
+`asset-generator` provides a command-line interface to AI asset generation APIs, enabling automated generation of game assets like sprites, backgrounds, UI elements, and textures through text-to-image AI models.
 
 ## Prerequisites
 
-- SwarmUI instance running (default: `http://localhost:7801`)
+- Asset generation service running (default: `http://localhost:7801`)
 - `asset-generator` CLI installed and configured
-- Stable Diffusion or compatible model loaded in SwarmUI
+- Stable Diffusion or compatible model loaded in the service
 - POSIX-compliant shell (bash, dash, zsh, etc.)
 
 ## Quick Setup
@@ -19,7 +19,7 @@ This guide demonstrates how to integrate `asset-generator` (SwarmUI CLI) into a 
 # Initialize configuration
 asset-generator config init
 
-# Set your SwarmUI endpoint (if not default)
+# Set your asset generation service endpoint (if not default)
 asset-generator config set api-url http://localhost:7801
 
 # Verify connection
@@ -357,7 +357,7 @@ jobs:
         steps:
             - uses: actions/checkout@v3
             
-            - name: Setup SwarmUI CLI
+            - name: Setup Asset Generator CLI
               run: |
                   wget https://github.com/opd-ai/asset-generator/releases/latest/download/asset-generator-linux-amd64
                   chmod +x asset-generator-linux-amd64
@@ -365,8 +365,8 @@ jobs:
             
             - name: Configure CLI
               run: |
-                  asset-generator config set api-url ${{ secrets.SWARMUI_URL }}
-                  asset-generator config set api-key ${{ secrets.SWARMUI_KEY }}
+                  asset-generator config set api-url ${{ secrets.ASSET_GENERATOR_URL }}
+                  asset-generator config set api-key ${{ secrets.ASSET_GENERATOR_KEY }}
             
             - name: Generate Assets
               run: |
@@ -389,7 +389,7 @@ generate_assets:
     - apk add --no-cache wget
     - wget -O /usr/local/bin/asset-generator https://github.com/opd-ai/asset-generator/releases/latest/download/asset-generator-linux-amd64
     - chmod +x /usr/local/bin/asset-generator
-    - asset-generator config set api-url $SWARMUI_URL
+    - asset-generator config set api-url $ASSET_GENERATOR_URL
   script:
     - sh ./scripts/generate_assets.sh
   artifacts:
@@ -404,7 +404,7 @@ generate_assets:
 ### Connection Issues
 
 ```bash
-# Verify SwarmUI is accessible
+# Verify asset generation service is accessible
 asset-generator models list
 
 # Check configuration
@@ -482,7 +482,7 @@ Each JSON file contains generation metadata and image paths:
 
 ## Next Steps
 
-1. Review generated assets in SwarmUI output directory
+1. Review generated assets in the service output directory
 2. Integrate with your game engine's asset pipeline
 3. Set up automated regeneration on specification changes
 4. Implement post-processing for game-ready formats

@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Makefile for build automation
 
 ### Features
-- Generate images using SwarmUI text-to-image API
+- Generate images using AI text-to-image APIs
 - List and inspect available models
 - Configure API endpoint and authentication
 - Support for batch generation
@@ -36,4 +36,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 - Basic CLI structure
-- Core functionality for SwarmUI integration
+- Core functionality for asset generation API integration

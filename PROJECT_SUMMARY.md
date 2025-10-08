@@ -428,7 +428,7 @@ Built with excellent open-source libraries:
 
 ## Summary
 
-This SwarmUI CLI is a **production-ready**, **well-architected**, **fully-tested** command-line tool that demonstrates:
+This Asset Generator CLI is a **production-ready**, **well-architected**, **fully-tested** command-line tool that demonstrates:
 
 ✅ **Clean Architecture**: Clear separation of concerns  
 ✅ **Best Practices**: Go idioms, error handling, testing  
@@ -443,4 +443,4 @@ This SwarmUI CLI is a **production-ready**, **well-architected**, **fully-tested
 **Commands**: 8  
 **Dependencies**: 5 (+ standard library)  
 
-Perfect for developers who need a reliable, scriptable interface to SwarmUI!
+Perfect for developers who need a reliable, scriptable interface to asset generation services!

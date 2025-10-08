@@ -1,8 +1,8 @@
-# SwarmUI CLI - Developer Documentation
+# Asset Generator CLI - Developer Documentation
 
 ## Architecture Overview
 
-The SwarmUI CLI is built using clean architecture principles with clear separation of concerns:
+The Asset Generator CLI is built using clean architecture principles with clear separation of concerns:
 
 ### Directory Structure
 
@@ -14,7 +14,7 @@ asset-generator/
 │   ├── models.go          # Model management commands
 │   └── config.go          # Configuration management
 ├── pkg/                   # Public reusable packages
-│   ├── client/            # SwarmUI API client
+│   ├── client/            # Asset generation API client
 │   │   ├── client.go
 │   │   └── client_test.go
 │   └── output/            # Output formatting
@@ -39,7 +39,7 @@ The command layer handles CLI interactions using Cobra:
 #### `root.go`
 - Sets up global flags (api-url, api-key, format, output, etc.)
 - Initializes configuration from multiple sources
-- Creates SwarmUI client instance
+- Creates asset generation client instance
 - Implements flag precedence: CLI flags > env vars > config file > defaults
 
 #### `generate.go`
@@ -61,12 +61,12 @@ The command layer handles CLI interactions using Cobra:
 
 ### 2. API Client (`pkg/client/`)
 
-Reusable SwarmUI API client library:
+Reusable asset generation API client library:
 
 #### Key Types
 
 ```go
-type SwarmClient struct {
+type AssetClient struct {
     config     *Config
     httpClient *http.Client
     wsConn     *websocket.Conn
@@ -123,13 +123,13 @@ Configuration validation and management:
 
 #### Configuration Sources (in order of precedence)
 1. Command-line flags
-2. Environment variables (SWARMUI_*)
+2. Environment variables (ASSET_GENERATOR_*)
 3. Configuration file (~/.asset-generator/config.yaml)
 4. Default values
 
 ## API Integration
 
-### SwarmUI API Endpoints
+### Asset Generation API Endpoints
 
 The client currently implements:
 
@@ -147,9 +147,9 @@ The client currently implements:
 
 To add a new endpoint:
 
-1. Add method to `SwarmClient` in `pkg/client/client.go`:
+1. Add method to `AssetClient` in `pkg/client/client.go`:
 ```go
-func (c *SwarmClient) NewEndpoint(params) (*Result, error) {
+func (c *AssetClient) NewEndpoint(params) (*Result, error) {
     endpoint := fmt.Sprintf("%s/API/NewEndpoint", c.config.BaseURL)
     // Implementation
 }
@@ -245,7 +245,7 @@ This reduces binary size by ~30%.
 
 1. **User-Facing Errors**: Descriptive, actionable messages
    ```go
-   return fmt.Errorf("failed to connect to SwarmUI at %s: %w (is the service running?)", url, err)
+   return fmt.Errorf("failed to connect to asset generation service at %s: %w (is the service running?)", url, err)
    ```
 
 2. **Error Wrapping**: Use `%w` for error chains
@@ -298,9 +298,9 @@ generate:
 
 All config values can be set via environment:
 ```bash
-SWARMUI_API_URL=http://localhost:7801
-SWARMUI_API_KEY=secret
-SWARMUI_FORMAT=json
+ASSET_GENERATOR_API_URL=http://localhost:7801
+ASSET_GENERATOR_API_KEY=secret
+ASSET_GENERATOR_FORMAT=json
 ```
 
 ## Best Practices
@@ -332,7 +332,7 @@ SWARMUI_FORMAT=json
 ### Common Issues
 
 **Issue**: "connection refused"
-- Check SwarmUI is running
+- Check asset generation service is running
 - Verify API URL in config
 - Check firewall settings
 
@@ -385,7 +385,7 @@ This shows:
 ### API Evolution
 
 The client is designed for extension:
-- Add methods to `SwarmClient`
+- Add methods to `AssetClient`
 - Implement in separate files for organization
 - Keep backward compatibility
 
