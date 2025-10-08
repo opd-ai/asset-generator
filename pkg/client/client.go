@@ -182,13 +182,13 @@ func (c *SwarmClient) GenerateImage(ctx context.Context, req *GenerationRequest)
 	if width, ok := req.Parameters["width"]; ok {
 		body["width"] = width
 	} else {
-		body["width"] = 1024 // Default width
+		body["width"] = 512 // Default width (matches CLI and documentation)
 	}
 
 	if height, ok := req.Parameters["height"]; ok {
 		body["height"] = height
 	} else {
-		body["height"] = 1024 // Default height
+		body["height"] = 512 // Default height (matches CLI and documentation)
 	}
 
 	if cfgScale, ok := req.Parameters["cfgscale"]; ok {
