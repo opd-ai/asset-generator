@@ -92,65 +92,23 @@ viper.AutomaticEnv()
 
 ---
 
-### Gap #4: ListModels Test Expects Wrong Response Format
+### Gap #4: ListModels Test Expects Wrong Response Format ✅ **RESOLVED**
+**Status:** Fixed in commit 7cca508 (2025-10-08)
+
 **Documentation Reference:** 
 Based on SwarmUI API documentation (API.md) and actual implementation
 
 **Implementation Location:** `pkg/client/client_test.go:55-96` vs `pkg/client/client.go:747-751`
 
-**Expected Behavior:** Test should match actual SwarmUI API response format which uses `folders` and `files` structure
+**Resolution:** Updated TestListModels to:
+1. Use correct SwarmUI API format with `"files"` and `"folders"` keys
+2. Handle `/API/GetNewSession` endpoint required by ListModels
+3. Properly validate the actual parsing logic
 
-**Actual Implementation:** Test expects incorrect JSON structure:
-```go
-// Test sends:
-`{"models": [...]}`  // WRONG
+**Verification:** All client tests pass. Test now correctly validates the SwarmUI API response format.
 
-// But implementation expects:
-var apiResp struct {
-    Folders []string `json:"folders"`
-    Files   []Model  `json:"files"`  // CORRECT per SwarmUI API
-    ...
-}
-```
-
-**Gap Details:** The TestListModels test case uses a mock server returning `{"models": [...]}` but the actual ListModels implementation parses `{"files": [...], "folders": [...]}` per the SwarmUI API specification. This means:
-1. The test doesn't actually validate the real parsing logic
-2. The test would pass but real API calls would fail if API changed
-3. False confidence in test coverage
-
-**Reproduction:**
-```go
-// Run the test - it passes
-go test ./pkg/client -v -run TestListModels
-// PASS
-
-// But the test server response doesn't match what code actually parses
-// Test sends: {"models": [...]}
-// Code parses: apiResp.Files (from {"files": [...]})
-```
-
-**Production Impact:** Minor - Test doesn't actually validate the correct code path. If SwarmUI API response format changed, the test wouldn't catch it since it's testing the wrong format. This is a test quality issue rather than a runtime bug.
-
-**Evidence:**
-```go
-// pkg/client/client_test.go:65-75 - Wrong format
-w.Write([]byte(`{
-    "models": [  // Should be "files"
-        {
-            "name": "stable-diffusion-xl",
-            ...
-        }
-    ]
-}`))
-
-// pkg/client/client.go:747-751 - Actual parsing
-var apiResp struct {
-    Folders []string `json:"folders"`
-    Files   []Model  `json:"files"`  // Expects "files" not "models"
-    Error   string   `json:"error,omitempty"`
-    ErrorID string   `json:"error_id,omitempty"`
-}
-```
+**Original Issue:**
+Test used incorrect `{"models": [...]}` format instead of SwarmUI's actual `{"files": [...], "folders": [...]}` format. Test was passing but not validating the correct code path. Also missing session creation mock endpoint.
 
 ---
 
