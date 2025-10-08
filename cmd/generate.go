@@ -16,16 +16,16 @@ import (
 )
 
 var (
-	generatePrompt     string
-	generateModel      string
-	generateSteps      int
-	generateWidth      int
-	generateHeight     int
-	generateSeed       int64
-	generateBatchSize  int
-	generateCfgScale   float64
-	generateNegPrompt  string
-	generateSampler    string
+	generatePrompt       string
+	generateModel        string
+	generateSteps        int
+	generateWidth        int
+	generateHeight       int
+	generateSeed         int64
+	generateBatchSize    int
+	generateCfgScale     float64
+	generateNegPrompt    string
+	generateSampler      string
 	generateUseWebSocket bool // Enable WebSocket for real-time progress
 )
 
@@ -164,7 +164,7 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 	} else {
 		result, err = assetClient.GenerateImage(ctx, req)
 	}
-	
+
 	if err != nil {
 		return fmt.Errorf("generation failed: %w", err)
 	}
