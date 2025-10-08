@@ -232,49 +232,31 @@ func (c *AssetClient) simulateProgress(sessionID string, callback ProgressCallba
 
 ---
 
-### Gap #6: Config View Doesn't Load Config File (Minor)
+### Gap #6: Config View Doesn't Load Config File (Minor) ✅ RESOLVED
+
+**Status:** Resolved as part of Gap #1 fix in commit 475ed15 (2025-10-08)
 
 **Documentation Reference:**
 > "Configuration can be provided through multiple sources with the following precedence: 1. Command-line flags (highest priority) 2. Environment variables (prefixed with `ASSET_GENERATOR_`) 3. Configuration file (`~/.asset-generator/config.yaml`) 4. Default values (lowest priority)" (README.md:118-121)
 
-**Implementation Location:** `cmd/config.go:76-104`, `cmd/root.go:37-38`
+**Implementation Location:** `cmd/config.go:80-110`, `cmd/root.go:38-65`
 
-**Expected Behavior:** `asset-generator config view` should display the merged configuration from all sources
+**Resolution:**
+Gap #6 was automatically resolved by the Gap #1 fix. The concern was that config commands might skip configuration loading, but the actual implementation:
+1. Config commands trigger `initConfigWithValidation(false)` in PersistentPreRunE
+2. This calls `viper.ReadInConfig()` to load the config file
+3. Sets environment variables via `viper.AutomaticEnv()`
+4. Applies defaults via `viper.SetDefault()`
+5. Only skips validation (not loading)
 
-**Actual Implementation:** `config view` command runs WITHOUT the `PersistentPreRunE` that calls `initConfig()`, so it only shows in-memory viper values, not the actual loaded config
+The `config view` command correctly shows merged configuration from all sources because `PersistentPreRunE` loads everything before `runConfigView` executes.
 
-**Gap Details:** Because of Gap #1 (config commands should bypass client init), if we fix that issue, `config view` would also bypass `initConfig()`. Currently it's in a weird state: it relies on the side effect of `initConfig()` in `PersistentPreRunE`, but that function is the source of Gap #1.
+**Verification:**
+- **Code path analysis:** PersistentPreRunE → initConfigWithValidation(false) → viper.ReadInConfig()
+- **Defensive programming:** Config loading is separate from validation
+- **Side effect resolution:** Gap #1 fix actually improved Gap #6 situation
 
-**Reproduction:**
-```bash
-# Create config file with api-url
-echo "api-url: http://example.com:7801" > ~/.asset-generator/config.yaml
-
-# View config
-asset-generator config view
-# Shows: api-url: http://example.com:7801 ✓
-
-# BUT if config file fails to load (permission error, etc.)
-# OR if we fix Gap #1 by skipping PersistentPreRunE
-# config view would show empty or incomplete settings
-```
-
-**Production Impact:** Minor - Works in normal cases but fragile. Will break if Gap #1 is fixed without also updating config commands.
-
-**Evidence:**
-```go
-// cmd/config.go:76-82
-func runConfigView(cmd *cobra.Command, args []string) error {
-    settings := viper.AllSettings() // Gets in-memory viper state
-    
-    if len(settings) == 0 {
-        fmt.Println("No configuration found...")
-        return nil
-    }
-    // Does NOT call initConfig() itself, relies on PersistentPreRunE
-```
-
-**Recommended Fix:** Explicitly call `initConfig()` in config commands that need to read settings, separate from client initialization.
+**No additional changes needed** - Gap #1 fix resolved this concern.
 
 ---
 
