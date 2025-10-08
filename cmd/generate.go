@@ -58,6 +58,14 @@ Examples:
   asset-generator generate image \
     --prompt "cat wearing sunglasses" \
     --output my-cat.json`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		// Validate that both --length and --height are not specified simultaneously
+		// They are aliases for the same parameter but both being set creates ambiguity
+		if cmd.Flags().Changed("length") && cmd.Flags().Changed("height") {
+			return fmt.Errorf("cannot specify both --length and --height flags (they are aliases for the same parameter)")
+		}
+		return nil
+	},
 	RunE: runGenerateImage,
 }
 
@@ -99,6 +107,18 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 
 	// Setup signal handler
 	setupSignalHandler(cancel)
+
+	// Validate that config file doesn't have both length and height set
+	// Only check if neither flag was explicitly set on command line
+	if !cmd.Flags().Changed("length") && !cmd.Flags().Changed("height") {
+		if viper.IsSet("generate.length") && viper.IsSet("generate.height") {
+			lengthVal := viper.GetInt("generate.length")
+			heightVal := viper.GetInt("generate.height")
+			if lengthVal != heightVal {
+				return fmt.Errorf("config file has conflicting values for 'length' (%d) and 'height' (%d) - they are aliases, please use only one", lengthVal, heightVal)
+			}
+		}
+	}
 
 	// Validate prompt
 	if generatePrompt == "" {
