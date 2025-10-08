@@ -213,10 +213,17 @@ func (c *AssetClient) GenerateImage(ctx context.Context, req *GenerationRequest)
 		body["seed"] = -1 // Random seed
 	}
 
+	// Handle negative prompt explicitly (only include if non-empty)
+	if negPrompt, ok := req.Parameters["negative_prompt"]; ok {
+		if negPromptStr, isString := negPrompt.(string); isString && negPromptStr != "" {
+			body["negative_prompt"] = negPromptStr
+		}
+	}
+
 	// Add any other parameters from the request
 	for k, v := range req.Parameters {
-		// Skip parameters we've already handled
-		if k != "batch_size" && k != "width" && k != "height" && k != "cfgscale" && k != "steps" && k != "seed" {
+		// Skip parameters we've already handled explicitly
+		if k != "batch_size" && k != "width" && k != "height" && k != "cfgscale" && k != "steps" && k != "seed" && k != "negative_prompt" {
 			body[k] = v
 		}
 	}

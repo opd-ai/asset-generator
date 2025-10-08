@@ -129,14 +129,18 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 	req := &client.GenerationRequest{
 		Prompt: generatePrompt,
 		Parameters: map[string]interface{}{
-			"steps":           generateSteps,
-			"width":           generateWidth,
-			"height":          generateHeight,
-			"cfgscale":        generateCfgScale, // SwarmUI API parameter name
-			"sampler":         generateSampler,
-			"images":          generateBatchSize, // SwarmUI uses "images" for batch size
-			"negative_prompt": generateNegPrompt,
+			"steps":    generateSteps,
+			"width":    generateWidth,
+			"height":   generateHeight,
+			"cfgscale": generateCfgScale, // SwarmUI API parameter name
+			"sampler":  generateSampler,
+			"images":   generateBatchSize, // SwarmUI uses "images" for batch size
 		},
+	}
+
+	// Only include negative prompt if non-empty to avoid unnecessary API payload
+	if generateNegPrompt != "" {
+		req.Parameters["negative_prompt"] = generateNegPrompt
 	}
 
 	// Set model if specified
