@@ -106,7 +106,7 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 			"steps":           generateSteps,
 			"width":           generateWidth,
 			"height":          generateHeight,
-			"cfg_scale":       generateCfgScale,
+			"cfgscale":        generateCfgScale, // Match SwarmUI API parameter name
 			"sampler":         generateSampler,
 			"batch_size":      generateBatchSize,
 			"negative_prompt": generateNegPrompt,
