@@ -74,7 +74,7 @@ func init() {
 	generateImageCmd.Flags().Int64Var(&generateSeed, "seed", -1, "random seed (-1 for random)")
 	generateImageCmd.Flags().IntVarP(&generateBatchSize, "batch", "b", 1, "number of images to generate")
 	generateImageCmd.Flags().Float64Var(&generateCfgScale, "cfg-scale", 7.5, "CFG scale (guidance)")
-	generateImageCmd.Flags().StringVar(&generateNegPrompt, "negative-prompt", "", "negative prompt")
+	generateImageCmd.Flags().StringVarP(&generateNegPrompt, "negative-prompt", "n", "", "negative prompt")
 	generateImageCmd.Flags().StringVar(&generateSampler, "sampler", "euler_a", "sampling method")
 	generateImageCmd.Flags().BoolVar(&generateUseWebSocket, "websocket", false, "use WebSocket for real-time progress (requires SwarmUI)")
 
