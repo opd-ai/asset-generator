@@ -27,17 +27,17 @@ Download the latest release from [GitHub Releases](https://github.com/opd-ai/ass
 ### 1. Initialize Configuration
 
 ```bash
-swarmui config init
+asset-generator config init
 ```
 
-This creates `~/.swarmui/config.yaml` with default settings.
+This creates `~/.asset-generator/config.yaml` with default settings.
 
 ### 2. Configure API Endpoint
 
 If your SwarmUI is not running on localhost:7801, set the API URL:
 
 ```bash
-swarmui config set api-url http://your-swarmui-host:7801
+asset-generator config set api-url http://your-asset-generator-host:7801
 ```
 
 ### 3. (Optional) Set API Key
@@ -45,7 +45,7 @@ swarmui config set api-url http://your-swarmui-host:7801
 If your SwarmUI requires authentication:
 
 ```bash
-swarmui config set api-key YOUR_API_KEY
+asset-generator config set api-key YOUR_API_KEY
 ```
 
 ## Basic Usage
@@ -53,7 +53,7 @@ swarmui config set api-key YOUR_API_KEY
 ### Generate Your First Image
 
 ```bash
-swarmui generate image --prompt "a beautiful sunset over mountains"
+asset-generator generate image --prompt "a beautiful sunset over mountains"
 ```
 
 This will:
@@ -64,13 +64,13 @@ This will:
 ### View Available Models
 
 ```bash
-swarmui models list
+asset-generator models list
 ```
 
 ### Generate with Specific Parameters
 
 ```bash
-swarmui generate image \
+asset-generator generate image \
   --prompt "cyberpunk city at night, neon lights, rainy" \
   --width 1024 \
   --height 1024 \
@@ -82,7 +82,7 @@ swarmui generate image \
 ### Save Output to File
 
 ```bash
-swarmui generate image \
+asset-generator generate image \
   --prompt "a cute cat wearing sunglasses" \
   --format json \
   --output result.json
@@ -95,7 +95,7 @@ swarmui generate image \
 Generate multiple images at once:
 
 ```bash
-swarmui generate image \
+asset-generator generate image \
   --prompt "fantasy landscape with mountains" \
   --batch 4
 ```
@@ -105,7 +105,7 @@ swarmui generate image \
 Use a seed for reproducible results:
 
 ```bash
-swarmui generate image \
+asset-generator generate image \
   --prompt "portrait of a wizard" \
   --seed 42
 ```
@@ -113,7 +113,7 @@ swarmui generate image \
 ### Use Negative Prompts
 
 ```bash
-swarmui generate image \
+asset-generator generate image \
   --prompt "beautiful portrait photo" \
   --negative-prompt "blurry, low quality, distorted"
 ```
@@ -122,12 +122,12 @@ swarmui generate image \
 
 #### JSON Output
 ```bash
-swarmui models list --format json
+asset-generator models list --format json
 ```
 
 #### YAML Output
 ```bash
-swarmui config view --format yaml
+asset-generator config view --format yaml
 ```
 
 ## Configuration Examples
@@ -139,12 +139,12 @@ export SWARMUI_API_URL=http://localhost:7801
 export SWARMUI_API_KEY=your-key
 export SWARMUI_FORMAT=json
 
-swarmui models list  # Uses environment config
+asset-generator models list  # Uses environment config
 ```
 
 ### Config File
 
-Edit `~/.swarmui/config.yaml`:
+Edit `~/.asset-generator/config.yaml`:
 
 ```yaml
 api-url: http://localhost:7801
@@ -168,7 +168,7 @@ Now all generate commands will use these defaults!
 ### Extract Image Paths
 
 ```bash
-swarmui generate image \
+asset-generator generate image \
   --prompt "mountain landscape" \
   --format json | jq -r '.image_paths[]'
 ```
@@ -185,7 +185,7 @@ prompts=(
 
 for prompt in "${prompts[@]}"; do
   echo "Generating: $prompt"
-  swarmui generate image --prompt "$prompt" --quiet
+  asset-generator generate image --prompt "$prompt" --quiet
 done
 ```
 
@@ -193,7 +193,7 @@ done
 
 ```bash
 for seed in {1..5}; do
-  swarmui generate image \
+  asset-generator generate image \
     --prompt "fantasy castle" \
     --seed $seed \
     --output "castle_${seed}.json" \
@@ -206,7 +206,7 @@ done
 ### 1. Use Quiet Mode for Scripts
 
 ```bash
-swarmui --quiet generate image --prompt "test"
+asset-generator --quiet generate image --prompt "test"
 ```
 
 Suppresses progress messages, only shows errors.
@@ -214,7 +214,7 @@ Suppresses progress messages, only shows errors.
 ### 2. Verbose Mode for Debugging
 
 ```bash
-swarmui --verbose models list
+asset-generator --verbose models list
 ```
 
 Shows detailed information about API calls.
@@ -222,7 +222,7 @@ Shows detailed information about API calls.
 ### 3. Check Current Configuration
 
 ```bash
-swarmui config view
+asset-generator config view
 ```
 
 See all active settings and their sources.
@@ -230,7 +230,7 @@ See all active settings and their sources.
 ### 4. Test Connection
 
 ```bash
-swarmui models list
+asset-generator models list
 ```
 
 Quick way to verify your SwarmUI is accessible.
@@ -238,9 +238,9 @@ Quick way to verify your SwarmUI is accessible.
 ### 5. View Full Help
 
 ```bash
-swarmui --help
-swarmui generate --help
-swarmui generate image --help
+asset-generator --help
+asset-generator generate --help
+asset-generator generate image --help
 ```
 
 Every command has detailed help with examples.
@@ -252,13 +252,13 @@ Every command has detailed help with examples.
 **Solution:**
 ```bash
 # Check config
-swarmui config get api-url
+asset-generator config get api-url
 
 # Test connection directly
 curl http://localhost:7801/API/ListModels
 
 # Update API URL if needed
-swarmui config set api-url http://correct-host:7801
+asset-generator config set api-url http://correct-host:7801
 ```
 
 ### Problem: "prompt is required" error
@@ -266,7 +266,7 @@ swarmui config set api-url http://correct-host:7801
 **Solution:**
 The `--prompt` flag is mandatory for generation:
 ```bash
-swarmui generate image --prompt "your prompt here"
+asset-generator generate image --prompt "your prompt here"
 ```
 
 ### Problem: Output format not recognized
@@ -274,7 +274,7 @@ swarmui generate image --prompt "your prompt here"
 **Solution:**
 Valid formats are: table, json, yaml
 ```bash
-swarmui models list --format json
+asset-generator models list --format json
 ```
 
 ### Problem: Config file not found
@@ -282,7 +282,7 @@ swarmui models list --format json
 **Solution:**
 Initialize the config first:
 ```bash
-swarmui config init
+asset-generator config init
 ```
 
 ## Advanced Usage
@@ -290,7 +290,7 @@ swarmui config init
 ### Custom Sampling Methods
 
 ```bash
-swarmui generate image \
+asset-generator generate image \
   --prompt "portrait" \
   --sampler euler_a \
   --steps 20
@@ -301,7 +301,7 @@ Available samplers: euler_a, euler, heun, dpm_2, dpm_2_ancestral, lms, dpm_fast,
 ### High-Quality Generation
 
 ```bash
-swarmui generate image \
+asset-generator generate image \
   --prompt "detailed portrait photograph" \
   --width 1024 \
   --height 1024 \
@@ -315,12 +315,12 @@ More steps = better quality but slower generation.
 
 Get model details first:
 ```bash
-swarmui models get stable-diffusion-xl
+asset-generator models get stable-diffusion-xl
 ```
 
 Then use specific models:
 ```bash
-swarmui generate image \
+asset-generator generate image \
   --prompt "test" \
   --model stable-diffusion-xl
 ```
@@ -336,7 +336,7 @@ import json
 
 def generate_image(prompt):
     result = subprocess.run(
-        ['swarmui', 'generate', 'image',
+        ['asset-generator', 'generate', 'image',
          '--prompt', prompt,
          '--format', 'json'],
         capture_output=True,
@@ -358,7 +358,7 @@ const execPromise = util.promisify(exec);
 
 async function generateImage(prompt) {
   const { stdout } = await execPromise(
-    `swarmui generate image --prompt "${prompt}" --format json`
+    `asset-generator generate image --prompt "${prompt}" --format json`
   );
   return JSON.parse(stdout);
 }
@@ -375,34 +375,34 @@ generateImage('cyberpunk city')
 
 generate-assets:
 	@echo "Generating assets..."
-	@swarmui generate image --prompt "logo design" --output logo.json
-	@swarmui generate image --prompt "banner image" --output banner.json
+	@asset-generator generate image --prompt "logo design" --output logo.json
+	@asset-generator generate image --prompt "banner image" --output banner.json
 	@echo "Assets generated!"
 ```
 
 ## Next Steps
 
 1. **Read the Full Documentation**: Check `README.md` for comprehensive docs
-2. **Explore All Commands**: Run `swarmui --help` to see all available commands
-3. **Customize Defaults**: Edit `~/.swarmui/config.yaml` for your workflow
+2. **Explore All Commands**: Run `asset-generator --help` to see all available commands
+3. **Customize Defaults**: Edit `~/.asset-generator/config.yaml` for your workflow
 4. **Contribute**: Found a bug or want a feature? Visit our GitHub!
 
 ## Quick Reference Card
 
 ```bash
 # Configuration
-swarmui config init                    # Initialize config
-swarmui config set KEY VALUE           # Set config value
-swarmui config view                    # View current config
+asset-generator config init                    # Initialize config
+asset-generator config set KEY VALUE           # Set config value
+asset-generator config view                    # View current config
 
 # Generation
-swarmui generate image -p "prompt"     # Basic generation
-swarmui generate image -p "..." -b 4   # Batch of 4
-swarmui generate image -p "..." --seed 42  # With seed
+asset-generator generate image -p "prompt"     # Basic generation
+asset-generator generate image -p "..." -b 4   # Batch of 4
+asset-generator generate image -p "..." --seed 42  # With seed
 
 # Models
-swarmui models list                    # List all models
-swarmui models get MODEL_NAME          # Get model details
+asset-generator models list                    # List all models
+asset-generator models get MODEL_NAME          # Get model details
 
 # Output Control
 --format json                          # JSON output

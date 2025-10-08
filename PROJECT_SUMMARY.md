@@ -126,7 +126,7 @@ Extensive use of Go's standard library:
 
 ### Root Command
 ```bash
-swarmui [flags] [command]
+asset-generator [flags] [command]
 ```
 
 ### Global Flags
@@ -142,15 +142,15 @@ swarmui [flags] [command]
 
 #### Configuration
 ```bash
-swarmui config init              # Initialize config file
-swarmui config view              # Display current config
-swarmui config set KEY VALUE     # Set configuration value
-swarmui config get KEY           # Get configuration value
+asset-generator config init              # Initialize config file
+asset-generator config view              # Display current config
+asset-generator config set KEY VALUE     # Set configuration value
+asset-generator config get KEY           # Get configuration value
 ```
 
 #### Generation
 ```bash
-swarmui generate image [flags]   # Generate images
+asset-generator generate image [flags]   # Generate images
 
 Flags:
   -p, --prompt              # Generation prompt (required)
@@ -167,8 +167,8 @@ Flags:
 
 #### Models
 ```bash
-swarmui models list              # List all models
-swarmui models get NAME          # Get model details
+asset-generator models list              # List all models
+asset-generator models get NAME          # Get model details
 ```
 
 ## 🧪 Testing
@@ -224,16 +224,16 @@ make clean         # Clean build artifacts
 
 ```bash
 # Linux
-GOOS=linux GOARCH=amd64 go build -o swarmui-linux-amd64
+GOOS=linux GOARCH=amd64 go build -o asset-generator-linux-amd64
 
 # macOS
-GOOS=darwin GOARCH=amd64 go build -o swarmui-darwin-amd64
+GOOS=darwin GOARCH=amd64 go build -o asset-generator-darwin-amd64
 
 # Windows
-GOOS=windows GOARCH=amd64 go build -o swarmui-windows-amd64.exe
+GOOS=windows GOARCH=amd64 go build -o asset-generator-windows-amd64.exe
 
 # ARM64 (Apple Silicon, Raspberry Pi)
-GOOS=linux GOARCH=arm64 go build -o swarmui-linux-arm64
+GOOS=linux GOARCH=arm64 go build -o asset-generator-linux-arm64
 ```
 
 ## 📚 Documentation
@@ -339,24 +339,24 @@ make fmt           # Format code
 ### Interactive Use
 ```bash
 # Generate an image
-swarmui generate image --prompt "sunset over ocean"
+asset-generator generate image --prompt "sunset over ocean"
 
 # List models
-swarmui models list
+asset-generator models list
 
 # Configure
-swarmui config set api-url http://localhost:7801
+asset-generator config set api-url http://localhost:7801
 ```
 
 ### Scripting
 ```bash
 # Batch processing
 for prompt in "cat" "dog" "bird"; do
-  swarmui generate image -p "$prompt" --quiet -o "${prompt}.json"
+  asset-generator generate image -p "$prompt" --quiet -o "${prompt}.json"
 done
 
 # Extract data
-swarmui models list --format json | jq '.[] | select(.loaded == true)'
+asset-generator models list --format json | jq '.[] | select(.loaded == true)'
 ```
 
 ### CI/CD
@@ -366,7 +366,7 @@ export SWARMUI_API_URL=https://api.example.com
 export SWARMUI_API_KEY=$SECRET_KEY
 
 # Automated generation
-swarmui generate image --prompt "test" --format json --quiet
+asset-generator generate image --prompt "test" --format json --quiet
 ```
 
 ## 🔄 Future Enhancements

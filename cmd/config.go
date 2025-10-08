@@ -11,27 +11,27 @@ import (
 // configCmd represents the config command
 var configCmd = &cobra.Command{
 	Use:   "config",
-	Short: "Manage swarmui CLI configuration",
-	Long: `View and modify the swarmui CLI configuration.
+	Short: "Manage asset-generator CLI configuration",
+	Long: `View and modify the asset-generator CLI configuration.
 
-Configuration is stored in ~/.swarmui/config.yaml by default.
+Configuration is stored in ~/.asset-generator/config.yaml by default.
 
 Examples:
   # View current configuration
-  swarmui config view
+  asset-generator config view
   
   # Set API URL
-  swarmui config set api-url https://api.swarm.example.com
+  asset-generator config set api-url https://api.swarm.example.com
   
   # Set API key
-  swarmui config set api-key your-api-key-here`,
+  asset-generator config set api-key your-api-key-here`,
 }
 
 // configViewCmd displays current configuration
 var configViewCmd = &cobra.Command{
 	Use:   "view",
 	Short: "View current configuration",
-	Long:  `Display the current swarmui CLI configuration.`,
+	Long:  `Display the current asset-generator CLI configuration.`,
 	RunE:  runConfigView,
 }
 
@@ -42,8 +42,8 @@ var configSetCmd = &cobra.Command{
 	Long: `Set a configuration value in the config file.
 
 Examples:
-  swarmui config set api-url https://api.swarm.example.com
-  swarmui config set api-key your-key-here`,
+  asset-generator config set api-url https://api.swarm.example.com
+  asset-generator config set api-key your-key-here`,
 	Args: cobra.ExactArgs(2),
 	RunE: runConfigSet,
 }
@@ -55,8 +55,8 @@ var configGetCmd = &cobra.Command{
 	Long: `Get a specific configuration value.
 
 Examples:
-  swarmui config get api-url
-  swarmui config get api-key`,
+  asset-generator config get api-url
+  asset-generator config get api-key`,
 	Args: cobra.ExactArgs(1),
 	RunE: runConfigGet,
 }
@@ -81,7 +81,7 @@ func runConfigView(cmd *cobra.Command, args []string) error {
 	settings := viper.AllSettings()
 
 	if len(settings) == 0 {
-		fmt.Println("No configuration found. Run 'swarmui config init' to create a default config.")
+		fmt.Println("No configuration found. Run 'asset-generator config init' to create a default config.")
 		return nil
 	}
 
@@ -120,7 +120,7 @@ func runConfigSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	configDir := home + "/.swarmui"
+	configDir := home + "/.asset-generator"
 	if err := os.MkdirAll(configDir, 0755); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
@@ -167,7 +167,7 @@ func runConfigInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	configDir := home + "/.swarmui"
+	configDir := home + "/.asset-generator"
 	if err := os.MkdirAll(configDir, 0755); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
@@ -194,7 +194,7 @@ func runConfigInit(cmd *cobra.Command, args []string) error {
 	fmt.Println("  api-url: http://localhost:7801")
 	fmt.Println("  format: table")
 	fmt.Println("\nSet your API key with:")
-	fmt.Println("  swarmui config set api-key YOUR_API_KEY")
+	fmt.Println("  asset-generator config set api-key YOUR_API_KEY")
 
 	return nil
 }

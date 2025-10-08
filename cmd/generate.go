@@ -43,17 +43,17 @@ var generateImageCmd = &cobra.Command{
 
 Examples:
   # Basic generation
-  swarmui generate image --prompt "a beautiful landscape"
+  asset-generator generate image --prompt "a beautiful landscape"
   
   # Advanced generation with parameters
-  swarmui generate image \
+  asset-generator generate image \
     --prompt "futuristic city at sunset" \
     --model "stable-diffusion-xl" \
     --width 1024 --height 1024 \
     --steps 30 --cfg-scale 7.5
   
   # Save to specific file
-  swarmui generate image \
+  asset-generator generate image \
     --prompt "cat wearing sunglasses" \
     --output my-cat.json`,
 	RunE: runGenerateImage,
@@ -215,7 +215,7 @@ func validateModel(swarmClient *client.SwarmClient, modelName string) error {
 				suggestions = append(suggestions, model.Name)
 			}
 		}
-		return fmt.Errorf("model '%s' not found\n\nAvailable models:\n  %s\n\nUse 'swarmui models list' to see all available models",
+		return fmt.Errorf("model '%s' not found\n\nAvailable models:\n  %s\n\nUse 'asset-generator models list' to see all available models",
 			modelName, strings.Join(suggestions, "\n  "))
 	}
 

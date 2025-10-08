@@ -1,4 +1,4 @@
-# SwarmUI CLI Client
+# Asset Generator CLI
 
 A powerful command-line interface for interacting with the SwarmUI API. Generate assets, manage models, and configure your SwarmUI instance with ease.
 
@@ -33,19 +33,19 @@ Download the latest release from the [releases page](https://github.com/opd-ai/a
 ### 1. Initialize Configuration
 
 ```bash
-swarmui config init
+asset-generator config init
 ```
 
 ### 2. Set Your API Endpoint
 
 ```bash
-swarmui config set api-url http://localhost:7801
+asset-generator config set api-url http://localhost:7801
 ```
 
 ### 3. Generate Your First Image
 
 ```bash
-swarmui generate image --prompt "a beautiful sunset over mountains"
+asset-generator generate image --prompt "a beautiful sunset over mountains"
 ```
 
 ## Usage
@@ -56,10 +56,10 @@ Generate images with various parameters:
 
 ```bash
 # Basic generation
-swarmui generate image --prompt "a futuristic cityscape"
+asset-generator generate image --prompt "a futuristic cityscape"
 
 # Advanced generation with custom parameters
-swarmui generate image \
+asset-generator generate image \
   --prompt "astronaut riding a horse" \
   --width 1024 \
   --height 1024 \
@@ -68,13 +68,13 @@ swarmui generate image \
   --sampler euler_a
 
 # Save output to file
-swarmui generate image \
+asset-generator generate image \
   --prompt "cat wearing sunglasses" \
   --output result.json \
   --format json
 
 # Batch generation
-swarmui generate image \
+asset-generator generate image \
   --prompt "beautiful landscape" \
   --batch 4
 ```
@@ -85,13 +85,13 @@ List and inspect available models:
 
 ```bash
 # List all models
-swarmui models list
+asset-generator models list
 
 # List models as JSON
-swarmui models list --format json
+asset-generator models list --format json
 
 # Get details about a specific model
-swarmui models get stable-diffusion-xl
+asset-generator models get stable-diffusion-xl
 ```
 
 ### Configuration
@@ -100,14 +100,14 @@ Manage your CLI configuration:
 
 ```bash
 # View current configuration
-swarmui config view
+asset-generator config view
 
 # Set configuration values
-swarmui config set api-url https://api.swarm.example.com
-swarmui config set api-key your-api-key-here
+asset-generator config set api-url https://api.swarm.example.com
+asset-generator config set api-key your-api-key-here
 
 # Get a specific configuration value
-swarmui config get api-url
+asset-generator config get api-url
 ```
 
 ## Configuration
@@ -115,13 +115,13 @@ swarmui config get api-url
 Configuration can be provided through multiple sources with the following precedence:
 
 1. **Command-line flags** (highest priority)
-2. **Environment variables** (prefixed with `SWARMUI_`)
-3. **Configuration file** (`~/.swarmui/config.yaml`)
+2. **Environment variables** (prefixed with `ASSET_GENERATOR_`)
+3. **Configuration file** (`~/.asset-generator/config.yaml`)
 4. **Default values** (lowest priority)
 
 ### Configuration File
 
-Location: `~/.swarmui/config.yaml`
+Location: `~/.asset-generator/config.yaml`
 
 ```yaml
 api-url: http://localhost:7801
@@ -150,7 +150,7 @@ Available for all commands:
 | `--output` | `-o` | Write output to file | |
 | `--quiet` | `-q` | Quiet mode (errors only) | `false` |
 | `--verbose` | `-v` | Verbose output | `false` |
-| `--config` | | Config file path | `~/.swarmui/config.yaml` |
+| `--config` | | Config file path | `~/.asset-generator/config.yaml` |
 
 ## Generation Parameters
 
@@ -172,13 +172,13 @@ Available for all commands:
 ### Example 1: Basic Image Generation
 
 ```bash
-swarmui generate image --prompt "a serene lake at sunset"
+asset-generator generate image --prompt "a serene lake at sunset"
 ```
 
 ### Example 2: High-Quality Generation
 
 ```bash
-swarmui generate image \
+asset-generator generate image \
   --prompt "professional portrait photo of a scientist" \
   --width 1024 \
   --height 1024 \
@@ -189,7 +189,7 @@ swarmui generate image \
 ### Example 3: Batch Generation with Seed
 
 ```bash
-swarmui generate image \
+asset-generator generate image \
   --prompt "fantasy castle in the clouds" \
   --batch 4 \
   --seed 42 \
@@ -200,7 +200,7 @@ swarmui generate image \
 
 ```bash
 # Generate and extract image paths
-swarmui generate image \
+asset-generator generate image \
   --prompt "cyberpunk street scene" \
   --format json | jq '.image_paths[]'
 ```
@@ -325,10 +325,10 @@ If you're having trouble connecting to SwarmUI:
 
 ```bash
 # Check your API URL
-swarmui config get api-url
+asset-generator config get api-url
 
 # Test with verbose output
-swarmui models list -v
+asset-generator models list -v
 
 # Verify SwarmUI is running
 curl http://localhost:7801/API/ListModels
@@ -338,11 +338,11 @@ curl http://localhost:7801/API/ListModels
 
 ```bash
 # View current configuration
-swarmui config view
+asset-generator config view
 
 # Reinitialize configuration
-rm -rf ~/.swarmui
-swarmui config init
+rm -rf ~/.asset-generator
+asset-generator config init
 ```
 
 ## License

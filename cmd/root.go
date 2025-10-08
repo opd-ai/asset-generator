@@ -108,7 +108,7 @@ func initConfig() error {
 	}
 
 	// Read in environment variables that match
-	viper.SetEnvPrefix("SWARMUI")
+	viper.SetEnvPrefix("ASSET_GENERATOR")
 	viper.AutomaticEnv()
 
 	// Set defaults

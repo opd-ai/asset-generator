@@ -43,7 +43,7 @@ The command layer handles CLI interactions using Cobra:
 - Implements flag precedence: CLI flags > env vars > config file > defaults
 
 #### `generate.go`
-- Implements `swarmui generate image` command
+- Implements `asset-generator generate image` command
 - Handles signal interrupts for graceful shutdown
 - Tracks generation progress
 - Supports batch operations
@@ -124,7 +124,7 @@ Configuration validation and management:
 #### Configuration Sources (in order of precedence)
 1. Command-line flags
 2. Environment variables (SWARMUI_*)
-3. Configuration file (~/.swarmui/config.yaml)
+3. Configuration file (~/.asset-generator/config.yaml)
 4. Default values
 
 ## API Integration
@@ -223,9 +223,9 @@ make build
 make install
 
 # Cross-compilation
-GOOS=linux GOARCH=amd64 go build -o swarmui-linux-amd64
-GOOS=darwin GOARCH=amd64 go build -o swarmui-darwin-amd64
-GOOS=windows GOARCH=amd64 go build -o swarmui-windows-amd64.exe
+GOOS=linux GOARCH=amd64 go build -o asset-generator-linux-amd64
+GOOS=darwin GOARCH=amd64 go build -o asset-generator-darwin-amd64
+GOOS=windows GOARCH=amd64 go build -o asset-generator-windows-amd64.exe
 ```
 
 ### Binary Size Optimization
@@ -268,7 +268,7 @@ This reduces binary size by ~30%.
 
 ### Config File Location
 
-Default: `~/.swarmui/config.yaml`
+Default: `~/.asset-generator/config.yaml`
 
 Can be overridden with `--config` flag.
 
@@ -341,14 +341,14 @@ SWARMUI_FORMAT=json
 - Check config file syntax
 
 **Issue**: "config file not found"
-- Run `swarmui config init` first
+- Run `asset-generator config init` first
 - Check `--config` flag path
 
 ### Debug Mode
 
 Enable verbose output:
 ```bash
-swarmui --verbose generate image --prompt "test"
+asset-generator --verbose generate image --prompt "test"
 ```
 
 This shows:

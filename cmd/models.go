@@ -17,13 +17,13 @@ var modelsCmd = &cobra.Command{
 
 Examples:
   # List all available models
-  swarmui models list
+  asset-generator models list
   
   # List models as JSON
-  swarmui models list --format json
+  asset-generator models list --format json
   
   # Get details about a specific model
-  swarmui models get stable-diffusion-xl`,
+  asset-generator models get stable-diffusion-xl`,
 }
 
 // modelsListCmd lists all available models
@@ -33,8 +33,8 @@ var modelsListCmd = &cobra.Command{
 	Long: `List all models available in the SwarmUI instance.
 
 Examples:
-  swarmui models list
-  swarmui models list --format json`,
+  asset-generator models list
+  asset-generator models list --format json`,
 	RunE: runModelsList,
 }
 
@@ -45,8 +45,8 @@ var modelsGetCmd = &cobra.Command{
 	Long: `Get detailed information about a specific model.
 
 Examples:
-  swarmui models get stable-diffusion-xl
-  swarmui models get sdxl-turbo --format json`,
+  asset-generator models get stable-diffusion-xl
+  asset-generator models get sdxl-turbo --format json`,
 	Args: cobra.ExactArgs(1),
 	RunE: runModelsGet,
 }

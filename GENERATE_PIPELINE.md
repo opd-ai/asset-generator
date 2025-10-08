@@ -17,13 +17,13 @@ This guide demonstrates how to integrate `asset-generator` (SwarmUI CLI) into a 
 
 ```bash
 # Initialize configuration
-swarmui config init
+asset-generator config init
 
 # Set your SwarmUI endpoint (if not default)
-swarmui config set api-url http://localhost:7801
+asset-generator config set api-url http://localhost:7801
 
 # Verify connection
-swarmui models list
+asset-generator models list
 ```
 
 ## Basic Pipeline Example
@@ -83,7 +83,7 @@ generate_asset() {
     output_file="$4"
     
     echo "Generating: $output_file"
-    swarmui generate image \
+    asset-generator generate image \
         --prompt "$prompt" \
         --width "$width" \
         --height "$height" \
@@ -153,7 +153,7 @@ OUTPUT_DIR="${2:-generated_assets}"
 
 # Check dependencies
 command -v yq >/dev/null 2>&1 || { echo "Error: yq is required but not installed" >&2; exit 1; }
-command -v swarmui >/dev/null 2>&1 || { echo "Error: swarmui CLI not found" >&2; exit 1; }
+command -v asset-generator >/dev/null 2>&1 || { echo "Error: asset-generator CLI not found" >&2; exit 1; }
 
 # Parse YAML and generate assets
 parse_and_generate() {
@@ -180,7 +180,7 @@ parse_and_generate() {
         output_file="$OUTPUT_DIR/$category/${name}.json"
         
         echo "Generating $category/$name..."
-        swarmui generate image \
+        asset-generator generate image \
             --prompt "$prompt" \
             --width "$width" \
             --height "$height" \
@@ -221,8 +221,8 @@ assets-clean:
     @mkdir -p $(ASSET_DIR)
 
 assets-verify:
-    @swarmui config view
-    @swarmui models list
+    @asset-generator config view
+    @asset-generator models list
     @echo "Asset generation system ready"
 ```
 
@@ -237,7 +237,7 @@ Use standardized prompt templates:
 generate_character() {
     name="$1"
     description="$2"
-    swarmui generate image \
+    asset-generator generate image \
         --prompt "pixel art character sprite, ${description}, 32x32, game asset, transparent background, clean lines" \
         --width 512 --height 512 \
         --output "characters/${name}.json"
@@ -247,7 +247,7 @@ generate_character() {
 generate_background() {
     name="$1"
     description="$2"
-    swarmui generate image \
+    asset-generator generate image \
         --prompt "pixel art background, ${description}, parallax layer, game background, vibrant colors" \
         --width 1024 --height 512 \
         --output "backgrounds/${name}.json"
@@ -258,7 +258,7 @@ generate_ui() {
     name="$1"
     element="$2"
     style="$3"
-    swarmui generate image \
+    asset-generator generate image \
         --prompt "game UI ${element}, ${style} style, clean design, transparent background" \
         --width 256 --height 128 \
         --output "ui/${name}.json"
@@ -270,7 +270,7 @@ generate_ui() {
 Use seeds for consistent results:
 
 ```bash
-swarmui generate image \
+asset-generator generate image \
     --prompt "hero character sprite" \
     --seed 42 \
     --width 512 --height 512
@@ -282,7 +282,7 @@ Generate variations efficiently:
 
 ```bash
 # Generate 4 enemy variations
-swarmui generate image \
+asset-generator generate image \
     --prompt "pixel art monster sprite, game asset" \
     --batch 4 \
     --width 512 --height 512
@@ -294,10 +294,10 @@ Choose appropriate models for your art style:
 
 ```bash
 # List available models
-swarmui models list
+asset-generator models list
 
 # Use specific model for pixel art
-swarmui generate image \
+asset-generator generate image \
     --prompt "pixel art sprite" \
     --model "pixel-art-diffusion"
 ```
@@ -308,7 +308,7 @@ swarmui generate image \
 
 ```bash
 # Generate concept art variants
-swarmui generate image \
+asset-generator generate image \
     --prompt "fantasy knight character design, multiple poses" \
     --batch 5 \
     --steps 50 \
@@ -319,7 +319,7 @@ swarmui generate image \
 
 ```bash
 # Generate final game assets
-swarmui generate image \
+asset-generator generate image \
     --prompt "pixel art knight sprite, 32x32, transparent" \
     --width 512 --height 512 \
     --steps 30
@@ -330,7 +330,7 @@ swarmui generate image \
 ```sh
 # Generate color variations
 for color in red blue green yellow; do
-    swarmui generate image \
+    asset-generator generate image \
         --prompt "knight sprite with ${color} armor" \
         --seed 42 \
         --width 512 --height 512 \
@@ -359,14 +359,14 @@ jobs:
             
             - name: Setup SwarmUI CLI
               run: |
-                  wget https://github.com/opd-ai/asset-generator/releases/latest/download/swarmui-linux-amd64
-                  chmod +x swarmui-linux-amd64
-                  sudo mv swarmui-linux-amd64 /usr/local/bin/swarmui
+                  wget https://github.com/opd-ai/asset-generator/releases/latest/download/asset-generator-linux-amd64
+                  chmod +x asset-generator-linux-amd64
+                  sudo mv asset-generator-linux-amd64 /usr/local/bin/asset-generator
             
             - name: Configure CLI
               run: |
-                  swarmui config set api-url ${{ secrets.SWARMUI_URL }}
-                  swarmui config set api-key ${{ secrets.SWARMUI_KEY }}
+                  asset-generator config set api-url ${{ secrets.SWARMUI_URL }}
+                  asset-generator config set api-key ${{ secrets.SWARMUI_KEY }}
             
             - name: Generate Assets
               run: |
@@ -387,9 +387,9 @@ generate_assets:
   image: alpine:latest
   before_script:
     - apk add --no-cache wget
-    - wget -O /usr/local/bin/swarmui https://github.com/opd-ai/asset-generator/releases/latest/download/swarmui-linux-amd64
-    - chmod +x /usr/local/bin/swarmui
-    - swarmui config set api-url $SWARMUI_URL
+    - wget -O /usr/local/bin/asset-generator https://github.com/opd-ai/asset-generator/releases/latest/download/asset-generator-linux-amd64
+    - chmod +x /usr/local/bin/asset-generator
+    - asset-generator config set api-url $SWARMUI_URL
   script:
     - sh ./scripts/generate_assets.sh
   artifacts:
@@ -405,26 +405,26 @@ generate_assets:
 
 ```bash
 # Verify SwarmUI is accessible
-swarmui models list
+asset-generator models list
 
 # Check configuration
-swarmui config view
+asset-generator config view
 
 # Test with verbose output
-swarmui generate image --prompt "test" --verbose
+asset-generator generate image --prompt "test" --verbose
 ```
 
 ### Quality Issues
 
 ```bash
 # Increase steps for better quality
-swarmui generate image --prompt "detailed sprite" --steps 50
+asset-generator generate image --prompt "detailed sprite" --steps 50
 
 # Adjust CFG scale for prompt adherence
-swarmui generate image --prompt "sprite" --cfg-scale 8.0
+asset-generator generate image --prompt "sprite" --cfg-scale 8.0
 
 # Use negative prompts
-swarmui generate image \
+asset-generator generate image \
     --prompt "clean sprite" \
     --negative-prompt "blurry, distorted, low quality"
 ```

@@ -1,4 +1,4 @@
-# Example configuration file for SwarmUI CLI
+# Example configuration file for Asset Generator CLI
 
 # SwarmUI API endpoint
 api-url: http://localhost:7801
