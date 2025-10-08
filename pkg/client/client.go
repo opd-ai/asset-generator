@@ -285,6 +285,21 @@ func (c *AssetClient) GenerateImage(ctx context.Context, req *GenerationRequest)
 
 	// Handle SwarmUI-specific errors
 	if apiResp.Error != "" {
+		// Handle session expiration - retry with new session
+		if apiResp.ErrorID == "invalid_session_id" {
+			// Clear expired session
+			c.mu.Lock()
+			oldSessionID := c.sessionID
+			c.sessionID = ""
+			c.mu.Unlock()
+
+			// Only retry if we actually had a cached session
+			// This prevents infinite recursion if the session was already cleared
+			if oldSessionID != "" {
+				return c.GenerateImage(ctx, req)
+			}
+		}
+
 		return nil, fmt.Errorf("SwarmUI error: %s", apiResp.Error)
 	}
 
