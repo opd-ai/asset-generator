@@ -100,6 +100,14 @@ func TestListModels(t *testing.T) {
 func TestGenerateImage(t *testing.T) {
 	// Create a test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Handle GetNewSession call first
+		if r.URL.Path == "/API/GetNewSession" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"session_id": "test-session-123"}`))
+			return
+		}
+
 		if r.URL.Path != "/API/GenerateText2Image" {
 			t.Errorf("Expected path /API/GenerateText2Image, got %s", r.URL.Path)
 		}
@@ -152,10 +160,93 @@ func TestGenerateImage(t *testing.T) {
 	}
 }
 
-func TestGenerateImageWithContext(t *testing.T) {
-	// Create a server that takes a while to respond
+func TestGenerateImageBatch(t *testing.T) {
+	// Create a test server that returns multiple images
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Wait a bit before responding
+		if r.URL.Path == "/API/GetNewSession" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"session_id": "test-session-123"}`))
+			return
+		}
+
+		if r.URL.Path != "/API/GenerateText2Image" {
+			t.Errorf("Expected path /API/GenerateText2Image, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodPost {
+			t.Errorf("Expected POST method, got %s", r.Method)
+		}
+
+		// Return multiple images for batch generation
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{
+			"images": [
+				"/output/image1.png",
+				"/output/image2.png",
+				"/output/image3.png"
+			],
+			"info": {
+				"seed": 12345,
+				"steps": 20,
+				"batch_count": 3
+			}
+		}`))
+	}))
+	defer server.Close()
+
+	client, err := NewSwarmClient(&Config{
+		BaseURL: server.URL,
+	})
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	req := &GenerationRequest{
+		Prompt: "test prompt",
+		Parameters: map[string]interface{}{
+			"batch_size": 3,
+		},
+	}
+
+	result, err := client.GenerateImage(context.Background(), req)
+	if err != nil {
+		t.Fatalf("GenerateImage() error = %v", err)
+	}
+
+	// Verify we got 3 images
+	if len(result.ImagePaths) != 3 {
+		t.Errorf("Expected 3 image paths for batch_size=3, got %d", len(result.ImagePaths))
+	}
+
+	// Verify the image paths are correct
+	expectedPaths := []string{
+		"/output/image1.png",
+		"/output/image2.png",
+		"/output/image3.png",
+	}
+	for i, expectedPath := range expectedPaths {
+		if result.ImagePaths[i] != expectedPath {
+			t.Errorf("Expected image path %d to be '%s', got '%s'", i, expectedPath, result.ImagePaths[i])
+		}
+	}
+
+	if result.Status != "completed" {
+		t.Errorf("Expected status 'completed', got '%s'", result.Status)
+	}
+}
+
+func TestGenerateImageWithContext(t *testing.T) {
+	// Create a server that handles both GetNewSession and generation
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/API/GetNewSession" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"session_id": "test-session-123"}`))
+			return
+		}
+		// Wait a bit before responding to generation
 		time.Sleep(100 * time.Millisecond)
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"images": [], "info": {}}`))

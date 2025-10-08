@@ -133,11 +133,19 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 	}
 
 	if !quiet {
-		fmt.Fprintf(os.Stderr, "Generating image with prompt: %s\n", generatePrompt)
+		// Provide clear feedback about batch generation
+		if generateBatchSize > 1 {
+			fmt.Fprintf(os.Stderr, "Generating %d images with prompt: %s\n", generateBatchSize, generatePrompt)
+		} else {
+			fmt.Fprintf(os.Stderr, "Generating image with prompt: %s\n", generatePrompt)
+		}
 		if verbose {
 			fmt.Fprintf(os.Stderr, "Model: %s\n", req.Model)
 			fmt.Fprintf(os.Stderr, "Steps: %d, Size: %dx%d, CFG: %.1f\n",
 				generateSteps, generateWidth, generateHeight, generateCfgScale)
+			if generateBatchSize > 1 {
+				fmt.Fprintf(os.Stderr, "Batch size: %d\n", generateBatchSize)
+			}
 		}
 	}
 
@@ -168,7 +176,13 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 	}
 
 	if !quiet {
-		fmt.Fprintf(os.Stderr, "✓ Generation completed successfully\n")
+		// Provide clear feedback about number of images generated
+		imageCount := len(result.ImagePaths)
+		if imageCount == 1 {
+			fmt.Fprintf(os.Stderr, "✓ Generation completed successfully (1 image)\n")
+		} else {
+			fmt.Fprintf(os.Stderr, "✓ Generation completed successfully (%d images)\n", imageCount)
+		}
 	}
 
 	return nil
