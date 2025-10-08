@@ -101,25 +101,52 @@ func (f *Formatter) formatSliceTable(data []interface{}) (string, error) {
 		headers = append(headers, strings.Title(key))
 	}
 
-	// Write header
-	buf.WriteString(strings.Join(headers, "\t"))
-	buf.WriteString("\n")
-
-	// Write separator
-	for range headers {
-		buf.WriteString("--------\t")
+	// Calculate column widths for proper alignment
+	colWidths := make([]int, len(headers))
+	
+	// Initialize with header lengths
+	for i, header := range headers {
+		colWidths[i] = len(header)
 	}
+	
+	// Calculate max width for each column by scanning all data
+	for _, item := range data {
+		itemMap, _ := item.(map[string]interface{})
+		for i, header := range headers {
+			key := strings.ToLower(header)
+			value := fmt.Sprintf("%v", itemMap[key])
+			if len(value) > colWidths[i] {
+				colWidths[i] = len(value)
+			}
+		}
+	}
+
+	// Write header with proper padding
+	headerRow := make([]string, len(headers))
+	for i, header := range headers {
+		headerRow[i] = f.padRight(header, colWidths[i])
+	}
+	buf.WriteString(strings.Join(headerRow, " | "))
 	buf.WriteString("\n")
 
-	// Write rows
+	// Write separator with proper alignment
+	separators := make([]string, len(headers))
+	for i, width := range colWidths {
+		separators[i] = strings.Repeat("-", width)
+	}
+	buf.WriteString(strings.Join(separators, "-+-"))
+	buf.WriteString("\n")
+
+	// Write rows with proper padding
 	for _, item := range data {
 		itemMap, _ := item.(map[string]interface{})
 		row := make([]string, len(headers))
 		for i, header := range headers {
 			key := strings.ToLower(header)
-			row[i] = fmt.Sprintf("%v", itemMap[key])
+			value := fmt.Sprintf("%v", itemMap[key])
+			row[i] = f.padRight(value, colWidths[i])
 		}
-		buf.WriteString(strings.Join(row, "\t"))
+		buf.WriteString(strings.Join(row, " | "))
 		buf.WriteString("\n")
 	}
 
@@ -130,13 +157,43 @@ func (f *Formatter) formatSliceTable(data []interface{}) (string, error) {
 func (f *Formatter) formatMapTable(data map[string]interface{}) (string, error) {
 	var buf strings.Builder
 
-	// Write header
-	buf.WriteString("Key\tValue\n")
-	buf.WriteString("--------\t--------\n")
+	if len(data) == 0 {
+		return "No data available", nil
+	}
 
-	// Write rows
+	// Calculate column widths
+	keyWidth := 3 // minimum width for "Key" header
+	valueWidth := 5 // minimum width for "Value" header
+
+	// Calculate max widths needed
 	for key, value := range data {
-		buf.WriteString(fmt.Sprintf("%s\t%v\n", key, value))
+		if len(key) > keyWidth {
+			keyWidth = len(key)
+		}
+		valueStr := fmt.Sprintf("%v", value)
+		if len(valueStr) > valueWidth {
+			valueWidth = len(valueStr)
+		}
+	}
+
+	// Write header with proper padding
+	buf.WriteString(f.padRight("Key", keyWidth))
+	buf.WriteString(" | ")
+	buf.WriteString(f.padRight("Value", valueWidth))
+	buf.WriteString("\n")
+
+	// Write separator
+	buf.WriteString(strings.Repeat("-", keyWidth))
+	buf.WriteString("-+-")
+	buf.WriteString(strings.Repeat("-", valueWidth))
+	buf.WriteString("\n")
+
+	// Write rows with proper padding
+	for key, value := range data {
+		buf.WriteString(f.padRight(key, keyWidth))
+		buf.WriteString(" | ")
+		buf.WriteString(f.padRight(fmt.Sprintf("%v", value), valueWidth))
+		buf.WriteString("\n")
 	}
 
 	return buf.String(), nil
@@ -157,6 +214,14 @@ func (f *Formatter) formatGenericTable(data interface{}) (string, error) {
 	}
 
 	return f.formatMapTable(mapData)
+}
+
+// padRight pads a string to the specified width with spaces
+func (f *Formatter) padRight(str string, width int) string {
+	if len(str) >= width {
+		return str
+	}
+	return str + strings.Repeat(" ", width-len(str))
 }
 
 // WriteToFile writes data to a file with timestamp
