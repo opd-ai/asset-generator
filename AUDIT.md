@@ -91,56 +91,41 @@ generateImageCmd.Flags().StringVar(&generateNegPrompt, "negative-prompt", "", "n
 > "All API routes, with the exception of `GetNewSession`, require a `session_id` input in the JSON." (API.md:17)
 > "If the `error_id` is `invalid_session_id`, you must recall `/API/GetNewSession` and try again." (API.md:24)
 
-**Implementation Location:** `pkg/client/client.go:354-377`, `pkg/client/client.go:544-556`
+**Implementation Location:** `pkg/client/client.go:354-377`, `pkg/client/client.go:544-556`### Gap #3: Session Reuse Without Validation (Critical) ✅ RESOLVED
 
-**Expected Behavior:** Client should detect invalid session errors and automatically retry with new session for all API calls
+**Status:** Resolved in commit ae2f140 (2025-10-08)
 
-**Actual Implementation:** Only `ListModelsWithOptions` handles `invalid_session_id` retry (line 544-548). `GenerateImage` does NOT retry on invalid session.
+**Documentation Reference (from API.md):**
+> "All API routes, with the exception of `GetNewSession`, require a `session_id` input in the JSON." (API.md:17)
+> "If the `error_id` is `invalid_session_id`, you must recall `/API/GetNewSession` and try again." (API.md:24)
 
-**Gap Details:** The client caches `sessionID` in `c.sessionID` field and reuses it across multiple API calls. If the session expires on the server side (SwarmUI sessions can expire), the `GenerateImage` method will fail without attempting to get a new session. Only `ListModels` implements the retry logic documented in API.md.
+**Implementation Location:** `pkg/client/client.go:287-305`
 
-**Reproduction:**
+**Resolution:**
+Added automatic session retry logic to `GenerateImage()` matching the pattern already implemented in `ListModelsWithOptions()`:
+- Detect `invalid_session_id` error response from SwarmUI API
+- Clear the expired cached session ID
+- Automatically retry the generation with a new session
+- Prevent infinite recursion by checking if session was already cleared
+
+**Verification:**
+- **Code path analysis:** Session expiration now triggers automatic retry with new session
+- **Edge case handling:** Prevents infinite loops by tracking previous session state
+- **Consistency:** Matches retry behavior in ListModelsWithOptions
+- **Defensive programming:** Only retries if we actually had a cached session (oldSessionID != "")
+
+**Code Pattern:**
 ```go
-// Scenario: Session expires between calls
-client, _ := client.NewAssetClient(config)
-
-// First call succeeds, caches session
-models, _ := client.ListModels()
-
-// Time passes, server expires the session
-// (SwarmUI may expire sessions after inactivity)
-
-// Second call fails without retry
-req := &client.GenerationRequest{Prompt: "test"}
-result, err := client.GenerateImage(ctx, req)
-// Returns error: "SwarmUI error (invalid_session_id)"
-// Does NOT automatically retry with new session
-```
-
-**Production Impact:** Critical - Long-running CLI sessions or automated scripts will fail intermittently when sessions expire, requiring manual restart.
-
-**Evidence:**
-```go
-// pkg/client/client.go:544-548 - ListModels HAS retry logic
-if apiResp.Error != "" {
-    // Handle session expiration
-    if apiResp.ErrorID == "invalid_session_id" {
-        // Clear session and retry once
-        c.mu.Lock()
-        c.sessionID = ""
-        c.mu.Unlock()
-        return c.ListModelsWithOptions(options)
+if apiResp.ErrorID == "invalid_session_id" {
+    c.mu.Lock()
+    oldSessionID := c.sessionID
+    c.sessionID = ""
+    c.mu.Unlock()
+    
+    if oldSessionID != "" {
+        return c.GenerateImage(ctx, req)
     }
-
-// pkg/client/client.go:285-292 - GenerateImage LACKS retry logic
-if apiResp.Error != "" {
-    return nil, fmt.Errorf("SwarmUI error: %s", apiResp.Error)
 }
-
-if apiResp.ErrorID != "" {
-    return nil, fmt.Errorf("SwarmUI error (ID: %s)", apiResp.ErrorID)
-}
-// No check for invalid_session_id or retry mechanism
 ```
 
 ---
