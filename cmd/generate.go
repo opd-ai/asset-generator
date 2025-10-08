@@ -14,16 +14,16 @@ import (
 )
 
 var (
-	generatePrompt     string
-	generateModel      string
-	generateSteps      int
-	generateWidth      int
-	generateHeight     int
-	generateSeed       int64
-	generateBatchSize  int
-	generateCfgScale   float64
-	generateNegPrompt  string
-	generateSampler    string
+	generatePrompt    string
+	generateModel     string
+	generateSteps     int
+	generateWidth     int
+	generateHeight    int
+	generateSeed      int64
+	generateBatchSize int
+	generateCfgScale  float64
+	generateNegPrompt string
+	generateSampler   string
 )
 
 // generateCmd represents the generate command

@@ -79,7 +79,7 @@ func init() {
 
 func runConfigView(cmd *cobra.Command, args []string) error {
 	settings := viper.AllSettings()
-	
+
 	if len(settings) == 0 {
 		fmt.Println("No configuration found. Run 'swarmui config init' to create a default config.")
 		return nil
