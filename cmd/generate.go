@@ -16,16 +16,17 @@ import (
 )
 
 var (
-	generatePrompt    string
-	generateModel     string
-	generateSteps     int
-	generateWidth     int
-	generateHeight    int
-	generateSeed      int64
-	generateBatchSize int
-	generateCfgScale  float64
-	generateNegPrompt string
-	generateSampler   string
+	generatePrompt     string
+	generateModel      string
+	generateSteps      int
+	generateWidth      int
+	generateHeight     int
+	generateSeed       int64
+	generateBatchSize  int
+	generateCfgScale   float64
+	generateNegPrompt  string
+	generateSampler    string
+	generateUseWebSocket bool // Enable WebSocket for real-time progress
 )
 
 // generateCmd represents the generate command
@@ -75,6 +76,7 @@ func init() {
 	generateImageCmd.Flags().Float64Var(&generateCfgScale, "cfg-scale", 7.5, "CFG scale (guidance)")
 	generateImageCmd.Flags().StringVar(&generateNegPrompt, "negative-prompt", "", "negative prompt")
 	generateImageCmd.Flags().StringVar(&generateSampler, "sampler", "euler_a", "sampling method")
+	generateImageCmd.Flags().BoolVar(&generateUseWebSocket, "websocket", false, "use WebSocket for real-time progress (requires SwarmUI)")
 
 	generateImageCmd.MarkFlagRequired("prompt")
 
@@ -107,9 +109,9 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 			"steps":           generateSteps,
 			"width":           generateWidth,
 			"height":          generateHeight,
-			"cfgscale":        generateCfgScale,        // SwarmUI API parameter name
+			"cfgscale":        generateCfgScale, // SwarmUI API parameter name
 			"sampler":         generateSampler,
-			"images":          generateBatchSize,       // SwarmUI uses "images" for batch size
+			"images":          generateBatchSize, // SwarmUI uses "images" for batch size
 			"negative_prompt": generateNegPrompt,
 		},
 	}
@@ -151,7 +153,18 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 	}
 
 	// Execute generation with progress tracking
-	result, err := assetClient.GenerateImage(ctx, req)
+	// Use WebSocket if flag is enabled, otherwise use HTTP
+	var result *client.GenerationResult
+	var err error
+	if generateUseWebSocket {
+		if verbose {
+			fmt.Fprintf(os.Stderr, "Using WebSocket for real-time progress updates\n")
+		}
+		result, err = assetClient.GenerateImageWS(ctx, req)
+	} else {
+		result, err = assetClient.GenerateImage(ctx, req)
+	}
+	
 	if err != nil {
 		return fmt.Errorf("generation failed: %w", err)
 	}

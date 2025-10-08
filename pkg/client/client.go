@@ -164,7 +164,7 @@ func (c *AssetClient) GenerateImage(ctx context.Context, req *GenerationRequest)
 	body := map[string]interface{}{
 		"session_id": sessionID, // Required by SwarmUI API
 		"prompt":     req.Prompt,
-		"images":     1,          // Default to 1 image
+		"images":     1, // Default to 1 image
 	}
 
 	// Override images count if specified in parameters
@@ -329,6 +329,183 @@ func (c *AssetClient) GenerateImage(ctx context.Context, req *GenerationRequest)
 	}
 
 	return result, nil
+}
+
+// GenerateImageWS generates an image using WebSocket for real-time progress updates
+// This connects to the GenerateText2ImageWS endpoint for live progress information
+func (c *AssetClient) GenerateImageWS(ctx context.Context, req *GenerationRequest) (*GenerationResult, error) {
+	// Get or create session ID
+	sessionID, err := c.ensureSession()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get session: %w", err)
+	}
+
+	// Build WebSocket URL (convert http:// to ws:// or https:// to wss://)
+	wsURL := c.config.BaseURL
+	if len(wsURL) > 7 && wsURL[:7] == "http://" {
+		wsURL = "ws://" + wsURL[7:]
+	} else if len(wsURL) > 8 && wsURL[:8] == "https://" {
+		wsURL = "wss://" + wsURL[8:]
+	}
+	wsURL += "/API/GenerateText2ImageWS"
+
+	// Build request body with correct SwarmUI parameter names
+	body := map[string]interface{}{
+		"session_id": sessionID,
+		"prompt":     req.Prompt,
+		"images":     1, // Default to 1 image
+	}
+
+	// Override images count if specified in parameters
+	if images, ok := req.Parameters["images"]; ok && images != nil {
+		if img, isInt := images.(int); isInt && img > 0 {
+			body["images"] = img
+		}
+	}
+
+	// Add model if specified
+	if req.Model != "" {
+		body["model"] = req.Model
+	}
+
+	// Add all other parameters
+	for key, value := range req.Parameters {
+		if key != "images" { // Already handled above
+			body[key] = value
+		}
+	}
+
+	// Connect to WebSocket
+	dialer := websocket.Dialer{
+		HandshakeTimeout: 45 * time.Second,
+	}
+
+	conn, _, err := dialer.DialContext(ctx, wsURL, nil)
+	if err != nil {
+		// Fallback to HTTP if WebSocket fails
+		if c.config.Verbose {
+			fmt.Printf("WebSocket connection failed, falling back to HTTP: %v\n", err)
+		}
+		return c.GenerateImage(ctx, req)
+	}
+	defer conn.Close()
+
+	// Send initial request
+	if err := conn.WriteJSON(body); err != nil {
+		return nil, fmt.Errorf("failed to send WebSocket request: %w", err)
+	}
+
+	// Create session tracking
+	session := &GenerationSession{
+		ID:        sessionID,
+		Status:    "generating",
+		Progress:  0.0,
+		StartTime: time.Now(),
+	}
+
+	c.mu.Lock()
+	c.sessions[sessionID] = session
+	c.mu.Unlock()
+
+	// Listen for progress updates
+	var finalResult *GenerationResult
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+			// Read message from WebSocket
+			var msg map[string]interface{}
+			if err := conn.ReadJSON(&msg); err != nil {
+				// Check if it's a normal close
+				if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
+					break
+				}
+				return nil, fmt.Errorf("WebSocket read error: %w", err)
+			}
+
+			// Handle error messages
+			if errMsg, ok := msg["error"].(string); ok && errMsg != "" {
+				// Handle session expiration
+				if errID, hasErrID := msg["error_id"].(string); hasErrID && errID == "invalid_session_id" {
+					c.mu.Lock()
+					oldSessionID := c.sessionID
+					c.sessionID = ""
+					c.mu.Unlock()
+
+					if oldSessionID != "" {
+						return c.GenerateImageWS(ctx, req)
+					}
+				}
+				return nil, fmt.Errorf("SwarmUI error: %s", errMsg)
+			}
+
+			// Parse progress update
+			if progress, ok := msg["progress"].(float64); ok {
+				c.mu.Lock()
+				session.Progress = progress
+				c.mu.Unlock()
+
+				if req.ProgressCallback != nil {
+					status := "Generating..."
+					if statusStr, ok := msg["status"].(string); ok {
+						status = statusStr
+					}
+					req.ProgressCallback(progress, status)
+				}
+			}
+
+			// Check for completion (images field indicates generation is complete)
+			if images, ok := msg["images"].([]interface{}); ok && len(images) > 0 {
+				// Convert images to string slice
+				imagePaths := make([]string, len(images))
+				for i, img := range images {
+					if imgStr, ok := img.(string); ok {
+						imagePaths[i] = imgStr
+					}
+				}
+
+				// Extract metadata if present
+				metadata := make(map[string]interface{})
+				if info, ok := msg["info"].(map[string]interface{}); ok {
+					metadata = info
+				}
+
+				finalResult = &GenerationResult{
+					SessionID:  sessionID,
+					ImagePaths: imagePaths,
+					Metadata:   metadata,
+					Status:     "completed",
+					CreatedAt:  time.Now(),
+				}
+
+				// Update session
+				c.mu.Lock()
+				session.Status = "completed"
+				session.Progress = 1.0
+				session.Result = finalResult
+				c.mu.Unlock()
+
+				// Report completion
+				if req.ProgressCallback != nil {
+					req.ProgressCallback(1.0, "Generation completed")
+				}
+
+				break
+			}
+		}
+
+		// Break if we got final result
+		if finalResult != nil {
+			break
+		}
+	}
+
+	if finalResult == nil {
+		return nil, fmt.Errorf("WebSocket closed without returning images")
+	}
+
+	return finalResult, nil
 }
 
 // cleanupSession removes a session from memory to prevent memory leaks
