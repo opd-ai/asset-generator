@@ -79,13 +79,65 @@ func NewSwarmClient(config *Config) (*SwarmClient, error) {
 	}, nil
 }
 
+// GetNewSession gets a new session ID from SwarmUI API
+func (c *SwarmClient) GetNewSession(ctx context.Context) (string, error) {
+	endpoint := fmt.Sprintf("%s/API/GetNewSession", c.config.BaseURL)
+	
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", endpoint, bytes.NewBuffer([]byte("{}")))
+	if err != nil {
+		return "", fmt.Errorf("failed to create session request: %w", err)
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+	if c.config.APIKey != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+c.config.APIKey)
+	}
+
+	if c.config.Verbose {
+		fmt.Printf("Request: POST %s\n", endpoint)
+	}
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return "", fmt.Errorf("session request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("session API returned status %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	var apiResp struct {
+		SessionID string `json:"session_id"`
+		Error     string `json:"error,omitempty"`
+		ErrorID   string `json:"error_id,omitempty"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return "", fmt.Errorf("failed to decode session response: %w", err)
+	}
+
+	if apiResp.Error != "" {
+		return "", fmt.Errorf("SwarmUI session error: %s", apiResp.Error)
+	}
+
+	if apiResp.SessionID == "" {
+		return "", fmt.Errorf("SwarmUI did not return a session ID")
+	}
+
+	return apiResp.SessionID, nil
+}
+
 // GenerateImage generates an image using the SwarmUI API
 func (c *SwarmClient) GenerateImage(ctx context.Context, req *GenerationRequest) (*GenerationResult, error) {
-	// Create a unique session ID
-	sessionID := fmt.Sprintf("gen-%d", time.Now().UnixNano())
-	req.SessionID = sessionID
+	// Get a new session ID from SwarmUI API
+	sessionID, err := c.GetNewSession(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get session: %w", err)
+	}
 
-	// Create session
+	// Create local session tracking
 	session := &GenerationSession{
 		ID:        sessionID,
 		Status:    "pending",
@@ -97,19 +149,20 @@ func (c *SwarmClient) GenerateImage(ctx context.Context, req *GenerationRequest)
 	c.sessions[sessionID] = session
 	c.mu.Unlock()
 
-	// Make HTTP request to generate endpoint  
-	// TODO: Verify correct SwarmUI endpoint - using REST API for now
+	// Make HTTP request to generate endpoint
 	endpoint := fmt.Sprintf("%s/API/GenerateText2Image", c.config.BaseURL)
 
-	// Build request body with SwarmUI-compatible parameter names
+	// Build request body with correct SwarmUI parameter names
 	body := map[string]interface{}{
-		"prompt": req.Prompt,
+		"session_id": sessionID, // Required by SwarmUI API
+		"prompt":     req.Prompt,
+		"images":     1, // Default to 1 image, SwarmUI uses "images" not "batch_size"
 	}
-	
-	// Add batch size parameter if specified
+
+	// Add batch size parameter if specified (SwarmUI expects "images" field)
 	if batchSize, ok := req.Parameters["batch_size"]; ok && batchSize != nil {
 		if bs, isInt := batchSize.(int); isInt && bs > 0 {
-			body["batch_size"] = bs
+			body["images"] = bs
 		}
 	}
 
@@ -118,9 +171,43 @@ func (c *SwarmClient) GenerateImage(ctx context.Context, req *GenerationRequest)
 		body["model"] = req.Model
 	}
 
-	// Add parameters
+	// Add standard SwarmUI parameters with defaults
+	if width, ok := req.Parameters["width"]; ok {
+		body["width"] = width
+	} else {
+		body["width"] = 1024 // Default width
+	}
+
+	if height, ok := req.Parameters["height"]; ok {
+		body["height"] = height
+	} else {
+		body["height"] = 1024 // Default height
+	}
+
+	if cfgScale, ok := req.Parameters["cfgscale"]; ok {
+		body["cfgscale"] = cfgScale
+	} else {
+		body["cfgscale"] = 7.5 // Default CFG scale
+	}
+
+	if steps, ok := req.Parameters["steps"]; ok {
+		body["steps"] = steps
+	} else {
+		body["steps"] = 20 // Default steps
+	}
+
+	if seed, ok := req.Parameters["seed"]; ok {
+		body["seed"] = seed
+	} else {
+		body["seed"] = -1 // Random seed
+	}
+
+	// Add any other parameters from the request
 	for k, v := range req.Parameters {
-		body[k] = v
+		// Skip parameters we've already handled
+		if k != "batch_size" && k != "width" && k != "height" && k != "cfgscale" && k != "steps" && k != "seed" {
+			body[k] = v
+		}
 	}
 
 	jsonBody, err := json.Marshal(body)
@@ -153,14 +240,25 @@ func (c *SwarmClient) GenerateImage(ctx context.Context, req *GenerationRequest)
 		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
-	// Parse response
+	// Parse response with SwarmUI error handling
 	var apiResp struct {
-		Images []string               `json:"images"`
-		Info   map[string]interface{} `json:"info"`
+		Images  []string               `json:"images"`
+		Info    map[string]interface{} `json:"info"`
+		Error   string                 `json:"error,omitempty"`
+		ErrorID string                 `json:"error_id,omitempty"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// Handle SwarmUI-specific errors
+	if apiResp.Error != "" {
+		return nil, fmt.Errorf("SwarmUI error: %s", apiResp.Error)
+	}
+
+	if apiResp.ErrorID != "" {
+		return nil, fmt.Errorf("SwarmUI error (ID: %s)", apiResp.ErrorID)
 	}
 
 	// Build result
