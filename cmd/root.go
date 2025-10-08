@@ -35,12 +35,21 @@ Examples:
   asset-generator models list
   asset-generator config set api-url https://api.example.com`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		// Initialize configuration
-		if err := initConfig(); err != nil {
+		// Check if this is a config command - they need special handling
+		// Config commands must work even when current config is invalid
+		isConfigCommand := cmd.Name() == "config" || (cmd.Parent() != nil && cmd.Parent().Name() == "config")
+
+		// Initialize configuration (skip validation for config commands)
+		if err := initConfigWithValidation(!isConfigCommand); err != nil {
 			return fmt.Errorf("failed to initialize config: %w", err)
 		}
 
-		// Initialize client
+		// Skip client initialization for config commands
+		if isConfigCommand {
+			return nil
+		}
+
+		// Initialize client for non-config commands
 		clientCfg := &client.Config{
 			BaseURL: viper.GetString("api-url"),
 			APIKey:  viper.GetString("api-key"),
@@ -82,7 +91,9 @@ func init() {
 }
 
 // initConfig reads in config file and ENV variables if set.
-func initConfig() error {
+// The validate parameter controls whether to validate config values.
+// Set to false for config commands to allow fixing invalid configurations.
+func initConfigWithValidation(validate bool) error {
 	if cfgFile != "" {
 		// Use config file from the flag
 		viper.SetConfigFile(cfgFile)
@@ -124,5 +135,10 @@ func initConfig() error {
 		}
 	}
 
-	return config.ValidateConfig()
+	// Only validate if requested (skip for config commands)
+	if validate {
+		return config.ValidateConfig()
+	}
+
+	return nil
 }
