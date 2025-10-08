@@ -154,42 +154,24 @@ var apiResp struct {
 
 ---
 
-### Gap #5: JSON Output Field Naming Inconsistency in Documentation
+### Gap #5: JSON Output Field Naming Inconsistency in Documentation ✅ **NO BUG - FALSE POSITIVE**
+**Status:** Verified correct in code review (2025-10-08)
+
 **Documentation Reference:** 
-> "asset-generator generate image \ \n  --prompt \"cyberpunk street scene\" \ \n  --format json | jq '.image_paths[]'" (README.md:213-216)
+> "asset-generator generate image \ \n  --prompt \"cyberpunk street scene\" \ \n  --format json | jq '.image_paths[]'" (README.md:222)
 
-**Implementation Location:** `pkg/client/client.go:48`
+**Implementation Location:** `pkg/client/client.go:48` and `pkg/output/formatter.go:49`
 
-**Expected Behavior:** JSON output should use snake_case for field names as shown in documentation
+**Verification:** 
+- GenerationResult struct correctly defines `ImagePaths []string` with json tag `json:"image_paths"`
+- Formatter directly marshals the struct using `json.MarshalIndent(data, "", "  ")`
+- No wrapping or restructuring occurs
+- Test confirmed jq path `.image_paths[]` works correctly
 
-**Actual Implementation:** JSON struct correctly uses `image_paths` with json tag, but documentation example uses array accessor that might not work as expected depending on output structure
+**Resolution:** No code changes needed. The implementation is correct and matches documentation. The audit concern about "structure might be wrapped differently" was incorrect - the formatter passes the GenerationResult directly to JSON marshalling without any wrapping.
 
-**Gap Details:** The documentation shows using `jq '.image_paths[]'` to extract image paths. The GenerationResult struct correctly defines:
-```go
-ImagePaths []string `json:"image_paths"`
-```
-
-However, when formatted through the output formatter, the structure might be wrapped differently. The example implies direct access to top-level `image_paths` field, but the actual JSON output structure from the formatter needs verification.
-
-**Reproduction:**
-```bash
-# Try the documented example
-asset-generator generate image --prompt "test" --format json | jq '.image_paths[]'
-
-# If the formatter wraps the result, this might fail or return null
-# Need to verify actual output structure matches documented jq path
-```
-
-**Production Impact:** Moderate - If the jq example doesn't work as documented, users attempting to parse JSON output programmatically will encounter errors. The field name itself is correct, but the structure depth may differ.
-
-**Evidence:**
-```go
-// pkg/client/client.go:48 - Correct field name
-ImagePaths []string `json:"image_paths"`
-
-// But need to verify pkg/output/formatter.go doesn't wrap or restructure
-// The formatter.Format() method may change the output structure
-```
+**Original Concern:**
+Audit questioned whether JSON output structure matched the documented jq example, but testing confirms the example works as documented.
 
 ---
 
