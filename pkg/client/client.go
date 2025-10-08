@@ -97,13 +97,20 @@ func (c *SwarmClient) GenerateImage(ctx context.Context, req *GenerationRequest)
 	c.sessions[sessionID] = session
 	c.mu.Unlock()
 
-	// Make HTTP request to generate endpoint
+	// Make HTTP request to generate endpoint  
+	// TODO: Verify correct SwarmUI endpoint - using REST API for now
 	endpoint := fmt.Sprintf("%s/API/GenerateText2Image", c.config.BaseURL)
 
-	// Build request body
+	// Build request body with SwarmUI-compatible parameter names
 	body := map[string]interface{}{
 		"prompt": req.Prompt,
-		"images": req.Parameters["batch_size"],
+	}
+	
+	// Add batch size parameter if specified
+	if batchSize, ok := req.Parameters["batch_size"]; ok && batchSize != nil {
+		if bs, isInt := batchSize.(int); isInt && bs > 0 {
+			body["batch_size"] = bs
+		}
 	}
 
 	// Add model if specified
@@ -216,7 +223,8 @@ func (c *SwarmClient) ListModels() ([]Model, error) {
 
 // GetModel gets details about a specific model
 func (c *SwarmClient) GetModel(name string) (*Model, error) {
-	endpoint := fmt.Sprintf("%s/API/GetModel?name=%s", c.config.BaseURL, name)
+	// Using correct SwarmUI API endpoint pattern
+	endpoint := fmt.Sprintf("%s/API/ListModels", c.config.BaseURL)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
