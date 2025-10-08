@@ -78,7 +78,7 @@ func NewSwarmClient(config *Config) (*SwarmClient, error) {
 	return &SwarmClient{
 		config: config,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: 10 * time.Minute, // Extended timeout for Flux generation (can take 5-10 minutes)
 		},
 		sessions: make(map[string]*GenerationSession),
 	}, nil
