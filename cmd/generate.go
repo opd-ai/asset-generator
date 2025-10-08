@@ -71,6 +71,8 @@ func init() {
 	generateImageCmd.Flags().IntVar(&generateSteps, "steps", 20, "number of inference steps")
 	generateImageCmd.Flags().IntVarP(&generateWidth, "width", "w", 512, "image width")
 	generateImageCmd.Flags().IntVarP(&generateHeight, "length", "l", 512, "image length (height)")
+	// Add --height as an alias for backward compatibility
+	generateImageCmd.Flags().IntVar(&generateHeight, "height", 512, "image height (alias for --length)")
 	generateImageCmd.Flags().Int64Var(&generateSeed, "seed", -1, "random seed (-1 for random)")
 	generateImageCmd.Flags().IntVarP(&generateBatchSize, "batch", "b", 1, "number of images to generate")
 	generateImageCmd.Flags().Float64Var(&generateCfgScale, "cfg-scale", 7.5, "CFG scale (guidance)")
@@ -85,6 +87,7 @@ func init() {
 	viper.BindPFlag("generate.steps", generateImageCmd.Flags().Lookup("steps"))
 	viper.BindPFlag("generate.width", generateImageCmd.Flags().Lookup("width"))
 	viper.BindPFlag("generate.length", generateImageCmd.Flags().Lookup("length"))
+	viper.BindPFlag("generate.height", generateImageCmd.Flags().Lookup("height")) // Backward compatibility alias
 	viper.BindPFlag("generate.cfg-scale", generateImageCmd.Flags().Lookup("cfg-scale"))
 	viper.BindPFlag("generate.sampler", generateImageCmd.Flags().Lookup("sampler"))
 }

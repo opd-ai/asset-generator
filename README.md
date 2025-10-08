@@ -177,6 +177,7 @@ Available for all commands:
 | `--model` | | Model to use | |
 | `--width` | `-w` | Image width | `512` |
 | `--length` | `-l` | Image length (height) | `512` |
+| `--height` | | Image height (alias for --length) | `512` |
 | `--steps` | | Inference steps | `20` |
 | `--cfg-scale` | | CFG scale (guidance) | `7.5` |
 | `--sampler` | | Sampling method | `euler_a` |
