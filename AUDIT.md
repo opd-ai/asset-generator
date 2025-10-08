@@ -14,41 +14,20 @@ This audit identifies precise implementation discrepancies between the README.md
 
 ## Detailed Findings
 
-### Gap #1: Missing Short Flag for `--negative-prompt` Parameter
+### Gap #1: Missing Short Flag for `--negative-prompt` Parameter ✅ **RESOLVED**
+**Status:** Fixed in commit a9c8167 (2025-10-08)
+
 **Documentation Reference:** 
-> "| `--negative-prompt` | `-n` | Negative prompt | |" (README.md:179)
+> "| `--negative-prompt` | `-n` | Negative prompt | |" (README.md:185)
 
 **Implementation Location:** `cmd/generate.go:77`
 
-**Expected Behavior:** The `--negative-prompt` flag should have a short version `-n` available for user convenience
+**Resolution:** Changed `StringVar` to `StringVarP` with "n" as the short flag parameter.
 
-**Actual Implementation:** Flag is defined without short version:
-```go
-generateImageCmd.Flags().StringVar(&generateNegPrompt, "negative-prompt", "", "negative prompt")
-```
+**Verification:** Build successful. Command `./asset-generator generate image --help` shows `-n, --negative-prompt string` confirming the short flag is now available.
 
-**Gap Details:** The README documents `-n` as the short flag for `--negative-prompt`, but the implementation uses `StringVar` instead of `StringVarP`, meaning the short flag is not available. Users attempting to use `-n` will receive an "unknown shorthand flag" error.
-
-**Reproduction:**
-```bash
-# This will fail but README suggests it should work
-asset-generator generate image --prompt "cat" -n "ugly, blurry"
-# Error: unknown shorthand flag: 'n' in -n
-```
-
-**Production Impact:** Moderate - Users following the documented API will encounter errors. Workarounds exist (use full flag), but creates poor UX and documentation trust issues.
-
-**Evidence:**
-```go
-// cmd/generate.go:77 - Missing "n" as second parameter
-generateImageCmd.Flags().StringVar(&generateNegPrompt, "negative-prompt", "", "negative prompt")
-
-// Compare to correctly implemented short flags:
-// cmd/generate.go:69
-generateImageCmd.Flags().StringVarP(&generatePrompt, "prompt", "p", "", "generation prompt (required)")
-// cmd/generate.go:75
-generateImageCmd.Flags().IntVarP(&generateBatchSize, "batch", "b", 1, "number of images to generate")
-```
+**Original Issue:**
+Flag was defined without short version, causing "unknown shorthand flag: 'n'" errors when users tried to use documented `-n` shorthand.
 
 ---
 
