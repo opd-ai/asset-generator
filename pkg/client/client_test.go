@@ -55,23 +55,33 @@ func TestNewAssetClient(t *testing.T) {
 func TestListModels(t *testing.T) {
 	// Create a test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/API/ListModels" {
-			t.Errorf("Expected path /API/ListModels, got %s", r.URL.Path)
-		}
-
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{
-			"models": [
-				{
-					"name": "stable-diffusion-xl",
-					"type": "text-to-image",
-					"description": "SDXL model",
-					"version": "1.0",
-					"loaded": true
-				}
-			]
-		}`))
+
+		// Handle session creation first
+		if r.URL.Path == "/API/GetNewSession" {
+			w.Write([]byte(`{"session_id": "test-session-123"}`))
+			return
+		}
+
+		// Handle ListModels with correct SwarmUI format
+		if r.URL.Path == "/API/ListModels" {
+			w.Write([]byte(`{
+				"folders": [],
+				"files": [
+					{
+						"name": "stable-diffusion-xl",
+						"type": "text-to-image",
+						"description": "SDXL model",
+						"version": "1.0",
+						"loaded": true
+					}
+				]
+			}`))
+			return
+		}
+
+		t.Errorf("Unexpected path: %s", r.URL.Path)
 	}))
 	defer server.Close()
 
