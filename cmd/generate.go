@@ -30,8 +30,8 @@ var (
 // generateCmd represents the generate command
 var generateCmd = &cobra.Command{
 	Use:   "generate",
-	Short: "Generate assets using SwarmUI",
-	Long: `Generate various types of assets using the SwarmUI API.
+	Short: "Generate assets using AI models",
+	Long: `Generate various types of assets using AI asset generation APIs.
 Supports image generation with various models and parameters.`,
 }
 
@@ -39,7 +39,7 @@ Supports image generation with various models and parameters.`,
 var generateImageCmd = &cobra.Command{
 	Use:   "image",
 	Short: "Generate an image",
-	Long: `Generate an image using SwarmUI's text-to-image capabilities.
+	Long: `Generate an image using AI text-to-image capabilities.
 
 Examples:
   # Basic generation
@@ -122,7 +122,7 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 
 	// Validate model if specified
 	if req.Model != "" {
-		if err := validateModel(swarmClient, req.Model); err != nil {
+		if err := validateModel(assetClient, req.Model); err != nil {
 			return fmt.Errorf("model validation failed: %w", err)
 		}
 	}
@@ -150,7 +150,7 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 	}
 
 	// Execute generation with progress tracking
-	result, err := swarmClient.GenerateImage(ctx, req)
+	result, err := assetClient.GenerateImage(ctx, req)
 	if err != nil {
 		return fmt.Errorf("generation failed: %w", err)
 	}
@@ -189,8 +189,8 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 }
 
 // validateModel checks if the specified model exists in the available models list
-func validateModel(swarmClient *client.SwarmClient, modelName string) error {
-	models, err := swarmClient.ListModels()
+func validateModel(assetClient *client.AssetClient, modelName string) error {
+	models, err := assetClient.ListModels()
 	if err != nil {
 		// If we can't list models, allow the request to proceed
 		// The SwarmUI API will handle the validation

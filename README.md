@@ -1,6 +1,6 @@
 # Asset Generator CLI
 
-A powerful command-line interface for interacting with the SwarmUI API. Generate assets, manage models, and configure your SwarmUI instance with ease.
+A powerful command-line interface for interacting with AI asset generation APIs. Generate assets, manage models, and configure your asset generation workflow with ease.
 
 ## Features
 
@@ -103,7 +103,7 @@ Manage your CLI configuration:
 asset-generator config view
 
 # Set configuration values
-asset-generator config set api-url https://api.swarm.example.com
+asset-generator config set api-url https://api.example.com
 asset-generator config set api-key your-api-key-here
 
 # Get a specific configuration value
@@ -133,9 +133,9 @@ verbose: false
 ### Environment Variables
 
 ```bash
-export SWARMUI_API_URL=http://localhost:7801
-export SWARMUI_API_KEY=your-api-key
-export SWARMUI_FORMAT=json
+export ASSET_GENERATOR_API_URL=http://localhost:7801
+export ASSET_GENERATOR_API_KEY=your-api-key
+export ASSET_GENERATOR_FORMAT=json
 ```
 
 ## Global Flags
@@ -144,8 +144,8 @@ Available for all commands:
 
 | Flag | Short | Description | Default |
 |------|-------|-------------|---------|
-| `--api-url` | | SwarmUI API base URL | `http://localhost:7801` |
-| `--api-key` | | SwarmUI API key | |
+| `--api-url` | | Asset generation API base URL | `http://localhost:7801` |
+| `--api-key` | | Asset generation API key | |
 | `--format` | `-f` | Output format (table, json, yaml) | `table` |
 | `--output` | `-o` | Write output to file | |
 | `--quiet` | `-q` | Quiet mode (errors only) | `false` |
@@ -241,7 +241,7 @@ asset-generator/
 │   ├── models.go          # Model management commands
 │   └── config.go          # Configuration commands
 ├── pkg/                   # Public packages
-│   ├── client/            # SwarmUI API client
+│   ├── client/            # Asset generation API client
 │   └── output/            # Output formatters
 ├── internal/              # Private packages
 │   └── config/            # Configuration validation
@@ -271,13 +271,13 @@ go test -v ./pkg/client/...
 The CLI follows clean architecture with clear separation of concerns:
 
 - **cmd/**: CLI command definitions and user interaction
-- **pkg/client/**: SwarmUI API client (reusable library)
+- **pkg/client/**: Asset generation API client (reusable library)
 - **pkg/output/**: Output formatting utilities
 - **internal/config/**: Configuration validation logic
 
 ### API Client
 
-The SwarmUI API client is designed to be reusable and can be imported by other Go projects:
+The asset generation API client is designed to be reusable and can be imported by other Go projects:
 
 ```go
 import "github.com/opd-ai/asset-generator/pkg/client"
@@ -287,7 +287,7 @@ config := &client.Config{
     BaseURL: "http://localhost:7801",
     APIKey:  "your-api-key",
 }
-swarmClient, err := client.NewSwarmClient(config)
+assetClient, err := client.NewAssetClient(config)
 
 // Generate image
 req := &client.GenerationRequest{
@@ -297,7 +297,7 @@ req := &client.GenerationRequest{
         "height": 1024,
     },
 }
-result, err := swarmClient.GenerateImage(context.Background(), req)
+result, err := assetClient.GenerateImage(context.Background(), req)
 ```
 
 ## Contributing
@@ -321,7 +321,7 @@ Contributions are welcome! Please follow these guidelines:
 
 ### Connection Issues
 
-If you're having trouble connecting to SwarmUI:
+If you're having trouble connecting to the asset generation service:
 
 ```bash
 # Check your API URL
@@ -330,7 +330,7 @@ asset-generator config get api-url
 # Test with verbose output
 asset-generator models list -v
 
-# Verify SwarmUI is running
+# Verify the service is running
 curl http://localhost:7801/API/ListModels
 ```
 

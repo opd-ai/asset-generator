@@ -12,8 +12,8 @@ import (
 // modelsCmd represents the models command
 var modelsCmd = &cobra.Command{
 	Use:   "models",
-	Short: "Manage SwarmUI models",
-	Long: `List, inspect, and manage models available in SwarmUI.
+	Short: "Manage AI models",
+	Long: `List, inspect, and manage models available for asset generation.
 
 Examples:
   # List all available models
@@ -30,7 +30,7 @@ Examples:
 var modelsListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all available models",
-	Long: `List all models available in the SwarmUI instance.
+	Long: `List all models available in the asset generation service.
 
 Examples:
   asset-generator models list
@@ -62,7 +62,7 @@ func runModelsList(cmd *cobra.Command, args []string) error {
 		fmt.Fprintln(os.Stderr, "Fetching available models...")
 	}
 
-	models, err := swarmClient.ListModels()
+	models, err := assetClient.ListModels()
 	if err != nil {
 		return fmt.Errorf("failed to list models: %w", err)
 	}
@@ -101,7 +101,7 @@ func runModelsGet(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(os.Stderr, "Fetching model: %s\n", modelName)
 	}
 
-	model, err := swarmClient.GetModel(modelName)
+	model, err := assetClient.GetModel(modelName)
 	if err != nil {
 		return fmt.Errorf("failed to get model: %w", err)
 	}

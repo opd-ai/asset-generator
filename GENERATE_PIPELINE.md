@@ -140,7 +140,7 @@ chmod +x generate_assets.sh
 
 ### Shell Script with YAML Parsing
 
-For more complex pipelines, use a POSIX shell script with `yq` or `jq`:
+For more complex pipelines, use a POSIX shell script with `yq`:
 
 ```sh
 #!/bin/sh

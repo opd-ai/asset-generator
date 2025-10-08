@@ -21,7 +21,7 @@ Examples:
   asset-generator config view
   
   # Set API URL
-  asset-generator config set api-url https://api.swarm.example.com
+  asset-generator config set api-url https://api.example.com
   
   # Set API key
   asset-generator config set api-key your-api-key-here`,

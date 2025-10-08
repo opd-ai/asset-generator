@@ -19,21 +19,21 @@ var (
 	quiet      bool
 	verbose    bool
 
-	swarmClient *client.SwarmClient
+	assetClient *client.AssetClient
 )
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "asset-generator",
-	Short: "CLI client for SwarmUI API",
-	Long: `asset-generator is a command-line interface for interacting with the SwarmUI API.
+	Short: "CLI client for asset generation APIs",
+	Long: `asset-generator is a command-line interface for interacting with asset generation APIs.
 It provides tools for generating assets, managing models, and configuring
-the SwarmUI service.
+the asset generation service.
 
 Examples:
   asset-generator generate image --prompt "a beautiful landscape"
   asset-generator models list
-  asset-generator config set api-url https://api.swarm.example.com`,
+  asset-generator config set api-url https://api.example.com`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// Initialize configuration
 		if err := initConfig(); err != nil {
@@ -48,9 +48,9 @@ Examples:
 		}
 
 		var err error
-		swarmClient, err = client.NewSwarmClient(clientCfg)
+		assetClient, err = client.NewAssetClient(clientCfg)
 		if err != nil {
-			return fmt.Errorf("failed to create SwarmUI client: %w", err)
+			return fmt.Errorf("failed to create asset generation client: %w", err)
 		}
 
 		return nil
@@ -65,8 +65,8 @@ func Execute() error {
 func init() {
 	// Global flags
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.asset-generator/config.yaml)")
-	rootCmd.PersistentFlags().StringVar(&apiURL, "api-url", "", "SwarmUI API base URL")
-	rootCmd.PersistentFlags().StringVar(&apiKey, "api-key", "", "SwarmUI API key")
+	rootCmd.PersistentFlags().StringVar(&apiURL, "api-url", "", "Asset generation API base URL")
+	rootCmd.PersistentFlags().StringVar(&apiKey, "api-key", "", "Asset generation API key")
 	rootCmd.PersistentFlags().StringVarP(&outputFmt, "format", "f", "table", "output format (table, json, yaml)")
 	rootCmd.PersistentFlags().StringVarP(&outputFile, "output", "o", "", "write output to file instead of stdout")
 	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "quiet mode (errors only)")

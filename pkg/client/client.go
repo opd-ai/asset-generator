@@ -20,8 +20,8 @@ type Config struct {
 	Verbose bool
 }
 
-// SwarmClient is the main client for interacting with SwarmUI API
-type SwarmClient struct {
+// AssetClient is the main client for interacting with asset generation APIs
+type AssetClient struct {
 	config     *Config
 	httpClient *http.Client
 	wsConn     *websocket.Conn // Reserved for future WebSocket implementation
@@ -60,7 +60,7 @@ type GenerationSession struct {
 	Result    *GenerationResult
 }
 
-// Model represents a SwarmUI model
+// Model represents an asset generation model
 type Model struct {
 	Name        string `json:"name"`
 	Type        string `json:"type"`
@@ -69,13 +69,13 @@ type Model struct {
 	Loaded      bool   `json:"loaded"`
 }
 
-// NewSwarmClient creates a new SwarmUI client
-func NewSwarmClient(config *Config) (*SwarmClient, error) {
+// NewAssetClient creates a new asset generation API client
+func NewAssetClient(config *Config) (*AssetClient, error) {
 	if config.BaseURL == "" {
 		return nil, fmt.Errorf("base URL is required")
 	}
 
-	return &SwarmClient{
+	return &AssetClient{
 		config: config,
 		httpClient: &http.Client{
 			Timeout: 10 * time.Minute, // Extended timeout for Flux generation (can take 5-10 minutes)
@@ -84,8 +84,8 @@ func NewSwarmClient(config *Config) (*SwarmClient, error) {
 	}, nil
 }
 
-// GetNewSession gets a new session ID from SwarmUI API
-func (c *SwarmClient) GetNewSession(ctx context.Context) (string, error) {
+// GetNewSession gets a new session ID from the asset generation API
+func (c *AssetClient) GetNewSession(ctx context.Context) (string, error) {
 	endpoint := fmt.Sprintf("%s/API/GetNewSession", c.config.BaseURL)
 
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", endpoint, bytes.NewBuffer([]byte("{}")))
@@ -134,8 +134,8 @@ func (c *SwarmClient) GetNewSession(ctx context.Context) (string, error) {
 	return apiResp.SessionID, nil
 }
 
-// GenerateImage generates an image using the SwarmUI API
-func (c *SwarmClient) GenerateImage(ctx context.Context, req *GenerationRequest) (*GenerationResult, error) {
+// GenerateImage generates an image using the asset generation API
+func (c *AssetClient) GenerateImage(ctx context.Context, req *GenerationRequest) (*GenerationResult, error) {
 	// Get or reuse session ID
 	sessionID, err := c.ensureSession()
 	if err != nil {
@@ -317,14 +317,14 @@ func (c *SwarmClient) GenerateImage(ctx context.Context, req *GenerationRequest)
 }
 
 // cleanupSession removes a session from memory to prevent memory leaks
-func (c *SwarmClient) cleanupSession(sessionID string) {
+func (c *AssetClient) cleanupSession(sessionID string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	delete(c.sessions, sessionID)
 }
 
 // cleanupOldSessions removes sessions older than the specified duration
-func (c *SwarmClient) cleanupOldSessions(maxAge time.Duration) {
+func (c *AssetClient) cleanupOldSessions(maxAge time.Duration) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -361,7 +361,7 @@ func parseSwarmUIError(body []byte) error {
 }
 
 // ensureSession ensures we have a valid session ID, getting a new one if needed
-func (c *SwarmClient) ensureSession() (string, error) {
+func (c *AssetClient) ensureSession() (string, error) {
 	c.mu.RLock()
 	sessionID := c.sessionID
 	c.mu.RUnlock()
@@ -388,8 +388,8 @@ func (c *SwarmClient) ensureSession() (string, error) {
 	return newSessionID, nil
 }
 
-// getNewSession gets a new session ID from SwarmUI
-func (c *SwarmClient) getNewSession() (string, error) {
+// getNewSession gets a new session ID from the asset generation service
+func (c *AssetClient) getNewSession() (string, error) {
 	endpoint := fmt.Sprintf("%s/API/GetNewSession", c.config.BaseURL)
 
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer([]byte("{}")))
@@ -450,7 +450,7 @@ func (c *SwarmClient) getNewSession() (string, error) {
 }
 
 // ListModels lists all available models
-func (c *SwarmClient) ListModels() ([]Model, error) {
+func (c *AssetClient) ListModels() ([]Model, error) {
 	return c.ListModelsWithOptions(ListModelsOptions{})
 }
 
@@ -466,7 +466,7 @@ type ListModelsOptions struct {
 }
 
 // ListModelsWithOptions lists available models with specific options
-func (c *SwarmClient) ListModelsWithOptions(options ListModelsOptions) ([]Model, error) {
+func (c *AssetClient) ListModelsWithOptions(options ListModelsOptions) ([]Model, error) {
 	// Get session ID if we don't have one
 	sessionID, err := c.ensureSession()
 	if err != nil {
@@ -571,7 +571,7 @@ func (c *SwarmClient) ListModelsWithOptions(options ListModelsOptions) ([]Model,
 }
 
 // GetModel gets details about a specific model
-func (c *SwarmClient) GetModel(name string) (*Model, error) {
+func (c *AssetClient) GetModel(name string) (*Model, error) {
 	// Get all models and find the specific one
 	models, err := c.ListModels()
 	if err != nil {
@@ -591,7 +591,7 @@ func (c *SwarmClient) GetModel(name string) (*Model, error) {
 // simulateProgress provides progress updates for HTTP-based generation
 // This is a temporary solution until WebSocket support is implemented
 // TODO: Replace with actual WebSocket implementation using GenerateText2ImageWS endpoint
-func (c *SwarmClient) simulateProgress(sessionID string, callback ProgressCallback, done chan bool) {
+func (c *AssetClient) simulateProgress(sessionID string, callback ProgressCallback, done chan bool) {
 	ticker := time.NewTicker(500 * time.Millisecond) // Update every 500ms
 	defer ticker.Stop()
 
@@ -624,7 +624,7 @@ func (c *SwarmClient) simulateProgress(sessionID string, callback ProgressCallba
 }
 
 // Close closes any open connections
-func (c *SwarmClient) Close() error {
+func (c *AssetClient) Close() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
