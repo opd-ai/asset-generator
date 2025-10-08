@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/opd-ai/asset-generator/pkg/client"
@@ -119,6 +120,13 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 		req.Model = viper.GetString("generate.model")
 	}
 
+	// Validate model if specified
+	if req.Model != "" {
+		if err := validateModel(swarmClient, req.Model); err != nil {
+			return fmt.Errorf("model validation failed: %w", err)
+		}
+	}
+
 	// Set seed if specified
 	if generateSeed >= 0 {
 		req.Parameters["seed"] = generateSeed
@@ -164,6 +172,40 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+// validateModel checks if the specified model exists in the available models list
+func validateModel(swarmClient *client.SwarmClient, modelName string) error {
+	models, err := swarmClient.ListModels()
+	if err != nil {
+		// If we can't list models, allow the request to proceed
+		// The SwarmUI API will handle the validation
+		if verbose {
+			fmt.Fprintf(os.Stderr, "Warning: Could not validate model (API unavailable): %v\n", err)
+		}
+		return nil
+	}
+
+	// Check if the model exists in the available models
+	for _, model := range models {
+		if model.Name == modelName {
+			return nil // Model found
+		}
+	}
+
+	// Model not found - provide helpful error with suggestions
+	if len(models) > 0 {
+		var suggestions []string
+		for i, model := range models {
+			if i < 5 { // Limit to first 5 suggestions
+				suggestions = append(suggestions, model.Name)
+			}
+		}
+		return fmt.Errorf("model '%s' not found\n\nAvailable models:\n  %s\n\nUse 'swarmui models list' to see all available models", 
+			modelName, strings.Join(suggestions, "\n  "))
+	}
+
+	return fmt.Errorf("model '%s' not found (no models available from API)", modelName)
 }
 
 func setupSignalHandler(cancel context.CancelFunc) {
