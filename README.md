@@ -176,7 +176,7 @@ Available for all commands:
 | `--prompt` | `-p` | Generation prompt (required) | |
 | `--model` | | Model to use | |
 | `--width` | `-w` | Image width | `512` |
-| `--height` | `-h` | Image height | `512` |
+| `--height` | | Image height | `512` |
 | `--steps` | | Inference steps | `20` |
 | `--cfg-scale` | | CFG scale (guidance) | `7.5` |
 | `--sampler` | | Sampling method | `euler_a` |

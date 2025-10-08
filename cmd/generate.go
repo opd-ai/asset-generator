@@ -69,7 +69,7 @@ func init() {
 	generateImageCmd.Flags().StringVarP(&generatePrompt, "prompt", "p", "", "generation prompt (required)")
 	generateImageCmd.Flags().StringVar(&generateModel, "model", "", "model to use for generation")
 	generateImageCmd.Flags().IntVar(&generateSteps, "steps", 20, "number of inference steps")
-	generateImageCmd.Flags().IntVar(&generateWidth, "width", 512, "image width")
+	generateImageCmd.Flags().IntVarP(&generateWidth, "width", "w", 512, "image width")
 	generateImageCmd.Flags().IntVar(&generateHeight, "height", 512, "image height")
 	generateImageCmd.Flags().Int64Var(&generateSeed, "seed", -1, "random seed (-1 for random)")
 	generateImageCmd.Flags().IntVarP(&generateBatchSize, "batch", "b", 1, "number of images to generate")
