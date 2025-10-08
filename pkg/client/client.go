@@ -164,14 +164,17 @@ func (c *AssetClient) GenerateImage(ctx context.Context, req *GenerationRequest)
 	body := map[string]interface{}{
 		"session_id": sessionID, // Required by SwarmUI API
 		"prompt":     req.Prompt,
-		"images":     1, // Default to 1 image
 	}
 
-	// Override images count if specified in parameters
+	// Handle images count (batch size)
 	if images, ok := req.Parameters["images"]; ok && images != nil {
 		if img, isInt := images.(int); isInt && img > 0 {
 			body["images"] = img
+		} else {
+			body["images"] = 1 // Default to 1 if invalid
 		}
+	} else {
+		body["images"] = 1 // Default to 1 image
 	}
 
 	// Add model if specified
