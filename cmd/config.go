@@ -42,7 +42,7 @@ var configSetCmd = &cobra.Command{
 	Long: `Set a configuration value in the config file.
 
 Examples:
-  asset-generator config set api-url https://api.swarm.example.com
+  asset-generator config set api-url https://api.example.com
   asset-generator config set api-key your-key-here`,
 	Args: cobra.ExactArgs(2),
 	RunE: runConfigSet,

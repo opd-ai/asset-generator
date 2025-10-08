@@ -1,8 +1,8 @@
-# SwarmUI CLI - Project Summary
+# Asset Generator CLI - Project Summary
 
 ## Overview
 
-A production-ready command-line interface for the SwarmUI API, built with Go using industry-standard tools and best practices. The CLI provides an intuitive interface for image generation, model management, and configuration.
+A production-ready command-line interface for asset generation APIs, built with Go using industry-standard tools and best practices. The CLI provides an intuitive interface for image generation, model management, and configuration.
 
 ## 📊 Project Statistics
 
@@ -56,7 +56,7 @@ A production-ready command-line interface for the SwarmUI API, built with Go usi
                     ↓
 ┌─────────────────────────────────────────┐
 │      Domain Layer (pkg/client/)         │
-│     SwarmUI API Client, Models          │
+│     Asset Generation API Client, Models          │
 └─────────────────────────────────────────┘
                     ↓
 ┌─────────────────────────────────────────┐
@@ -76,7 +76,7 @@ asset-generator/
 │   └── config.go          # Config commands
 │
 ├── pkg/                   # Public, reusable packages
-│   ├── client/            # SwarmUI API client
+│   ├── client/            # Asset generation API client
 │   │   ├── client.go      # HTTP/WebSocket client
 │   │   └── client_test.go # Client tests
 │   └── output/            # Output formatting
@@ -130,7 +130,7 @@ asset-generator [flags] [command]
 ```
 
 ### Global Flags
-- `--api-url`: SwarmUI API endpoint
+- `--api-url`: Asset generation API endpoint
 - `--api-key`: Authentication key
 - `--format`: Output format (table/json/yaml)
 - `--output`: Save to file
@@ -362,8 +362,8 @@ asset-generator models list --format json | jq '.[] | select(.loaded == true)'
 ### CI/CD
 ```bash
 # Environment-based config
-export SWARMUI_API_URL=https://api.example.com
-export SWARMUI_API_KEY=$SECRET_KEY
+export ASSET_GENERATOR_API_URL=https://api.example.com
+export ASSET_GENERATOR_API_KEY=$SECRET_KEY
 
 # Automated generation
 asset-generator generate image --prompt "test" --format json --quiet
@@ -382,7 +382,7 @@ asset-generator generate image --prompt "test" --format json --quiet
 
 ### API Evolution
 The client is designed for easy extension:
-- Add methods to `SwarmClient`
+- Add methods to `AssetClient`
 - Create new command files
 - Maintain backward compatibility
 

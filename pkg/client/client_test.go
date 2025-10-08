@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func TestNewSwarmClient(t *testing.T) {
+func TestNewAssetClient(t *testing.T) {
 	tests := []struct {
 		name    string
 		config  *Config
@@ -40,9 +40,9 @@ func TestNewSwarmClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client, err := NewSwarmClient(tt.config)
+			client, err := NewAssetClient(tt.config)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NewSwarmClient() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("NewAssetClient() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !tt.wantErr && client == nil {
@@ -76,7 +76,7 @@ func TestListModels(t *testing.T) {
 	defer server.Close()
 
 	// Create client with test server URL
-	client, err := NewSwarmClient(&Config{
+	client, err := NewAssetClient(&Config{
 		BaseURL: server.URL,
 	})
 	if err != nil {
@@ -128,7 +128,7 @@ func TestGenerateImage(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client, err := NewSwarmClient(&Config{
+	client, err := NewAssetClient(&Config{
 		BaseURL: server.URL,
 	})
 	if err != nil {
@@ -196,7 +196,7 @@ func TestGenerateImageBatch(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client, err := NewSwarmClient(&Config{
+	client, err := NewAssetClient(&Config{
 		BaseURL: server.URL,
 	})
 	if err != nil {
@@ -253,7 +253,7 @@ func TestGenerateImageWithContext(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client, err := NewSwarmClient(&Config{
+	client, err := NewAssetClient(&Config{
 		BaseURL: server.URL,
 	})
 	if err != nil {
