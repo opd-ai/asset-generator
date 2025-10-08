@@ -149,6 +149,9 @@ func (c *SwarmClient) GenerateImage(ctx context.Context, req *GenerationRequest)
 	c.sessions[sessionID] = session
 	c.mu.Unlock()
 
+	// Ensure session cleanup on function exit (success or error)
+	defer c.cleanupSession(sessionID)
+
 	// Make HTTP request to generate endpoint
 	endpoint := fmt.Sprintf("%s/API/GenerateText2Image", c.config.BaseURL)
 
@@ -278,6 +281,26 @@ func (c *SwarmClient) GenerateImage(ctx context.Context, req *GenerationRequest)
 	c.mu.Unlock()
 
 	return result, nil
+}
+
+// cleanupSession removes a session from memory to prevent memory leaks
+func (c *SwarmClient) cleanupSession(sessionID string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.sessions, sessionID)
+}
+
+// cleanupOldSessions removes sessions older than the specified duration
+func (c *SwarmClient) cleanupOldSessions(maxAge time.Duration) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	
+	cutoff := time.Now().Add(-maxAge)
+	for sessionID, session := range c.sessions {
+		if session.StartTime.Before(cutoff) {
+			delete(c.sessions, sessionID)
+		}
+	}
 }
 
 // ListModels lists all available models
