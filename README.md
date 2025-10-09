@@ -6,6 +6,7 @@ A powerful command-line interface for interacting with AI asset generation APIs.
 
 - 🎨 **Asset Generation**: Generate images using text-to-image models
 - 💾 **Image Download**: Automatically download and save generated images locally
+- 🔽 **Image Postprocessing**: High-quality Lanczos downscaling after download
 - 🎨 **SVG Conversion**: Convert images to SVG format using geometric shapes or edge tracing
 - 📦 **Model Management**: List and inspect available models
 - ⚙️ **Configuration**: Easy configuration management with multiple sources
@@ -189,6 +190,10 @@ Available for all commands:
 | `--websocket` | | Use WebSocket for real-time progress (falls back to HTTP if unavailable) | `false` |
 | `--save-images` | | Download and save generated images to local disk | `false` |
 | `--output-dir` | | Directory to save downloaded images | `.` (current directory) |
+| `--filename-template` | | Custom filename pattern (see placeholders below) | |
+| `--downscale-width` | | Downscale to this width after download (0=auto) | `0` |
+| `--downscale-height` | | Downscale to this height after download (0=auto) | `0` |
+| `--downscale-filter` | | Downscaling algorithm: lanczos, bilinear, nearest | `lanczos` |
 
 > **Note:** The `--length` flag is used for the vertical dimension (height) for API compatibility with SwarmUI. Both `--length` and `--height` are supported as aliases.
 
@@ -266,6 +271,47 @@ See [Image Download Documentation](docs/IMAGE_DOWNLOAD.md) for complete placehol
 - Progress feedback shows each downloaded file
 - Local file paths are added to the metadata output
 - Partial failures are handled gracefully (some images may succeed even if others fail)
+
+### Local Postprocessing
+
+You can automatically downscale images after downloading using high-quality Lanczos filtering:
+
+```bash
+# Generate at high resolution, save downscaled version
+asset-generator generate image \
+  --prompt "detailed artwork" \
+  --width 2048 --height 2048 \
+  --save-images \
+  --downscale-width 1024
+
+# Downscale by height (width auto-calculated)
+asset-generator generate image \
+  --prompt "portrait" \
+  --width 1920 --height 1080 \
+  --save-images \
+  --downscale-height 720
+
+# Choose different downscaling algorithm
+asset-generator generate image \
+  --prompt "photo" \
+  --save-images \
+  --downscale-width 800 \
+  --downscale-filter lanczos  # Options: lanczos, bilinear, nearest
+```
+
+**Downscaling Features:**
+- Applied locally after download (saves API bandwidth)
+- Uses Lanczos3 resampling by default for best quality
+- Auto-maintains aspect ratio when only one dimension specified
+- Prevents accidental upscaling
+- Three filter options: `lanczos` (highest quality), `bilinear` (balanced), `nearest` (fastest)
+
+**Flags:**
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--downscale-width` | Target width in pixels (0=auto from height) | `0` |
+| `--downscale-height` | Target height in pixels (0=auto from width) | `0` |
+| `--downscale-filter` | Algorithm: `lanczos`, `bilinear`, `nearest` | `lanczos` |
 
 ### Output
 

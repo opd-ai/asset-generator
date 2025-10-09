@@ -30,6 +30,9 @@ var (
 	generateSaveImages       bool   // Download and save images locally
 	generateOutputDir        string // Directory to save downloaded images
 	generateFilenameTemplate string // Template for custom filenames
+	generateDownscaleWidth   int    // Target width for postprocessing downscale
+	generateDownscaleHeight  int    // Target height for postprocessing downscale
+	generateDownscaleFilter  string // Downscaling algorithm (lanczos, bilinear, nearest)
 )
 
 // generateCmd represents the generate command
@@ -67,6 +70,13 @@ Examples:
     --prompt "fantasy landscape" \
     --batch 5 --save-images \
     --filename-template "landscape-{index}-{seed}.png"
+  
+  # Downscale images after download (postprocessing)
+  asset-generator generate image \
+    --prompt "high resolution art" \
+    --width 2048 --length 2048 \
+    --save-images --downscale-width 1024 \
+    --downscale-filter lanczos
   
   # Save metadata to specific file
   asset-generator generate image \
@@ -119,6 +129,9 @@ func init() {
 	generateImageCmd.Flags().BoolVar(&generateSaveImages, "save-images", false, "download and save generated images to local disk")
 	generateImageCmd.Flags().StringVar(&generateOutputDir, "output-dir", ".", "directory to save downloaded images (default: current directory)")
 	generateImageCmd.Flags().StringVar(&generateFilenameTemplate, "filename-template", "", "template for custom filenames (e.g., 'image-{index}-{seed}.png')")
+	generateImageCmd.Flags().IntVar(&generateDownscaleWidth, "downscale-width", 0, "downscale images to this width after download (0=auto from height)")
+	generateImageCmd.Flags().IntVar(&generateDownscaleHeight, "downscale-height", 0, "downscale images to this height after download (0=auto from width)")
+	generateImageCmd.Flags().StringVar(&generateDownscaleFilter, "downscale-filter", "lanczos", "downscaling algorithm: lanczos (best), bilinear, nearest")
 
 	generateImageCmd.MarkFlagRequired("prompt")
 
@@ -245,18 +258,19 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 			templateMetadata["seed"] = generateSeed
 		}
 
-		// Use DownloadImagesWithOptions if filename template is specified
-		var savedPaths []string
-		if generateFilenameTemplate != "" {
-			opts := &client.DownloadOptions{
-				OutputDir:        generateOutputDir,
-				FilenameTemplate: generateFilenameTemplate,
-				Metadata:         templateMetadata,
-			}
-			savedPaths, err = assetClient.DownloadImagesWithOptions(ctx, result.ImagePaths, opts)
-		} else {
-			savedPaths, err = assetClient.DownloadImages(ctx, result.ImagePaths, generateOutputDir)
+		// Build download options with postprocessing
+		opts := &client.DownloadOptions{
+			OutputDir:        generateOutputDir,
+			FilenameTemplate: generateFilenameTemplate,
+			Metadata:         templateMetadata,
+			DownscaleWidth:   generateDownscaleWidth,
+			DownscaleHeight:  generateDownscaleHeight,
+			DownscaleFilter:  generateDownscaleFilter,
 		}
+
+		// Download images with options
+		var savedPaths []string
+		savedPaths, err = assetClient.DownloadImagesWithOptions(ctx, result.ImagePaths, opts)
 
 		if err != nil {
 			return fmt.Errorf("failed to download images: %w", err)

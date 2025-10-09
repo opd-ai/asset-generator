@@ -71,6 +71,40 @@ asset-generator generate image \
   --output-dir ./batch-output
 ```
 
+### Downscale After Download (Postprocessing)
+The tool supports local postprocessing to downscale images using high-quality Lanczos filtering:
+
+```bash
+# Generate large images and downscale to 1024px width
+asset-generator generate image \
+  --prompt "detailed artwork" \
+  --width 2048 --height 2048 \
+  --save-images \
+  --downscale-width 1024
+
+# Downscale with specific height (auto-calculates width)
+asset-generator generate image \
+  --prompt "portrait" \
+  --width 1920 --height 1080 \
+  --save-images \
+  --downscale-height 720
+
+# Use different downscaling filters
+asset-generator generate image \
+  --prompt "photo" \
+  --save-images \
+  --downscale-width 800 \
+  --downscale-filter lanczos  # Options: lanczos (best), bilinear, nearest
+```
+
+**Downscaling Features:**
+- Applied locally after downloading (no API bandwidth wasted)
+- Uses Lanczos3 resampling by default for highest quality
+- Maintains aspect ratio when only one dimension is specified
+- Prevents accidental upscaling (will error if target > source)
+- Replaces the original downloaded file with the downscaled version
+- Supports multiple filter algorithms: `lanczos`, `bilinear`, `nearest`
+
 ## Technical Details
 
 ### Image Path Handling

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/opd-ai/asset-generator/pkg/processor"
 )
 
 // Config holds the client configuration
@@ -844,6 +845,12 @@ type DownloadOptions struct {
 	OutputDir        string                 // Directory to save images
 	FilenameTemplate string                 // Template for generating filenames (e.g., "image-{index}.png")
 	Metadata         map[string]interface{} // Metadata for template variables
+
+	// Postprocessing options - applied locally after download
+	DownscaleWidth  int    // Target width for downscaling (0 means auto-calculate from height)
+	DownscaleHeight int    // Target height for downscaling (0 means auto-calculate from width)
+	DownscaleFilter string // Downscaling algorithm: "lanczos" (default), "bilinear", "nearest"
+	JPEGQuality     int    // JPEG quality for downscaled images (1-100, default: 90)
 }
 
 // DownloadImages downloads generated images from the server and saves them to the specified directory.
@@ -909,6 +916,14 @@ func (c *AssetClient) DownloadImagesWithOptions(ctx context.Context, imagePaths 
 		if err := c.downloadFile(ctx, imageURL, outputPath); err != nil {
 			downloadErrors = append(downloadErrors, fmt.Errorf("failed to download image %d (%s): %w", i+1, filename, err))
 			continue
+		}
+
+		// Apply postprocessing if downscale options are set
+		if opts.DownscaleWidth > 0 || opts.DownscaleHeight > 0 {
+			if err := c.applyDownscale(outputPath, opts); err != nil {
+				downloadErrors = append(downloadErrors, fmt.Errorf("failed to downscale image %d (%s): %w", i+1, filename, err))
+				continue
+			}
 		}
 
 		savedPaths = append(savedPaths, outputPath)
@@ -1093,6 +1108,54 @@ func ensureDir(dir string) error {
 	// Create directory with permissions 0755
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
+	}
+
+	return nil
+}
+
+// applyDownscale applies local postprocessing downscaling to an image file.
+// This is called after downloading to reduce image size using high-quality Lanczos filtering.
+func (c *AssetClient) applyDownscale(imagePath string, opts *DownloadOptions) error {
+	// Map filter name to processor filter type
+	filter := "lanczos" // default
+	if opts.DownscaleFilter != "" {
+		filter = strings.ToLower(opts.DownscaleFilter)
+	}
+
+	// Validate and map filter to processor.ResizeFilter
+	var filterType processor.ResizeFilter
+	switch filter {
+	case "lanczos":
+		filterType = processor.FilterLanczos
+	case "bilinear":
+		filterType = processor.FilterBiLinear
+	case "nearest":
+		filterType = processor.FilterNearestNeighbor
+	default:
+		return fmt.Errorf("invalid downscale filter: %s (valid options: lanczos, bilinear, nearest)", filter)
+	}
+
+	quality := opts.JPEGQuality
+	if quality == 0 {
+		quality = 90 // default JPEG quality
+	}
+
+	if c.config.Verbose {
+		fmt.Printf("Downscaling image: %s (target: %dx%d, filter: %s)\n",
+			imagePath, opts.DownscaleWidth, opts.DownscaleHeight, filter)
+	}
+
+	// Build downscale options
+	downscaleOpts := processor.DownscaleOptions{
+		Width:       opts.DownscaleWidth,
+		Height:      opts.DownscaleHeight,
+		Filter:      filterType,
+		JPEGQuality: quality,
+	}
+
+	// Apply downscaling in-place (replaces the original file)
+	if err := processor.DownscaleInPlace(imagePath, downscaleOpts); err != nil {
+		return fmt.Errorf("downscale operation failed: %w", err)
 	}
 
 	return nil
