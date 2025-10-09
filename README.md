@@ -5,8 +5,8 @@ A powerful command-line interface for interacting with AI asset generation APIs.
 ## Features
 
 - 🎨 **Asset Generation**: Generate images using text-to-image models
-- � **Image Download**: Automatically download and save generated images locally
-- �📦 **Model Management**: List and inspect available models
+- 💾 **Image Download**: Automatically download and save generated images locally
+- 📦 **Model Management**: List and inspect available models
 - ⚙️ **Configuration**: Easy configuration management with multiple sources
 - 📊 **Multiple Output Formats**: Table, JSON, and YAML output support
 - 🔧 **Flexible Parameters**: Configure via flags, environment variables, or config file
@@ -137,6 +137,8 @@ The application searches for `config.yaml` in the following locations (in order 
 3. `/etc/asset-generator/config.yaml` - System-wide configuration (lowest precedence)
 
 You can also specify a custom config file location using the `--config` flag, which takes highest precedence among configuration files.
+
+See [`config/example-config.yaml`](config/example-config.yaml) for a template configuration file.
 
 ```yaml
 api-url: http://localhost:7801
@@ -372,6 +374,12 @@ req := &client.GenerationRequest{
     },
 }
 result, err := assetClient.GenerateImage(context.Background(), req)
+
+// Download generated images
+savedPaths, err := assetClient.DownloadImages(context.Background(), result.ImagePaths, "./output")
+if err != nil {
+    log.Fatalf("Failed to download images: %v", err)
+}
 ```
 
 ## Contributing
