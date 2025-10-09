@@ -131,13 +131,14 @@ Configuration can be provided through multiple sources with the following preced
 
 ### Configuration File
 
-The application searches for `config.yaml` in the following locations (in order of precedence):
+Configuration file location priority (highest to lowest):
 
-1. `./config/config.yaml` - Current directory (highest precedence)
-2. `~/.asset-generator/config.yaml` - User's home directory
-3. `/etc/asset-generator/config.yaml` - System-wide configuration (lowest precedence)
+1. **Custom config file** (via `--config` flag) - When specified, bypasses all search paths and uses only this file
+2. `./config/config.yaml` - Current directory
+3. `~/.asset-generator/config.yaml` - User's home directory
+4. `/etc/asset-generator/config.yaml` - System-wide configuration
 
-You can also specify a custom config file location using the `--config` flag, which takes highest precedence among configuration files.
+When `--config` is specified, only that file is used. Otherwise, the first file found in locations 2-4 is used.
 
 See [`config/example-config.yaml`](config/example-config.yaml) for a template configuration file.
 
