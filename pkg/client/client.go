@@ -847,6 +847,13 @@ type DownloadOptions struct {
 	Metadata         map[string]interface{} // Metadata for template variables
 
 	// Postprocessing options - applied locally after download
+	// Auto-crop (runs first, before downscaling)
+	AutoCrop               bool  // Enable automatic cropping of whitespace borders
+	AutoCropThreshold      uint8 // Whitespace detection threshold (0-255, default: 250)
+	AutoCropTolerance      uint8 // Tolerance for near-white colors (0-255, default: 10)
+	AutoCropPreserveAspect bool  // Preserve original aspect ratio when cropping
+
+	// Downscaling (runs after auto-crop if enabled)
 	DownscaleWidth  int    // Target width for downscaling (0 means auto-calculate from height)
 	DownscaleHeight int    // Target height for downscaling (0 means auto-calculate from width)
 	DownscaleFilter string // Downscaling algorithm: "lanczos" (default), "bilinear", "nearest"
@@ -918,7 +925,17 @@ func (c *AssetClient) DownloadImagesWithOptions(ctx context.Context, imagePaths 
 			continue
 		}
 
-		// Apply postprocessing if downscale options are set
+		// Apply postprocessing pipeline (order matters: crop first, then downscale)
+
+		// Step 1: Auto-crop if enabled (removes whitespace before downscaling)
+		if opts.AutoCrop {
+			if err := c.applyAutoCrop(outputPath, opts); err != nil {
+				downloadErrors = append(downloadErrors, fmt.Errorf("failed to auto-crop image %d (%s): %w", i+1, filename, err))
+				continue
+			}
+		}
+
+		// Step 2: Downscale if options are set
 		if opts.DownscaleWidth > 0 || opts.DownscaleHeight > 0 {
 			if err := c.applyDownscale(outputPath, opts); err != nil {
 				downloadErrors = append(downloadErrors, fmt.Errorf("failed to downscale image %d (%s): %w", i+1, filename, err))
@@ -1108,6 +1125,45 @@ func ensureDir(dir string) error {
 	// Create directory with permissions 0755
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
+	}
+
+	return nil
+}
+
+// applyAutoCrop applies local postprocessing auto-crop to an image file.
+// This is called after downloading to remove whitespace borders before downscaling.
+func (c *AssetClient) applyAutoCrop(imagePath string, opts *DownloadOptions) error {
+	threshold := opts.AutoCropThreshold
+	if threshold == 0 {
+		threshold = 250 // default: very light colors are whitespace
+	}
+
+	tolerance := opts.AutoCropTolerance
+	if tolerance == 0 {
+		tolerance = 10 // default tolerance
+	}
+
+	quality := opts.JPEGQuality
+	if quality == 0 {
+		quality = 90 // default JPEG quality
+	}
+
+	if c.config.Verbose {
+		fmt.Printf("Auto-cropping image: %s (threshold: %d, tolerance: %d, preserve aspect: %v)\n",
+			imagePath, threshold, tolerance, opts.AutoCropPreserveAspect)
+	}
+
+	// Build crop options
+	cropOpts := processor.CropOptions{
+		Threshold:           threshold,
+		Tolerance:           tolerance,
+		JPEGQuality:         quality,
+		PreserveAspectRatio: opts.AutoCropPreserveAspect,
+	}
+
+	// Apply auto-crop in-place (replaces the original file)
+	if err := processor.AutoCropInPlace(imagePath, cropOpts); err != nil {
+		return fmt.Errorf("auto-crop operation failed: %w", err)
 	}
 
 	return nil

@@ -6,6 +6,7 @@ A powerful command-line interface for interacting with AI asset generation APIs.
 
 - 🎨 **Asset Generation**: Generate images using text-to-image models
 - 💾 **Image Download**: Automatically download and save generated images locally
+- ✂️ **Auto-Crop**: Remove whitespace borders from images while preserving aspect ratio
 - 🔽 **Image Postprocessing**: High-quality Lanczos downscaling after download
 - 🎨 **SVG Conversion**: Convert images to SVG format using geometric shapes or edge tracing
 - 📦 **Model Management**: List and inspect available models
@@ -274,7 +275,49 @@ See [Image Download Documentation](docs/IMAGE_DOWNLOAD.md) for complete placehol
 
 ### Local Postprocessing
 
-You can automatically downscale images after downloading using high-quality Lanczos filtering:
+The CLI supports a multi-stage postprocessing pipeline applied after downloading:
+
+1. **Auto-Crop** (optional): Remove whitespace borders
+2. **Downscale** (optional): Resize with high-quality filtering
+
+#### Auto-Crop
+
+Automatically remove excess whitespace from image edges while optionally preserving aspect ratio:
+
+```bash
+# Generate and auto-crop
+asset-generator generate image \
+  --prompt "centered logo design" \
+  --save-images --auto-crop
+
+# Auto-crop preserving aspect ratio
+asset-generator generate image \
+  --prompt "product photo" \
+  --save-images \
+  --auto-crop --auto-crop-preserve-aspect
+
+# Combine crop and downscale
+asset-generator generate image \
+  --prompt "high resolution art" \
+  --width 2048 --height 2048 \
+  --save-images \
+  --auto-crop \
+  --downscale-width 1024
+```
+
+**Auto-Crop Flags:**
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--auto-crop` | Enable automatic whitespace removal | `false` |
+| `--auto-crop-threshold` | Whitespace detection threshold (0-255) | `250` |
+| `--auto-crop-tolerance` | Tolerance for near-white colors (0-255) | `10` |
+| `--auto-crop-preserve-aspect` | Preserve original aspect ratio | `false` |
+
+See [Auto-Crop Documentation](AUTO_CROP_FEATURE.md) for detailed usage and sensitivity tuning.
+
+#### Downscaling
+
+Reduce image dimensions using high-quality filtering:
 
 ```bash
 # Generate at high resolution, save downscaled version
@@ -323,6 +366,41 @@ Downloading generated images...
   [1/1] Saved: ./generated-art/cyberpunk cityscape-1234567890.png
 ✓ Generation completed successfully (1 image)
 ```
+
+## Image Cropping
+
+Remove excess whitespace from image edges automatically.
+
+### Standalone Crop Command
+
+```bash
+# Basic auto-crop
+asset-generator crop image.png
+
+# Crop in-place (replace original)
+asset-generator crop image.png --in-place
+
+# Preserve aspect ratio
+asset-generator crop photo.jpg --preserve-aspect
+
+# Batch crop multiple images
+asset-generator crop *.png --in-place
+
+# Adjust sensitivity
+asset-generator crop image.png --threshold 240 --tolerance 5
+```
+
+**Crop Flags:**
+| Flag | Short | Description | Default |
+|------|-------|-------------|---------|
+| `--threshold` | | Whitespace detection threshold (0-255) | `250` |
+| `--tolerance` | | Tolerance for near-white colors (0-255) | `10` |
+| `--preserve-aspect` | | Preserve original aspect ratio | `false` |
+| `--quality` | | JPEG quality (1-100) | `90` |
+| `--output` | `-o` | Output file path (single file mode) | |
+| `--in-place` | `-i` | Replace original file(s) | `false` |
+
+See [Auto-Crop Documentation](AUTO_CROP_FEATURE.md) for detailed usage and sensitivity tuning.
 
 ## SVG Conversion
 

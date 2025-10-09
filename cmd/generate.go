@@ -30,9 +30,15 @@ var (
 	generateSaveImages       bool   // Download and save images locally
 	generateOutputDir        string // Directory to save downloaded images
 	generateFilenameTemplate string // Template for custom filenames
-	generateDownscaleWidth   int    // Target width for postprocessing downscale
-	generateDownscaleHeight  int    // Target height for postprocessing downscale
-	generateDownscaleFilter  string // Downscaling algorithm (lanczos, bilinear, nearest)
+	// Auto-crop postprocessing options
+	generateAutoCrop               bool // Enable auto-crop to remove whitespace
+	generateAutoCropThreshold      int  // Whitespace detection threshold (0-255)
+	generateAutoCropTolerance      int  // Tolerance for near-white colors (0-255)
+	generateAutoCropPreserveAspect bool // Preserve aspect ratio when cropping
+	// Downscale postprocessing options
+	generateDownscaleWidth  int    // Target width for postprocessing downscale
+	generateDownscaleHeight int    // Target height for postprocessing downscale
+	generateDownscaleFilter string // Downscaling algorithm (lanczos, bilinear, nearest)
 )
 
 // generateCmd represents the generate command
@@ -71,6 +77,23 @@ Examples:
     --batch 5 --save-images \
     --filename-template "landscape-{index}-{seed}.png"
   
+  # Auto-crop whitespace borders from generated images
+  asset-generator generate image \
+    --prompt "centered logo design" \
+    --save-images --auto-crop
+  
+  # Auto-crop with aspect ratio preservation
+  asset-generator generate image \
+    --prompt "product photo" \
+    --save-images --auto-crop --auto-crop-preserve-aspect
+  
+  # Combined postprocessing: crop then downscale
+  asset-generator generate image \
+    --prompt "high resolution art" \
+    --width 2048 --length 2048 \
+    --save-images --auto-crop \
+    --downscale-width 1024 --downscale-filter lanczos
+  
   # Downscale images after download (postprocessing)
   asset-generator generate image \
     --prompt "high resolution art" \
@@ -82,6 +105,10 @@ Examples:
   asset-generator generate image \
     --prompt "cat wearing sunglasses" \
     --output my-cat.json
+
+Postprocessing Pipeline (applied in order):
+  1. Auto-crop: Removes whitespace borders while optionally preserving aspect ratio
+  2. Downscale: Reduces image dimensions using high-quality filtering
 
 Filename Template Placeholders:
   {index}, {i}     - Zero-padded index (001, 002, ...)
@@ -129,6 +156,12 @@ func init() {
 	generateImageCmd.Flags().BoolVar(&generateSaveImages, "save-images", false, "download and save generated images to local disk")
 	generateImageCmd.Flags().StringVar(&generateOutputDir, "output-dir", ".", "directory to save downloaded images (default: current directory)")
 	generateImageCmd.Flags().StringVar(&generateFilenameTemplate, "filename-template", "", "template for custom filenames (e.g., 'image-{index}-{seed}.png')")
+	// Auto-crop postprocessing flags
+	generateImageCmd.Flags().BoolVar(&generateAutoCrop, "auto-crop", false, "automatically crop whitespace borders from images")
+	generateImageCmd.Flags().IntVar(&generateAutoCropThreshold, "auto-crop-threshold", 250, "whitespace detection threshold (0-255, higher = more aggressive)")
+	generateImageCmd.Flags().IntVar(&generateAutoCropTolerance, "auto-crop-tolerance", 10, "tolerance for near-white colors (0-255)")
+	generateImageCmd.Flags().BoolVar(&generateAutoCropPreserveAspect, "auto-crop-preserve-aspect", false, "preserve original aspect ratio when auto-cropping")
+	// Downscale postprocessing flags
 	generateImageCmd.Flags().IntVar(&generateDownscaleWidth, "downscale-width", 0, "downscale images to this width after download (0=auto from height)")
 	generateImageCmd.Flags().IntVar(&generateDownscaleHeight, "downscale-height", 0, "downscale images to this height after download (0=auto from width)")
 	generateImageCmd.Flags().StringVar(&generateDownscaleFilter, "downscale-filter", "lanczos", "downscaling algorithm: lanczos (best), bilinear, nearest")
@@ -263,9 +296,15 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 			OutputDir:        generateOutputDir,
 			FilenameTemplate: generateFilenameTemplate,
 			Metadata:         templateMetadata,
-			DownscaleWidth:   generateDownscaleWidth,
-			DownscaleHeight:  generateDownscaleHeight,
-			DownscaleFilter:  generateDownscaleFilter,
+			// Auto-crop options
+			AutoCrop:               generateAutoCrop,
+			AutoCropThreshold:      uint8(generateAutoCropThreshold),
+			AutoCropTolerance:      uint8(generateAutoCropTolerance),
+			AutoCropPreserveAspect: generateAutoCropPreserveAspect,
+			// Downscale options
+			DownscaleWidth:  generateDownscaleWidth,
+			DownscaleHeight: generateDownscaleHeight,
+			DownscaleFilter: generateDownscaleFilter,
 		}
 
 		// Download images with options
