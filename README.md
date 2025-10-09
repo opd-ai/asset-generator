@@ -213,6 +213,13 @@ asset-generator generate image \
   --save-images \
   --output-dir ./generated-art
 
+# Use custom filename template
+asset-generator generate image \
+  --prompt "fantasy landscape" \
+  --batch 5 \
+  --save-images \
+  --filename-template "landscape-{index}-seed{seed}.png"
+
 # Batch generation with download
 asset-generator generate image \
   --prompt "abstract art" \
@@ -221,10 +228,38 @@ asset-generator generate image \
   --output-dir ./batch-output
 ```
 
+### Custom Filenames
+
+You can customize the downloaded image filenames using the `--filename-template` flag with various placeholders:
+
+```bash
+# Include seed and index in filename
+asset-generator generate image \
+  --prompt "portrait" \
+  --seed 42 \
+  --batch 3 \
+  --save-images \
+  --filename-template "portrait-seed{seed}-{index}.png"
+# Output: portrait-seed42-000.png, portrait-seed42-001.png, portrait-seed42-002.png
+
+# Include timestamp and model
+asset-generator generate image \
+  --prompt "landscape" \
+  --model "flux-dev" \
+  --save-images \
+  --filename-template "{model}-{datetime}.png"
+# Output: flux-dev-2024-10-08_14-30-45.png
+```
+
+**Available placeholders:** `{index}`, `{i1}`, `{timestamp}`, `{datetime}`, `{date}`, `{time}`, `{seed}`, `{model}`, `{width}`, `{height}`, `{prompt}`, `{original}`, `{ext}`
+
+See [Image Download Documentation](docs/IMAGE_DOWNLOAD.md) for complete placeholder reference.
+
 ### Behavior
 
 - Images are downloaded immediately after generation completes
-- The original filename from the server is preserved
+- By default, the original filename from the server is preserved
+- Custom filenames can be specified with `--filename-template`
 - Directory is created automatically if it doesn't exist
 - Progress feedback shows each downloaded file
 - Local file paths are added to the metadata output

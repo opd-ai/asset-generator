@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -293,5 +294,254 @@ func TestDownloadImagesPartialFailure(t *testing.T) {
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			t.Errorf("Expected file does not exist: %s", path)
 		}
+	}
+}
+
+func TestDownloadImagesWithTemplate(t *testing.T) {
+	// Create a test HTTP server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("test-image-data"))
+	}))
+	defer server.Close()
+
+	tmpDir := t.TempDir()
+
+	client, err := NewAssetClient(&Config{
+		BaseURL: server.URL,
+		Verbose: false,
+	})
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	tests := []struct {
+		name             string
+		imagePaths       []string
+		filenameTemplate string
+		metadata         map[string]interface{}
+		expectedPattern  string // Regex pattern or exact match
+	}{
+		{
+			name:             "Index placeholder",
+			imagePaths:       []string{"View/local/raw/2024-05-19/original.png"},
+			filenameTemplate: "image-{index}.png",
+			expectedPattern:  "image-000.png",
+		},
+		{
+			name:             "One-based index",
+			imagePaths:       []string{"View/local/raw/2024-05-19/original.png"},
+			filenameTemplate: "image-{i1}.png",
+			expectedPattern:  "image-1.png",
+		},
+		{
+			name:             "Seed placeholder",
+			imagePaths:       []string{"View/local/raw/2024-05-19/original.png"},
+			filenameTemplate: "image-{seed}.png",
+			metadata:         map[string]interface{}{"seed": 12345},
+			expectedPattern:  "image-12345.png",
+		},
+		{
+			name:             "Multiple placeholders",
+			imagePaths:       []string{"View/local/raw/2024-05-19/original.png"},
+			filenameTemplate: "{model}-{width}x{height}-{index}.png",
+			metadata: map[string]interface{}{
+				"model":  "sdxl",
+				"width":  1024,
+				"height": 768,
+			},
+			expectedPattern: "sdxl-1024x768-000.png",
+		},
+		{
+			name:             "Extension from original",
+			imagePaths:       []string{"View/local/raw/2024-05-19/image.jpg"},
+			filenameTemplate: "custom-{index}",
+			expectedPattern:  "custom-000.jpg",
+		},
+		{
+			name:             "Prompt placeholder",
+			imagePaths:       []string{"View/local/raw/2024-05-19/original.png"},
+			filenameTemplate: "{prompt}-{index}.png",
+			metadata:         map[string]interface{}{"prompt": "a beautiful sunset over mountains"},
+			expectedPattern:  "a_beautiful_sunset_over_mountains-000.png",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			opts := &DownloadOptions{
+				OutputDir:        tmpDir,
+				FilenameTemplate: tt.filenameTemplate,
+				Metadata:         tt.metadata,
+			}
+
+			savedPaths, err := client.DownloadImagesWithOptions(ctx, tt.imagePaths, opts)
+			if err != nil {
+				t.Fatalf("Download failed: %v", err)
+			}
+
+			if len(savedPaths) != 1 {
+				t.Fatalf("Expected 1 file, got %d", len(savedPaths))
+			}
+
+			// Extract filename from path
+			filename := filepath.Base(savedPaths[0])
+
+			if filename != tt.expectedPattern {
+				t.Errorf("Expected filename '%s', got '%s'", tt.expectedPattern, filename)
+			}
+
+			// Verify file exists
+			if _, err := os.Stat(savedPaths[0]); os.IsNotExist(err) {
+				t.Errorf("Expected file does not exist: %s", savedPaths[0])
+			}
+		})
+	}
+}
+
+func TestGenerateFilename(t *testing.T) {
+	tests := []struct {
+		name             string
+		template         string
+		index            int
+		originalFilename string
+		metadata         map[string]interface{}
+		expectedContains []string // Strings that should be in the result
+		expectedExact    string   // Exact expected result (if applicable)
+	}{
+		{
+			name:             "Zero-padded index",
+			template:         "img-{index}.png",
+			index:            5,
+			originalFilename: "test.png",
+			expectedExact:    "img-005.png",
+		},
+		{
+			name:             "One-based index",
+			template:         "img-{i1}.png",
+			index:            0,
+			originalFilename: "test.png",
+			expectedExact:    "img-1.png",
+		},
+		{
+			name:             "Original filename",
+			template:         "copy-of-{original}",
+			index:            0,
+			originalFilename: "myimage.jpg",
+			expectedExact:    "copy-of-myimage.jpg",
+		},
+		{
+			name:             "Extension extraction",
+			template:         "image-{index}{ext}",
+			index:            1,
+			originalFilename: "photo.jpeg",
+			expectedExact:    "image-001.jpeg",
+		},
+		{
+			name:             "Date and time",
+			template:         "{date}-{time}-{index}.png",
+			index:            0,
+			originalFilename: "test.png",
+			expectedContains: []string{"-000.png"},
+		},
+		{
+			name:             "Metadata seed",
+			template:         "seed-{seed}-img.png",
+			index:            0,
+			originalFilename: "test.png",
+			metadata:         map[string]interface{}{"seed": 42},
+			expectedExact:    "seed-42-img.png",
+		},
+		{
+			name:             "Multiple metadata",
+			template:         "{model}-{width}x{height}.png",
+			index:            0,
+			originalFilename: "test.png",
+			metadata: map[string]interface{}{
+				"model":  "flux",
+				"width":  512,
+				"height": 512,
+			},
+			expectedExact: "flux-512x512.png",
+		},
+		{
+			name:             "Prompt sanitization",
+			template:         "{prompt}.png",
+			index:            0,
+			originalFilename: "test.png",
+			metadata:         map[string]interface{}{"prompt": "a cat/dog in <the> rain?"},
+			expectedExact:    "a_catdog_in_the_rain.png",
+		},
+		{
+			name:             "Auto extension append",
+			template:         "image-{index}",
+			index:            0,
+			originalFilename: "photo.png",
+			expectedExact:    "image-000.png",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := generateFilename(tt.template, tt.index, tt.originalFilename, tt.metadata)
+
+			if tt.expectedExact != "" {
+				if result != tt.expectedExact {
+					t.Errorf("Expected '%s', got '%s'", tt.expectedExact, result)
+				}
+			}
+
+			for _, substr := range tt.expectedContains {
+				if !strings.Contains(result, substr) {
+					t.Errorf("Expected result to contain '%s', got '%s'", substr, result)
+				}
+			}
+		})
+	}
+}
+
+func TestSanitizeForFilename(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{
+			input:    "hello world",
+			expected: "hello_world",
+		},
+		{
+			input:    "file/with\\slashes",
+			expected: "filewithslashes",
+		},
+		{
+			input:    "question?mark*asterisk",
+			expected: "questionmarkasterisk",
+		},
+		{
+			input:    "multiple   spaces",
+			expected: "multiple_spaces",
+		},
+		{
+			input:    "__leading_trailing__",
+			expected: "leading_trailing",
+		},
+		{
+			input:    "tabs\tand\nnewlines\r",
+			expected: "tabsandnewlines",
+		},
+		{
+			input:    "valid-filename_123.txt",
+			expected: "valid-filename_123.txt",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := sanitizeForFilename(tt.input)
+			if result != tt.expected {
+				t.Errorf("sanitizeForFilename(%q) = %q, want %q", tt.input, result, tt.expected)
+			}
+		})
 	}
 }

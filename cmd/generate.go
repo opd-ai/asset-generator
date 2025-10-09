@@ -16,19 +16,20 @@ import (
 )
 
 var (
-	generatePrompt       string
-	generateModel        string
-	generateSteps        int
-	generateWidth        int
-	generateHeight       int
-	generateSeed         int64
-	generateBatchSize    int
-	generateCfgScale     float64
-	generateNegPrompt    string
-	generateSampler      string
-	generateUseWebSocket bool   // Enable WebSocket for real-time progress
-	generateSaveImages   bool   // Download and save images locally
-	generateOutputDir    string // Directory to save downloaded images
+	generatePrompt         string
+	generateModel          string
+	generateSteps          int
+	generateWidth          int
+	generateHeight         int
+	generateSeed           int64
+	generateBatchSize      int
+	generateCfgScale       float64
+	generateNegPrompt      string
+	generateSampler        string
+	generateUseWebSocket   bool   // Enable WebSocket for real-time progress
+	generateSaveImages     bool   // Download and save images locally
+	generateOutputDir      string // Directory to save downloaded images
+	generateFilenameTemplate string // Template for custom filenames
 )
 
 // generateCmd represents the generate command
@@ -61,10 +62,31 @@ Examples:
     --prompt "cat wearing sunglasses" \
     --save-images --output-dir ./my-images
   
+  # Custom filename template
+  asset-generator generate image \
+    --prompt "fantasy landscape" \
+    --batch 5 --save-images \
+    --filename-template "landscape-{index}-{seed}.png"
+  
   # Save metadata to specific file
   asset-generator generate image \
     --prompt "cat wearing sunglasses" \
-    --output my-cat.json`,
+    --output my-cat.json
+
+Filename Template Placeholders:
+  {index}, {i}     - Zero-padded index (001, 002, ...)
+  {index1}, {i1}   - One-based index (1, 2, 3, ...)
+  {timestamp}, {ts} - Unix timestamp
+  {datetime}, {dt} - Formatted datetime (YYYY-MM-DD_HH-MM-SS)
+  {date}          - Date only (YYYY-MM-DD)
+  {time}          - Time only (HH-MM-SS)
+  {seed}          - Seed value used for generation
+  {model}         - Model name
+  {width}         - Image width
+  {height}        - Image height
+  {prompt}        - First 50 chars of prompt (sanitized)
+  {original}      - Original filename from server
+  {ext}           - Original file extension`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		// Validate that both --length and --height are not specified simultaneously
 		// They are aliases for the same parameter but both being set creates ambiguity
@@ -96,6 +118,7 @@ func init() {
 	generateImageCmd.Flags().BoolVar(&generateUseWebSocket, "websocket", false, "use WebSocket for real-time progress (requires SwarmUI)")
 	generateImageCmd.Flags().BoolVar(&generateSaveImages, "save-images", false, "download and save generated images to local disk")
 	generateImageCmd.Flags().StringVar(&generateOutputDir, "output-dir", ".", "directory to save downloaded images (default: current directory)")
+	generateImageCmd.Flags().StringVar(&generateFilenameTemplate, "filename-template", "", "template for custom filenames (e.g., 'image-{index}-{seed}.png')")
 
 	generateImageCmd.MarkFlagRequired("prompt")
 
@@ -211,7 +234,30 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 			fmt.Fprintf(os.Stderr, "Downloading generated images...\n")
 		}
 
-		savedPaths, err := assetClient.DownloadImages(ctx, result.ImagePaths, generateOutputDir)
+		// Prepare metadata for filename template
+		templateMetadata := map[string]interface{}{
+			"prompt": generatePrompt,
+			"model":  req.Model,
+			"width":  generateWidth,
+			"height": generateHeight,
+		}
+		if generateSeed >= 0 {
+			templateMetadata["seed"] = generateSeed
+		}
+
+		// Use DownloadImagesWithOptions if filename template is specified
+		var savedPaths []string
+		if generateFilenameTemplate != "" {
+			opts := &client.DownloadOptions{
+				OutputDir:        generateOutputDir,
+				FilenameTemplate: generateFilenameTemplate,
+				Metadata:         templateMetadata,
+			}
+			savedPaths, err = assetClient.DownloadImagesWithOptions(ctx, result.ImagePaths, opts)
+		} else {
+			savedPaths, err = assetClient.DownloadImages(ctx, result.ImagePaths, generateOutputDir)
+		}
+
 		if err != nil {
 			return fmt.Errorf("failed to download images: %w", err)
 		}

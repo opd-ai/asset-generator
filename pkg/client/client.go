@@ -839,13 +839,36 @@ func (c *AssetClient) simulateProgress(sessionID string, callback ProgressCallba
 	}
 }
 
+// DownloadOptions holds options for downloading images
+type DownloadOptions struct {
+	OutputDir        string                 // Directory to save images
+	FilenameTemplate string                 // Template for generating filenames (e.g., "image-{index}.png")
+	Metadata         map[string]interface{} // Metadata for template variables
+}
+
 // DownloadImages downloads generated images from the server and saves them to the specified directory.
 // imagePaths should be the paths returned by the generation API (e.g., "View/local/raw/2024-05-19/file.png")
 // outputDir is the local directory where images will be saved.
 // Returns a slice of local file paths where images were saved.
 func (c *AssetClient) DownloadImages(ctx context.Context, imagePaths []string, outputDir string) ([]string, error) {
+	return c.DownloadImagesWithOptions(ctx, imagePaths, &DownloadOptions{
+		OutputDir: outputDir,
+	})
+}
+
+// DownloadImagesWithOptions downloads generated images with custom filename options.
+func (c *AssetClient) DownloadImagesWithOptions(ctx context.Context, imagePaths []string, opts *DownloadOptions) ([]string, error) {
 	if len(imagePaths) == 0 {
 		return nil, fmt.Errorf("no images to download")
+	}
+
+	if opts == nil {
+		opts = &DownloadOptions{OutputDir: "."}
+	}
+
+	outputDir := opts.OutputDir
+	if outputDir == "" {
+		outputDir = "."
 	}
 
 	// Create output directory if it doesn't exist
@@ -861,13 +884,23 @@ func (c *AssetClient) DownloadImages(ctx context.Context, imagePaths []string, o
 		// SwarmUI returns paths like "View/local/raw/2024-05-19/filename.png"
 		imageURL := fmt.Sprintf("%s/%s", c.config.BaseURL, imagePath)
 
-		// Extract filename from path
+		// Extract original filename and extension from path
 		parts := strings.Split(imagePath, "/")
 		if len(parts) == 0 {
 			downloadErrors = append(downloadErrors, fmt.Errorf("invalid image path: %s", imagePath))
 			continue
 		}
-		filename := parts[len(parts)-1]
+		originalFilename := parts[len(parts)-1]
+		
+		// Determine the filename to use
+		var filename string
+		if opts.FilenameTemplate != "" {
+			// Generate filename from template
+			filename = generateFilename(opts.FilenameTemplate, i, originalFilename, opts.Metadata)
+		} else {
+			// Use original filename
+			filename = originalFilename
+		}
 
 		// Create output file path
 		outputPath := fmt.Sprintf("%s/%s", outputDir, filename)
@@ -938,6 +971,106 @@ func (c *AssetClient) downloadFile(ctx context.Context, url, filepath string) er
 	}
 
 	return nil
+}
+
+// generateFilename creates a filename from a template with variable substitution.
+// Supported placeholders:
+// - {index} or {i}: Zero-padded index (e.g., 001, 002)
+// - {index1} or {i1}: One-based index (e.g., 1, 2, 3)
+// - {timestamp} or {ts}: Unix timestamp
+// - {datetime} or {dt}: Formatted datetime (YYYY-MM-DD_HH-MM-SS)
+// - {date}: Date only (YYYY-MM-DD)
+// - {time}: Time only (HH-MM-SS)
+// - {original}: Original filename from server
+// - {ext}: Original file extension (including dot)
+// - {seed}: Seed value from metadata
+// - {model}: Model name from metadata
+// - {width}: Image width from metadata
+// - {height}: Image height from metadata
+// - {prompt}: Truncated prompt (first 50 chars, sanitized)
+func generateFilename(template string, index int, originalFilename string, metadata map[string]interface{}) string {
+	result := template
+	now := time.Now()
+	
+	// Extract extension from original filename
+	ext := ""
+	if dotIdx := strings.LastIndex(originalFilename, "."); dotIdx != -1 {
+		ext = originalFilename[dotIdx:]
+	}
+	
+	// Zero-padded index (assuming max 999 images)
+	result = strings.ReplaceAll(result, "{index}", fmt.Sprintf("%03d", index))
+	result = strings.ReplaceAll(result, "{i}", fmt.Sprintf("%03d", index))
+	
+	// One-based index
+	result = strings.ReplaceAll(result, "{index1}", fmt.Sprintf("%d", index+1))
+	result = strings.ReplaceAll(result, "{i1}", fmt.Sprintf("%d", index+1))
+	
+	// Timestamps
+	result = strings.ReplaceAll(result, "{timestamp}", fmt.Sprintf("%d", now.Unix()))
+	result = strings.ReplaceAll(result, "{ts}", fmt.Sprintf("%d", now.Unix()))
+	result = strings.ReplaceAll(result, "{datetime}", now.Format("2006-01-02_15-04-05"))
+	result = strings.ReplaceAll(result, "{dt}", now.Format("2006-01-02_15-04-05"))
+	result = strings.ReplaceAll(result, "{date}", now.Format("2006-01-02"))
+	result = strings.ReplaceAll(result, "{time}", now.Format("15-04-05"))
+	
+	// Original filename and extension
+	result = strings.ReplaceAll(result, "{original}", originalFilename)
+	result = strings.ReplaceAll(result, "{ext}", ext)
+	
+	// Metadata-based replacements
+	if metadata != nil {
+		if seed, ok := metadata["seed"]; ok {
+			result = strings.ReplaceAll(result, "{seed}", fmt.Sprintf("%v", seed))
+		}
+		if model, ok := metadata["model"]; ok {
+			result = strings.ReplaceAll(result, "{model}", fmt.Sprintf("%v", model))
+		}
+		if width, ok := metadata["width"]; ok {
+			result = strings.ReplaceAll(result, "{width}", fmt.Sprintf("%v", width))
+		}
+		if height, ok := metadata["height"]; ok {
+			result = strings.ReplaceAll(result, "{height}", fmt.Sprintf("%v", height))
+		}
+		if prompt, ok := metadata["prompt"]; ok {
+			// Sanitize and truncate prompt for filename
+			promptStr := fmt.Sprintf("%v", prompt)
+			promptStr = sanitizeForFilename(promptStr)
+			if len(promptStr) > 50 {
+				promptStr = promptStr[:50]
+			}
+			result = strings.ReplaceAll(result, "{prompt}", promptStr)
+		}
+	}
+	
+	// If no extension in template but we have one, append it
+	if !strings.Contains(result, ".") && ext != "" {
+		result += ext
+	}
+	
+	return result
+}
+
+// sanitizeForFilename removes or replaces characters that are invalid in filenames
+func sanitizeForFilename(s string) string {
+	// Replace spaces with underscores
+	s = strings.ReplaceAll(s, " ", "_")
+	
+	// Remove or replace invalid filename characters
+	invalidChars := []string{"/", "\\", ":", "*", "?", "\"", "<", ">", "|", "\n", "\r", "\t"}
+	for _, char := range invalidChars {
+		s = strings.ReplaceAll(s, char, "")
+	}
+	
+	// Remove multiple consecutive underscores
+	for strings.Contains(s, "__") {
+		s = strings.ReplaceAll(s, "__", "_")
+	}
+	
+	// Trim leading/trailing underscores
+	s = strings.Trim(s, "_")
+	
+	return s
 }
 
 // ensureDir creates a directory if it doesn't exist
