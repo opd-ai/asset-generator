@@ -169,7 +169,7 @@ Available for all commands:
 | `--output` | `-o` | Write output to file | |
 | `--quiet` | `-q` | Quiet mode (errors only) | `false` |
 | `--verbose` | `-v` | Verbose output | `false` |
-| `--config` | | Config file path | `~/.asset-generator/config.yaml` |
+| `--config` | | Custom config file path (overrides default search) | (searches multiple locations) |
 
 ## Generation Parameters
 
