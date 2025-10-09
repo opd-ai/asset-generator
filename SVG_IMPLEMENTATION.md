@@ -2,9 +2,9 @@
 
 ## Overview
 
-Successfully implemented comprehensive image-to-SVG conversion functionality using two industry-standard libraries:
+Successfully implemented comprehensive image-to-SVG conversion functionality using two complementary libraries:
 - **fogleman/primitive**: Geometric shape approximation
-- **gotranspile/gotrace**: Edge tracing via potrace wrapper
+- **dennwc/gotrace**: Pure-Go potrace implementation for edge tracing
 
 ## Files Created/Modified
 
