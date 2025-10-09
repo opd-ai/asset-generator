@@ -90,7 +90,7 @@ asset-generator convert svg photo.jpg --shapes 300 --mode 4
 - `--repeat`: Optimization repeats (default: 0)
 
 ### Gotrace Method
-- `--gotrace-args`: Additional potrace arguments
+- No additional flags (uses library defaults)
 
 ## File Size Guide
 

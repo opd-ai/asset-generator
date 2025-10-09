@@ -100,12 +100,6 @@ asset-generator convert svg <input-file> [flags]
 | `--alpha` | `128` | Alpha transparency (0-255) |
 | `--repeat` | `0` | Optimization repeats per shape |
 
-#### Gotrace Method Flags
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--gotrace-args` | `[]` | Additional potrace arguments |
-
 ## Examples
 
 ### Basic Conversions
@@ -173,13 +167,8 @@ asset-generator convert svg photo.jpg --shapes 200 --alpha 200
 
 ```bash
 # Basic trace conversion
+# Gotrace method (edge tracing)
 asset-generator convert svg lineart.png --method gotrace
-
-# High quality trace
-asset-generator convert svg sketch.png --method gotrace --gotrace-args="--turdsize,2"
-
-# Optimized for smoothness
-asset-generator convert svg drawing.png --method gotrace --gotrace-args="--opticurve"
 ```
 
 ## Batch Processing

@@ -47,25 +47,6 @@ For best gotrace results:
 3. **Use grayscale**: Color images are automatically converted to grayscale
 4. **High resolution**: Higher resolution inputs produce better traces
 
-### Optimization Tips
-
-```bash
-# For simple line drawings
-asset-generator convert svg sketch.png \
-  --method gotrace \
-  --gotrace-args="--turdsize,2,--flat"
-
-# For detailed artwork
-asset-generator convert svg artwork.png \
-  --method gotrace \
-  --gotrace-args="--turdsize,1,--opticurve,--alphamax,0.5"
-
-# For logos (clean and tight)
-asset-generator convert svg logo.png \
-  --method gotrace \
-  --gotrace-args="--turdsize,5,--tight"
-```
-
 ## Comparison: Primitive vs Gotrace
 
 | Aspect | Primitive | Gotrace |
@@ -74,9 +55,9 @@ asset-generator convert svg logo.png \
 | **Processing** | Geometric approximation | Edge tracing |
 | **Output style** | Geometric, stylized | Smooth curves, precise |
 | **Speed** | Slower (many shapes) | Generally faster |
-| **Dependencies** | None | Requires potrace |
+| **Dependencies** | None | None (pure-Go) |
 | **File size** | Varies with shape count | Depends on edge complexity |
-| **Quality control** | --shapes, --mode flags | Potrace arguments |
+| **Quality control** | --shapes, --mode flags | Library defaults |
 
 ## Troubleshooting
 
@@ -140,39 +121,23 @@ asset-generator convert svg ./generated/image_001.png \
   -o cat-vector.svg
 ```
 
-### Quality Comparison Script
-
-```bash
-#!/bin/bash
-INPUT="sketch.png"
-
-# Try different quality settings
-for turdsize in 1 2 5 10; do
-    asset-generator convert svg "$INPUT" \
-      --method gotrace \
-      --gotrace-args="--turdsize,$turdsize" \
-      -o "output_turd${turdsize}.svg"
-done
-```
-
 ## Technical Details
 
 ### Conversion Process
 
 1. **Input Loading**: PNG/JPEG image is loaded
-2. **Grayscale Conversion**: Image converted to grayscale
-3. **Threshold**: Converted to binary (black/white)
-4. **PBM Generation**: Temporary PBM file created
-5. **Potrace Execution**: Potrace traces the bitmap
-6. **SVG Output**: Final SVG file is generated
-7. **Cleanup**: Temporary files removed
+2. **Image Decoding**: Image decoded using Go's image libraries
+3. **Bitmap Conversion**: Image converted to bitmap for tracing
+4. **Edge Tracing**: dennwc/gotrace library traces edges using potrace algorithm
+5. **Path Generation**: Vector paths are generated from traced edges
+6. **SVG Output**: Final SVG file is written with traced paths
 
 ### Format Support
 
-The gotrace method internally converts images to PBM (Portable Bitmap) format before passing to potrace. This means any image format supported by Go's image libraries (PNG, JPEG, GIF, etc.) can be used as input.
+The gotrace method uses Go's standard image libraries for input. Any image format supported by Go (PNG, JPEG, GIF, etc.) can be used as input. The pure-Go implementation eliminates the need for intermediate file format conversions.
 
 ## See Also
 
 - [SVG Conversion Guide](SVG_CONVERSION.md)
-- [Potrace Documentation](http://potrace.sourceforge.net/potracelib.pdf)
+- [dennwc/gotrace Library](https://github.com/dennwc/gotrace)
 - [Primitive Method Documentation](SVG_CONVERSION.md#primitive-method-default)

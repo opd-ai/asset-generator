@@ -325,7 +325,6 @@ asset-generator convert svg artwork.jpg \
 # Precise vector from sketch
 asset-generator convert svg sketch.png \
     --method gotrace \
-    --gotrace-args="--turdsize,2,--opticurve" \
     -o sketch-vector.svg
 ```
 
@@ -334,7 +333,6 @@ asset-generator convert svg sketch.png \
 # High contrast for stencils
 asset-generator convert svg image.png \
     --method gotrace \
-    --gotrace-args="--flat,--turdsize,10" \
     -o stencil.svg
 ```
 

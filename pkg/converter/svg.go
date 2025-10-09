@@ -38,11 +38,10 @@ const (
 type ConversionOptions struct {
 	Method          SVGConversionMethod
 	OutputPath      string
-	PrimitiveShapes int      // Number of shapes for primitive method
-	PrimitiveMode   int      // Shape mode for primitive
-	PrimitiveAlpha  int      // Alpha value for primitive
-	PrimitiveRepeat int      // Number of optimization repeats
-	GotraceArgs     []string // Additional args for gotrace (currently unused)
+	PrimitiveShapes int // Number of shapes for primitive method
+	PrimitiveMode   int // Shape mode for primitive
+	PrimitiveAlpha  int // Alpha value for primitive
+	PrimitiveRepeat int // Number of optimization repeats
 }
 
 // NewSVGConverter creates a new SVG converter with default settings

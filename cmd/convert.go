@@ -16,7 +16,6 @@ var (
 	convertPrimitiveMode   int
 	convertPrimitiveAlpha  int
 	convertPrimitiveRepeat int
-	convertGotraceArgs     []string
 )
 
 // convertCmd represents the convert command
@@ -27,7 +26,7 @@ var convertCmd = &cobra.Command{
 
 Supports two conversion methods:
   - primitive: Uses geometric shapes to approximate the image (fogleman/primitive)
-  - gotrace:   Uses edge tracing for vector conversion (requires potrace installed)
+  - gotrace:   Pure-Go edge tracing for vector conversion (dennwc/gotrace)
 
 Examples:
   # Convert image to SVG using primitive method with 100 shapes
@@ -54,8 +53,8 @@ Two conversion methods are available:
    - Control the quality with --shapes flag
 
 2. Gotrace: Uses edge tracing to convert bitmap to vector
-   - Requires 'potrace' to be installed on your system
-   - Better for preserving fine details
+   - Pure-Go implementation (dennwc/gotrace)
+   - Better for preserving fine details and edges
    - Good for line art and high-contrast images
 
 Examples:
@@ -96,10 +95,6 @@ func init() {
 		"Alpha value for shapes (0-255)")
 	convertSvgCmd.Flags().IntVar(&convertPrimitiveRepeat, "repeat", 0,
 		"Number of optimization repeats")
-
-	// Gotrace-specific flags
-	convertSvgCmd.Flags().StringSliceVar(&convertGotraceArgs, "gotrace-args", []string{},
-		"Additional arguments to pass to potrace (gotrace method)")
 }
 
 func runConvertSvg(cmd *cobra.Command, args []string) error {
@@ -139,7 +134,6 @@ func runConvertSvg(cmd *cobra.Command, args []string) error {
 		PrimitiveMode:   convertPrimitiveMode,
 		PrimitiveAlpha:  convertPrimitiveAlpha,
 		PrimitiveRepeat: convertPrimitiveRepeat,
-		GotraceArgs:     convertGotraceArgs,
 	}
 
 	// Provide feedback
