@@ -18,6 +18,6 @@ generate:
   model: stable-diffusion-xl
   steps: 20
   width: 512
-  height: 512
+  length: 512  # Note: 'height' also supported as alias
   cfg-scale: 7.5
   sampler: euler_a

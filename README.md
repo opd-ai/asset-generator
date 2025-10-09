@@ -1,17 +1,6 @@
 # Asset Generator CLI
 
-A powerful command-line interface for interacting with AI asset generation APIs. Generate assets, manage models, and configure your a| Flag | Short | Description | Default |
-|------|-------|-------------|---------|
-| `--prompt` | `-p` | Image prompt (required) | |
-| `--model` | | Model to use | |
-| `--width` | | Image width | `512` |
-| `--height` | | Image height | `512` |
-| `--steps` | | Inference steps | `20` |
-| `--cfg-scale` | | CFG scale (guidance) | `7.5` |
-| `--sampler` | | Sampling method | `euler_a` |
-| `--batch` | `-b` | Number of images to generate | `1` |
-| `--seed` | | Random seed (-1 for random) | `-1` |
-| `--negative-prompt` | | Negative prompt | |ion workflow with ease.
+A powerful command-line interface for interacting with AI asset generation APIs. Generate assets, manage models, and configure your asset generation workflow with ease.
 
 ## Features
 
@@ -184,6 +173,9 @@ Available for all commands:
 | `--batch` | `-b` | Number of images to generate | `1` |
 | `--seed` | | Random seed (-1 for random) | `-1` |
 | `--negative-prompt` | `-n` | Negative prompt | |
+| `--websocket` | | Use WebSocket for real-time progress updates | `false` |
+
+> **Note:** The `--length` flag is used for the vertical dimension (height) for API compatibility with SwarmUI. Both `--length` and `--height` are supported as aliases.
 
 ## Examples
 
@@ -311,8 +303,10 @@ assetClient, err := client.NewAssetClient(config)
 req := &client.GenerationRequest{
     Prompt: "a beautiful landscape",
     Parameters: map[string]interface{}{
-        "width": 1024,
+        "width":  1024,
         "height": 1024,
+        "steps":  30,
+        "images": 4,  // Batch size - number of images to generate
     },
 }
 result, err := assetClient.GenerateImage(context.Background(), req)
