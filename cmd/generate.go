@@ -16,19 +16,19 @@ import (
 )
 
 var (
-	generatePrompt         string
-	generateModel          string
-	generateSteps          int
-	generateWidth          int
-	generateHeight         int
-	generateSeed           int64
-	generateBatchSize      int
-	generateCfgScale       float64
-	generateNegPrompt      string
-	generateSampler        string
-	generateUseWebSocket   bool   // Enable WebSocket for real-time progress
-	generateSaveImages     bool   // Download and save images locally
-	generateOutputDir      string // Directory to save downloaded images
+	generatePrompt           string
+	generateModel            string
+	generateSteps            int
+	generateWidth            int
+	generateHeight           int
+	generateSeed             int64
+	generateBatchSize        int
+	generateCfgScale         float64
+	generateNegPrompt        string
+	generateSampler          string
+	generateUseWebSocket     bool   // Enable WebSocket for real-time progress
+	generateSaveImages       bool   // Download and save images locally
+	generateOutputDir        string // Directory to save downloaded images
 	generateFilenameTemplate string // Template for custom filenames
 )
 

@@ -891,7 +891,7 @@ func (c *AssetClient) DownloadImagesWithOptions(ctx context.Context, imagePaths 
 			continue
 		}
 		originalFilename := parts[len(parts)-1]
-		
+
 		// Determine the filename to use
 		var filename string
 		if opts.FilenameTemplate != "" {
@@ -991,21 +991,21 @@ func (c *AssetClient) downloadFile(ctx context.Context, url, filepath string) er
 func generateFilename(template string, index int, originalFilename string, metadata map[string]interface{}) string {
 	result := template
 	now := time.Now()
-	
+
 	// Extract extension from original filename
 	ext := ""
 	if dotIdx := strings.LastIndex(originalFilename, "."); dotIdx != -1 {
 		ext = originalFilename[dotIdx:]
 	}
-	
+
 	// Zero-padded index (assuming max 999 images)
 	result = strings.ReplaceAll(result, "{index}", fmt.Sprintf("%03d", index))
 	result = strings.ReplaceAll(result, "{i}", fmt.Sprintf("%03d", index))
-	
+
 	// One-based index
 	result = strings.ReplaceAll(result, "{index1}", fmt.Sprintf("%d", index+1))
 	result = strings.ReplaceAll(result, "{i1}", fmt.Sprintf("%d", index+1))
-	
+
 	// Timestamps
 	result = strings.ReplaceAll(result, "{timestamp}", fmt.Sprintf("%d", now.Unix()))
 	result = strings.ReplaceAll(result, "{ts}", fmt.Sprintf("%d", now.Unix()))
@@ -1013,11 +1013,11 @@ func generateFilename(template string, index int, originalFilename string, metad
 	result = strings.ReplaceAll(result, "{dt}", now.Format("2006-01-02_15-04-05"))
 	result = strings.ReplaceAll(result, "{date}", now.Format("2006-01-02"))
 	result = strings.ReplaceAll(result, "{time}", now.Format("15-04-05"))
-	
+
 	// Original filename and extension
 	result = strings.ReplaceAll(result, "{original}", originalFilename)
 	result = strings.ReplaceAll(result, "{ext}", ext)
-	
+
 	// Metadata-based replacements
 	if metadata != nil {
 		if seed, ok := metadata["seed"]; ok {
@@ -1042,12 +1042,12 @@ func generateFilename(template string, index int, originalFilename string, metad
 			result = strings.ReplaceAll(result, "{prompt}", promptStr)
 		}
 	}
-	
+
 	// If no extension in template but we have one, append it
 	if !strings.Contains(result, ".") && ext != "" {
 		result += ext
 	}
-	
+
 	return result
 }
 
@@ -1055,21 +1055,21 @@ func generateFilename(template string, index int, originalFilename string, metad
 func sanitizeForFilename(s string) string {
 	// Replace spaces with underscores
 	s = strings.ReplaceAll(s, " ", "_")
-	
+
 	// Remove or replace invalid filename characters
 	invalidChars := []string{"/", "\\", ":", "*", "?", "\"", "<", ">", "|", "\n", "\r", "\t"}
 	for _, char := range invalidChars {
 		s = strings.ReplaceAll(s, char, "")
 	}
-	
+
 	// Remove multiple consecutive underscores
 	for strings.Contains(s, "__") {
 		s = strings.ReplaceAll(s, "__", "_")
 	}
-	
+
 	// Trim leading/trailing underscores
 	s = strings.Trim(s, "_")
-	
+
 	return s
 }
 
