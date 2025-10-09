@@ -124,8 +124,6 @@ func TestConvertWithPrimitiveDefault(t *testing.T) {
 }
 
 func TestConvertWithGotrace(t *testing.T) {
-	t.Skip("Gotrace has CGO dependencies that require specific Go runtime patches - skipping for now")
-	
 	// Create temp directory for test files
 	tempDir := t.TempDir()
 

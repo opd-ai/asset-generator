@@ -160,7 +160,7 @@ func runConvertSvg(cmd *cobra.Command, args []string) error {
 	// Success message
 	if !quiet {
 		fmt.Printf("✓ Successfully converted to: %s\n", result)
-		
+
 		// Show file size
 		info, err := os.Stat(result)
 		if err == nil {

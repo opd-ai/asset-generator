@@ -1,7 +1,6 @@
 package converter
 
 import (
-	"bytes"
 	"fmt"
 	"image"
 	"os"
@@ -130,7 +129,7 @@ func (c *SVGConverter) convertWithPrimitive(inputPath, outputPath string, opts C
 
 	// Export to SVG
 	svg := model.SVG()
-	
+
 	// Write SVG to file
 	if err := os.WriteFile(outputPath, []byte(svg), 0644); err != nil {
 		return "", fmt.Errorf("failed to write SVG file: %w", err)
