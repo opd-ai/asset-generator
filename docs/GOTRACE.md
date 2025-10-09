@@ -2,65 +2,18 @@
 
 ## Overview
 
-The `gotrace` conversion method provides edge-tracing vector conversion using [potrace](http://potrace.sourceforge.net/), a powerful tool for transforming bitmap images into smooth, scalable vector graphics.
+The `gotrace` conversion method provides edge-tracing vector conversion using the pure-Go [dennwc/gotrace](https://github.com/dennwc/gotrace) library, which implements the potrace algorithm natively in Go.
 
-## Installation
+## Implementation
 
-The gotrace method requires the `potrace` command-line tool to be installed on your system.
+This tool uses a **pure-Go implementation** of the potrace algorithm:
+- **No external dependencies required** - potrace binary is not needed
+- **Cross-platform compatible** - works on all platforms Go supports
+- **Native integration** - direct Go library calls for better performance
 
-### Ubuntu/Debian
-
-```bash
-sudo apt-get update
-sudo apt-get install potrace
-```
-
-### macOS
-
-```bash
-brew install potrace
-```
-
-### Fedora/RHEL/CentOS
-
-```bash
-sudo dnf install potrace
-```
-
-### Arch Linux
-
-```bash
-sudo pacman -S potrace
-```
-
-### From Source
-
-```bash
-# Download from http://potrace.sourceforge.net/
-wget http://potrace.sourceforge.net/download/1.16/potrace-1.16.tar.gz
-tar xzf potrace-1.16.tar.gz
-cd potrace-1.16
-./configure
-make
-sudo make install
-```
-
-## Verification
-
-Verify potrace is installed:
-
-```bash
-potrace --version
-```
-
-You should see output like:
-```
-potrace 1.16. Copyright (C) 2001-2019 Peter Selinger.
-```
+The implementation leverages `github.com/dennwc/gotrace` which provides the full potrace functionality as a Go library, eliminating the need for system-level potrace installation.
 
 ## Usage
-
-Once potrace is installed, you can use the gotrace method:
 
 ```bash
 # Basic edge tracing conversion
@@ -68,39 +21,6 @@ asset-generator convert svg sketch.png --method gotrace
 
 # With custom output path
 asset-generator convert svg lineart.png --method gotrace -o vectorized.svg
-
-# Pass additional potrace arguments
-asset-generator convert svg image.png --method gotrace --gotrace-args="--turdsize,2,--alphamax,1"
-```
-
-## Potrace Arguments
-
-You can pass additional arguments to potrace using the `--gotrace-args` flag. Common options:
-
-### Quality Options
-
-- `--turdsize <n>`: Suppress speckles of up to n pixels (default: 2)
-- `--alphamax <n>`: Corner threshold (default: 1.0)
-- `--opticurve`: Optimize Bezier curves
-- `--opttolerance <n>`: Curve optimization tolerance (default: 0.2)
-
-### Output Options
-
-- `--flat`: Use only straight line segments
-- `--tight`: Minimize margins
-
-### Example with Custom Args
-
-```bash
-# High quality with speckle suppression
-asset-generator convert svg drawing.png \
-  --method gotrace \
-  --gotrace-args="--turdsize,4,--opticurve,--alphamax,0.8"
-
-# Simplified output with straight lines only
-asset-generator convert svg sketch.png \
-  --method gotrace \
-  --gotrace-args="--flat,--turdsize,10"
 ```
 
 ## Best Practices

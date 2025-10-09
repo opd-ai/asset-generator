@@ -303,7 +303,7 @@ asset-generator convert svg sketch.png --method gotrace
 
 **Gotrace Method**: Uses edge tracing for precise vector conversion
 - Good for: Line art, sketches, high-contrast images
-- Requires `potrace` to be installed
+- Pure-Go implementation (no external dependencies required)
 - Better detail preservation
 
 ### Examples

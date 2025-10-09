@@ -2,10 +2,10 @@
 
 ## Overview
 
-The asset-generator CLI now includes powerful image-to-SVG conversion capabilities using two industry-standard libraries:
+The asset-generator CLI now includes powerful image-to-SVG conversion capabilities using two complementary libraries:
 
 - **[fogleman/primitive](https://github.com/fogleman/primitive)**: Converts images to SVG using geometric shape approximation
-- **[gotranspile/gotrace](https://github.com/gotranspile/gotrace)**: Provides potrace integration for edge-tracing vector conversion
+- **[dennwc/gotrace](https://github.com/dennwc/gotrace)**: Pure-Go implementation of potrace for edge-tracing vector conversion
 
 ## Quick Start
 
@@ -62,26 +62,15 @@ Uses edge tracing to preserve fine details and create precise vector conversions
 - Technical drawings
 - Preserving fine details
 
-**Requirements:**
-- `potrace` must be installed on your system
-  ```bash
-  # Ubuntu/Debian
-  sudo apt-get install potrace
-  
-  # macOS
-  brew install potrace
-  
-  # Fedora/RHEL
-  sudo dnf install potrace
-  ```
+**Implementation:**
+- Uses pure-Go `dennwc/gotrace` library
+- No external dependencies required
+- Cross-platform compatible
 
 **Example:**
 ```bash
 # Basic gotrace conversion
 asset-generator convert svg sketch.png --method gotrace
-
-# With custom potrace arguments
-asset-generator convert svg sketch.png --method gotrace --gotrace-args="--turdsize,2,--alphamax,1"
 ```
 
 ## Command Reference
@@ -348,6 +337,9 @@ result, err := converter.ConvertWithGotraceDefault("input.png", "output.svg")
 
 ## License
 
+
 This feature uses:
 - [fogleman/primitive](https://github.com/fogleman/primitive) - MIT License
-- [gotranspile/gotrace](https://github.com/gotranspile/gotrace) - GPL License (external dependency)
+- [dennwc/gotrace](https://github.com/dennwc/gotrace) - BSD-2-Clause License
+
+```
