@@ -186,7 +186,7 @@ Available for all commands:
 | `--batch` | `-b` | Number of images to generate | `1` |
 | `--seed` | | Random seed (-1 for random) | `-1` |
 | `--negative-prompt` | `-n` | Negative prompt | |
-| `--websocket` | | Use WebSocket for real-time progress updates | `false` |
+| `--websocket` | | Use WebSocket for real-time progress (falls back to HTTP if unavailable) | `false` |
 | `--save-images` | | Download and save generated images to local disk | `false` |
 | `--output-dir` | | Directory to save downloaded images | `.` (current directory) |
 
