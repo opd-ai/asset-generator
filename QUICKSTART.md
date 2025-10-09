@@ -88,6 +88,33 @@ asset-generator generate image \
   --output result.json
 ```
 
+### Download Generated Images
+
+Download images directly to your local disk:
+
+```bash
+# Download to current directory
+asset-generator generate image \
+  --prompt "beautiful landscape" \
+  --save-images
+
+# Download to specific directory
+asset-generator generate image \
+  --prompt "fantasy castle" \
+  --save-images \
+  --output-dir ./my-art
+
+# Batch download
+asset-generator generate image \
+  --prompt "abstract art" \
+  --batch 5 \
+  --save-images \
+  --output-dir ./batch-output
+```
+
+The `--save-images` flag automatically downloads all generated images after completion.
+
+
 ## Common Tasks
 
 ### Batch Generation

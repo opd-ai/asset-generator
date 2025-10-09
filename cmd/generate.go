@@ -26,7 +26,9 @@ var (
 	generateCfgScale     float64
 	generateNegPrompt    string
 	generateSampler      string
-	generateUseWebSocket bool // Enable WebSocket for real-time progress
+	generateUseWebSocket bool   // Enable WebSocket for real-time progress
+	generateSaveImages   bool   // Download and save images locally
+	generateOutputDir    string // Directory to save downloaded images
 )
 
 // generateCmd represents the generate command
@@ -54,7 +56,12 @@ Examples:
     --width 1024 --length 1024 \
     --steps 30 --cfg-scale 7.5
   
-  # Save to specific file
+  # Download and save generated images locally
+  asset-generator generate image \
+    --prompt "cat wearing sunglasses" \
+    --save-images --output-dir ./my-images
+  
+  # Save metadata to specific file
   asset-generator generate image \
     --prompt "cat wearing sunglasses" \
     --output my-cat.json`,
@@ -87,6 +94,8 @@ func init() {
 	generateImageCmd.Flags().StringVarP(&generateNegPrompt, "negative-prompt", "n", "", "negative prompt")
 	generateImageCmd.Flags().StringVar(&generateSampler, "sampler", "euler_a", "sampling method")
 	generateImageCmd.Flags().BoolVar(&generateUseWebSocket, "websocket", false, "use WebSocket for real-time progress (requires SwarmUI)")
+	generateImageCmd.Flags().BoolVar(&generateSaveImages, "save-images", false, "download and save generated images to local disk")
+	generateImageCmd.Flags().StringVar(&generateOutputDir, "output-dir", ".", "directory to save downloaded images (default: current directory)")
 
 	generateImageCmd.MarkFlagRequired("prompt")
 
@@ -194,6 +203,27 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 
 	if err != nil {
 		return fmt.Errorf("generation failed: %w", err)
+	}
+
+	// Download images if requested
+	if generateSaveImages {
+		if !quiet {
+			fmt.Fprintf(os.Stderr, "Downloading generated images...\n")
+		}
+
+		savedPaths, err := assetClient.DownloadImages(ctx, result.ImagePaths, generateOutputDir)
+		if err != nil {
+			return fmt.Errorf("failed to download images: %w", err)
+		}
+
+		if !quiet {
+			for i, path := range savedPaths {
+				fmt.Fprintf(os.Stderr, "  [%d/%d] Saved: %s\n", i+1, len(savedPaths), path)
+			}
+		}
+
+		// Update result with local paths for output formatting
+		result.Metadata["local_paths"] = savedPaths
 	}
 
 	// Format and output result

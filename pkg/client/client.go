@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -835,6 +837,132 @@ func (c *AssetClient) simulateProgress(sessionID string, callback ProgressCallba
 			callback(progress, "Generating...")
 		}
 	}
+}
+
+// DownloadImages downloads generated images from the server and saves them to the specified directory.
+// imagePaths should be the paths returned by the generation API (e.g., "View/local/raw/2024-05-19/file.png")
+// outputDir is the local directory where images will be saved.
+// Returns a slice of local file paths where images were saved.
+func (c *AssetClient) DownloadImages(ctx context.Context, imagePaths []string, outputDir string) ([]string, error) {
+	if len(imagePaths) == 0 {
+		return nil, fmt.Errorf("no images to download")
+	}
+
+	// Create output directory if it doesn't exist
+	if err := ensureDir(outputDir); err != nil {
+		return nil, fmt.Errorf("failed to create output directory: %w", err)
+	}
+
+	savedPaths := make([]string, 0, len(imagePaths))
+	var downloadErrors []error
+
+	for i, imagePath := range imagePaths {
+		// Build full image URL
+		// SwarmUI returns paths like "View/local/raw/2024-05-19/filename.png"
+		imageURL := fmt.Sprintf("%s/%s", c.config.BaseURL, imagePath)
+
+		// Extract filename from path
+		parts := strings.Split(imagePath, "/")
+		if len(parts) == 0 {
+			downloadErrors = append(downloadErrors, fmt.Errorf("invalid image path: %s", imagePath))
+			continue
+		}
+		filename := parts[len(parts)-1]
+
+		// Create output file path
+		outputPath := fmt.Sprintf("%s/%s", outputDir, filename)
+
+		// Download the image
+		if err := c.downloadFile(ctx, imageURL, outputPath); err != nil {
+			downloadErrors = append(downloadErrors, fmt.Errorf("failed to download image %d (%s): %w", i+1, filename, err))
+			continue
+		}
+
+		savedPaths = append(savedPaths, outputPath)
+
+		if c.config.Verbose {
+			fmt.Printf("Downloaded: %s -> %s\n", imageURL, outputPath)
+		}
+	}
+
+	// Return error if any downloads failed
+	if len(downloadErrors) > 0 {
+		// If some succeeded and some failed, return partial success with error
+		if len(savedPaths) > 0 {
+			return savedPaths, fmt.Errorf("partial download failure: %d/%d images downloaded successfully; errors: %v",
+				len(savedPaths), len(imagePaths), downloadErrors)
+		}
+		return nil, fmt.Errorf("all downloads failed: %v", downloadErrors)
+	}
+
+	return savedPaths, nil
+}
+
+// downloadFile downloads a file from the given URL and saves it to the specified path
+func (c *AssetClient) downloadFile(ctx context.Context, url, filepath string) error {
+	// Create HTTP request
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Add authorization header if API key is set
+	if c.config.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+c.config.APIKey)
+	}
+
+	// Execute request
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("download request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check response status
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("server returned status %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	// Create output file
+	out, err := os.Create(filepath)
+	if err != nil {
+		return fmt.Errorf("failed to create output file: %w", err)
+	}
+	defer out.Close()
+
+	// Copy response body to file
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to write file: %w", err)
+	}
+
+	return nil
+}
+
+// ensureDir creates a directory if it doesn't exist
+func ensureDir(dir string) error {
+	// Check if directory exists
+	info, err := os.Stat(dir)
+	if err == nil {
+		// Directory exists, check if it's actually a directory
+		if !info.IsDir() {
+			return fmt.Errorf("path exists but is not a directory: %s", dir)
+		}
+		return nil
+	}
+
+	// If error is not "not exists", return it
+	if !os.IsNotExist(err) {
+		return fmt.Errorf("failed to check directory: %w", err)
+	}
+
+	// Create directory with permissions 0755
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+
+	return nil
 }
 
 // Close closes any open connections

@@ -5,7 +5,8 @@ A powerful command-line interface for interacting with AI asset generation APIs.
 ## Features
 
 - 🎨 **Asset Generation**: Generate images using text-to-image models
-- 📦 **Model Management**: List and inspect available models
+- � **Image Download**: Automatically download and save generated images locally
+- �📦 **Model Management**: List and inspect available models
 - ⚙️ **Configuration**: Easy configuration management with multiple sources
 - 📊 **Multiple Output Formats**: Table, JSON, and YAML output support
 - 🔧 **Flexible Parameters**: Configure via flags, environment variables, or config file
@@ -73,10 +74,18 @@ asset-generator generate image \
   --output result.json \
   --format json
 
-# Batch generation
+# Download and save generated images locally
+asset-generator generate image \
+  --prompt "beautiful mountain landscape" \
+  --save-images \
+  --output-dir ./my-images
+
+# Batch generation with image download
 asset-generator generate image \
   --prompt "beautiful landscape" \
-  --batch 4
+  --batch 4 \
+  --save-images \
+  --output-dir ./landscapes
 ```
 
 ### Model Management
@@ -174,8 +183,61 @@ Available for all commands:
 | `--seed` | | Random seed (-1 for random) | `-1` |
 | `--negative-prompt` | `-n` | Negative prompt | |
 | `--websocket` | | Use WebSocket for real-time progress updates | `false` |
+| `--save-images` | | Download and save generated images to local disk | `false` |
+| `--output-dir` | | Directory to save downloaded images | `.` (current directory) |
 
 > **Note:** The `--length` flag is used for the vertical dimension (height) for API compatibility with SwarmUI. Both `--length` and `--height` are supported as aliases.
+
+## Image Download Feature
+
+The `--save-images` flag enables automatic downloading of generated images from the server to your local disk. This is particularly useful when:
+
+- You want to work with generated images locally
+- You're generating multiple images in batch mode
+- You need to preserve images beyond the server's retention period
+- You want to organize images in specific directories
+
+### Usage
+
+```bash
+# Download a single generated image
+asset-generator generate image \
+  --prompt "cyberpunk cityscape" \
+  --save-images
+
+# Save to a specific directory
+asset-generator generate image \
+  --prompt "fantasy landscape" \
+  --save-images \
+  --output-dir ./generated-art
+
+# Batch generation with download
+asset-generator generate image \
+  --prompt "abstract art" \
+  --batch 5 \
+  --save-images \
+  --output-dir ./batch-output
+```
+
+### Behavior
+
+- Images are downloaded immediately after generation completes
+- The original filename from the server is preserved
+- Directory is created automatically if it doesn't exist
+- Progress feedback shows each downloaded file
+- Local file paths are added to the metadata output
+- Partial failures are handled gracefully (some images may succeed even if others fail)
+
+### Output
+
+When `--save-images` is enabled, you'll see output like:
+
+```
+Generating image with prompt: cyberpunk cityscape
+Downloading generated images...
+  [1/1] Saved: ./generated-art/cyberpunk cityscape-1234567890.png
+✓ Generation completed successfully (1 image)
+```
 
 ## Examples
 

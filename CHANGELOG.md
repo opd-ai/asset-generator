@@ -19,17 +19,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Detailed help documentation for all commands
 - Unit tests with high coverage
 - Makefile for build automation
+- **Image download feature**: Automatically download generated images to local disk
+- `--save-images` flag to enable image downloading
+- `--output-dir` flag to specify download directory
+- Comprehensive test suite for download functionality
 
 ### Features
 - Generate images using AI text-to-image APIs
+- **Download and save generated images locally**
 - List and inspect available models
 - Configure API endpoint and authentication
-- Support for batch generation
+- Support for batch generation with automatic download
 - Custom seeds for reproducible generation
 - Negative prompts support
 - Multiple sampling methods
 - Verbose and quiet modes
 - File output with timestamps
+- Progress feedback for image downloads
+- Graceful handling of partial download failures
 
 ## [0.1.0] - 2025-10-07
 
