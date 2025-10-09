@@ -269,6 +269,10 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 		}
 
 		// Update result with local paths for output formatting
+		// Initialize metadata map if nil
+		if result.Metadata == nil {
+			result.Metadata = make(map[string]interface{})
+		}
 		result.Metadata["local_paths"] = savedPaths
 	}
 

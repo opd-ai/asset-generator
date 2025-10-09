@@ -6,8 +6,8 @@ A powerful command-line interface for interacting with AI asset generation APIs.
 
 - 🎨 **Asset Generation**: Generate images using text-to-image models
 - 💾 **Image Download**: Automatically download and save generated images locally
-- � **SVG Conversion**: Convert images to SVG format using geometric shapes or edge tracing
-- �📦 **Model Management**: List and inspect available models
+- 🎨 **SVG Conversion**: Convert images to SVG format using geometric shapes or edge tracing
+- 📦 **Model Management**: List and inspect available models
 - ⚙️ **Configuration**: Easy configuration management with multiple sources
 - 📊 **Multiple Output Formats**: Table, JSON, and YAML output support
 - 🔧 **Flexible Parameters**: Configure via flags, environment variables, or config file
@@ -306,6 +306,7 @@ asset-generator convert svg sketch.png --method gotrace
 - Good for: Line art, sketches, high-contrast images
 - Pure-Go implementation (no external dependencies required)
 - Better detail preservation
+- Uses default tracing parameters (no customization flags)
 
 ### Examples
 
@@ -401,6 +402,7 @@ asset-generator/
 │   └── config.go          # Configuration commands
 ├── pkg/                   # Public packages
 │   ├── client/            # Asset generation API client
+│   ├── converter/         # Image format converters (SVG)
 │   └── output/            # Output formatters
 ├── internal/              # Private packages
 │   └── config/            # Configuration validation
