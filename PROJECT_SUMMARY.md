@@ -22,18 +22,32 @@ A production-ready command-line interface for asset generation APIs, built with 
 - Multiple sampling methods
 - Custom resolution and steps
 
-### 2. Model Management
+### 2. Image Download
+- Automatic download and local storage of generated images
+- Custom filename templates with placeholders
+- Batch download support
+- Progress feedback
+
+### 3. SVG Conversion
+- Convert images to SVG using two methods:
+  - **Primitive**: Geometric shape approximation (fogleman/primitive)
+  - **Gotrace**: Edge tracing vector conversion (potrace wrapper)
+- Multiple shape modes (triangles, ellipses, beziers, etc.)
+- Quality control via shape count and parameters
+- Artistic and technical conversion options
+
+### 4. Model Management
 - List all available models
 - Get detailed model information
 - Support for multiple model types
 
-### 3. Configuration System
+### 5. Configuration System
 - Multi-source configuration (flags, env, file, defaults)
 - Secure credential storage
 - Easy initialization and management
 - Validation and error handling
 
-### 4. Output Flexibility
+### 6. Output Flexibility
 - Multiple formats: Table, JSON, YAML
 - File output with timestamps
 - Quiet mode for scripting

@@ -6,7 +6,8 @@ A powerful command-line interface for interacting with AI asset generation APIs.
 
 - 🎨 **Asset Generation**: Generate images using text-to-image models
 - 💾 **Image Download**: Automatically download and save generated images locally
-- 📦 **Model Management**: List and inspect available models
+- � **SVG Conversion**: Convert images to SVG format using geometric shapes or edge tracing
+- �📦 **Model Management**: List and inspect available models
 - ⚙️ **Configuration**: Easy configuration management with multiple sources
 - 📊 **Multiple Output Formats**: Table, JSON, and YAML output support
 - 🔧 **Flexible Parameters**: Configure via flags, environment variables, or config file
@@ -275,6 +276,54 @@ Downloading generated images...
   [1/1] Saved: ./generated-art/cyberpunk cityscape-1234567890.png
 ✓ Generation completed successfully (1 image)
 ```
+
+## SVG Conversion
+
+Convert images to SVG format using two powerful methods:
+
+### Quick Start
+
+```bash
+# Convert any image to SVG (default: 100 geometric shapes)
+asset-generator convert svg image.png
+
+# High quality conversion with 500 shapes
+asset-generator convert svg photo.jpg --shapes 500
+
+# Use edge tracing for line art
+asset-generator convert svg sketch.png --method gotrace
+```
+
+### Conversion Methods
+
+**Primitive Method** (default): Creates artistic SVG using geometric shapes
+- Good for: Photos, logos, illustrations
+- Fast and produces clean results
+- Adjustable quality via `--shapes` flag
+
+**Gotrace Method**: Uses edge tracing for precise vector conversion
+- Good for: Line art, sketches, high-contrast images
+- Requires `potrace` to be installed
+- Better detail preservation
+
+### Examples
+
+```bash
+# Basic conversion
+asset-generator convert svg input.png
+
+# Custom output location
+asset-generator convert svg input.png -o artwork.svg
+
+# Different shape types
+asset-generator convert svg photo.jpg --shapes 200 --mode 3  # ellipses
+asset-generator convert svg photo.jpg --shapes 150 --mode 6  # bezier curves
+
+# Edge tracing conversion
+asset-generator convert svg lineart.png --method gotrace
+```
+
+See [SVG Conversion Documentation](SVG_CONVERSION.md) for comprehensive guide and examples.
 
 ## Examples
 
