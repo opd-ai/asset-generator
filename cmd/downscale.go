@@ -11,12 +11,13 @@ import (
 )
 
 var (
-	downscaleWidth   int
-	downscaleHeight  int
-	downscaleFilter  string
-	downscaleQuality int
-	downscaleOutput  string
-	downscaleInPlace bool
+	downscaleWidth      int
+	downscaleHeight     int
+	downscalePercentage float64
+	downscaleFilter     string
+	downscaleQuality    int
+	downscaleOutput     string
+	downscaleInPlace    bool
 )
 
 // downscaleCmd represents the downscale command
@@ -33,6 +34,9 @@ Examples:
   # Downscale a single image to 1024px width (maintains aspect ratio)
   asset-generator downscale image.png --width 1024
 
+  # Downscale to 50% of original size
+  asset-generator downscale image.png --percentage 50
+
   # Downscale to specific dimensions
   asset-generator downscale photo.jpg --width 800 --height 600
 
@@ -42,8 +46,8 @@ Examples:
   # Downscale with specific output path
   asset-generator downscale input.png --width 1024 --output resized.png
 
-  # Batch downscale multiple images
-  asset-generator downscale *.jpg --width 800 --in-place
+  # Batch downscale multiple images by 75%
+  asset-generator downscale *.jpg --percentage 75 --in-place
 
   # Use different filter for speed
   asset-generator downscale large.png --width 512 --filter bilinear
@@ -66,18 +70,29 @@ The command will:
 func init() {
 	rootCmd.AddCommand(downscaleCmd)
 
-	downscaleCmd.Flags().IntVarP(&downscaleWidth, "width", "w", 0, "target width in pixels (0=auto from height)")
-	downscaleCmd.Flags().IntVarP(&downscaleHeight, "height", "h", 0, "target height in pixels (0=auto from width)")
-	downscaleCmd.Flags().StringVarP(&downscaleFilter, "filter", "f", "lanczos", "resampling filter: lanczos, bilinear, nearest")
-	downscaleCmd.Flags().IntVarP(&downscaleQuality, "quality", "q", 90, "JPEG quality (1-100)")
-	downscaleCmd.Flags().StringVarP(&downscaleOutput, "output", "o", "", "output file path (single file mode only)")
-	downscaleCmd.Flags().BoolVarP(&downscaleInPlace, "in-place", "i", false, "replace original file(s) with downscaled version")
+	downscaleCmd.Flags().IntVar(&downscaleWidth, "width", 0, "target width in pixels (0=auto from height)")
+	downscaleCmd.Flags().IntVar(&downscaleHeight, "height", 0, "target height in pixels (0=auto from width)")
+	downscaleCmd.Flags().Float64VarP(&downscalePercentage, "percentage", "p", 0, "scale by percentage (1-100, 0=use width/height instead)")
+	downscaleCmd.Flags().StringVar(&downscaleFilter, "filter", "lanczos", "resampling filter: lanczos, bilinear, nearest")
+	downscaleCmd.Flags().IntVar(&downscaleQuality, "quality", 90, "JPEG quality (1-100)")
+	downscaleCmd.Flags().StringVar(&downscaleOutput, "output-file", "", "output file path (single file mode only)")
+	downscaleCmd.Flags().BoolVar(&downscaleInPlace, "in-place", false, "replace original file(s) with downscaled version")
 }
 
 func runDownscale(cmd *cobra.Command, args []string) error {
-	// Validate that at least one dimension is specified
-	if downscaleWidth == 0 && downscaleHeight == 0 {
-		return fmt.Errorf("at least one dimension (--width or --height) must be specified")
+	// Validate that either percentage OR at least one dimension is specified
+	if downscalePercentage == 0 && downscaleWidth == 0 && downscaleHeight == 0 {
+		return fmt.Errorf("either --percentage or at least one dimension (--width or --height) must be specified")
+	}
+
+	// Validate that percentage and dimensions are not used together
+	if downscalePercentage > 0 && (downscaleWidth > 0 || downscaleHeight > 0) {
+		return fmt.Errorf("cannot specify both --percentage and explicit dimensions (--width/--height)")
+	}
+
+	// Validate percentage range
+	if downscalePercentage < 0 || downscalePercentage > 100 {
+		return fmt.Errorf("percentage must be between 0 and 100")
 	}
 
 	// Validate dimensions
@@ -128,6 +143,7 @@ func runDownscale(cmd *cobra.Command, args []string) error {
 	opts := processor.DownscaleOptions{
 		Width:       downscaleWidth,
 		Height:      downscaleHeight,
+		Percentage:  downscalePercentage,
 		Filter:      filterType,
 		JPEGQuality: downscaleQuality,
 	}
@@ -161,8 +177,12 @@ func runDownscale(cmd *cobra.Command, args []string) error {
 
 		if verbose {
 			fmt.Fprintf(os.Stderr, "Processing: %s -> %s\n", inputPath, outputPath)
-			fmt.Fprintf(os.Stderr, "  Target dimensions: %dx%d (filter: %s)\n", 
-				downscaleWidth, downscaleHeight, filterLower)
+			if downscalePercentage > 0 {
+				fmt.Fprintf(os.Stderr, "  Scale: %.0f%% (filter: %s)\n", downscalePercentage, filterLower)
+			} else {
+				fmt.Fprintf(os.Stderr, "  Target dimensions: %dx%d (filter: %s)\n", 
+					downscaleWidth, downscaleHeight, filterLower)
+			}
 		}
 
 		// Perform downscaling

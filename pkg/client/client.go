@@ -854,10 +854,11 @@ type DownloadOptions struct {
 	AutoCropPreserveAspect bool  // Preserve original aspect ratio when cropping
 
 	// Downscaling (runs after auto-crop if enabled)
-	DownscaleWidth  int    // Target width for downscaling (0 means auto-calculate from height)
-	DownscaleHeight int    // Target height for downscaling (0 means auto-calculate from width)
-	DownscaleFilter string // Downscaling algorithm: "lanczos" (default), "bilinear", "nearest"
-	JPEGQuality     int    // JPEG quality for downscaled images (1-100, default: 90)
+	DownscaleWidth      int     // Target width for downscaling (0 means auto-calculate from height)
+	DownscaleHeight     int     // Target height for downscaling (0 means auto-calculate from width)
+	DownscalePercentage float64 // Scale by percentage (1-100, takes precedence over Width/Height if > 0)
+	DownscaleFilter     string  // Downscaling algorithm: "lanczos" (default), "bilinear", "nearest"
+	JPEGQuality         int     // JPEG quality for downscaled images (1-100, default: 90)
 }
 
 // DownloadImages downloads generated images from the server and saves them to the specified directory.
@@ -1197,14 +1198,20 @@ func (c *AssetClient) applyDownscale(imagePath string, opts *DownloadOptions) er
 	}
 
 	if c.config.Verbose {
-		fmt.Printf("Downscaling image: %s (target: %dx%d, filter: %s)\n",
-			imagePath, opts.DownscaleWidth, opts.DownscaleHeight, filter)
+		if opts.DownscalePercentage > 0 {
+			fmt.Printf("Downscaling image: %s (scale: %.0f%%, filter: %s)\n",
+				imagePath, opts.DownscalePercentage, filter)
+		} else {
+			fmt.Printf("Downscaling image: %s (target: %dx%d, filter: %s)\n",
+				imagePath, opts.DownscaleWidth, opts.DownscaleHeight, filter)
+		}
 	}
 
 	// Build downscale options
 	downscaleOpts := processor.DownscaleOptions{
 		Width:       opts.DownscaleWidth,
 		Height:      opts.DownscaleHeight,
+		Percentage:  opts.DownscalePercentage,
 		Filter:      filterType,
 		JPEGQuality: quality,
 	}

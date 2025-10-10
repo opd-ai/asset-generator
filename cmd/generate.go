@@ -36,9 +36,10 @@ var (
 	generateAutoCropTolerance      int  // Tolerance for near-white colors (0-255)
 	generateAutoCropPreserveAspect bool // Preserve aspect ratio when cropping
 	// Downscale postprocessing options
-	generateDownscaleWidth  int    // Target width for postprocessing downscale
-	generateDownscaleHeight int    // Target height for postprocessing downscale
-	generateDownscaleFilter string // Downscaling algorithm (lanczos, bilinear, nearest)
+	generateDownscaleWidth      int     // Target width for postprocessing downscale
+	generateDownscaleHeight     int     // Target height for postprocessing downscale
+	generateDownscalePercentage float64 // Scale by percentage
+	generateDownscaleFilter     string  // Downscaling algorithm (lanczos, bilinear, nearest)
 )
 
 // generateCmd represents the generate command
@@ -302,9 +303,10 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 			AutoCropTolerance:      uint8(generateAutoCropTolerance),
 			AutoCropPreserveAspect: generateAutoCropPreserveAspect,
 			// Downscale options
-			DownscaleWidth:  generateDownscaleWidth,
-			DownscaleHeight: generateDownscaleHeight,
-			DownscaleFilter: generateDownscaleFilter,
+			DownscaleWidth:      generateDownscaleWidth,
+			DownscaleHeight:     generateDownscaleHeight,
+			DownscalePercentage: generateDownscalePercentage,
+			DownscaleFilter:     generateDownscaleFilter,
 		}
 
 		// Download images with options
