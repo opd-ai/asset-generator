@@ -1,0 +1,106 @@
+# Generic Asset Pipeline Example
+# This demonstrates the flexible structure for any multi-asset generation project
+
+assets:
+  # Character sprites
+  - name: Hero Characters
+    output_dir: characters/heroes
+    seed_offset: 0
+    metadata:
+      style: "fantasy RPG character art"
+      quality: "high detail"
+    assets:
+      - id: warrior_001
+        name: Knight Warrior
+        prompt: "armored knight with sword and shield, standing heroically"
+        filename: knight.png
+      
+      - id: mage_001
+        name: Fire Mage
+        prompt: "robed wizard casting fire spell, glowing hands"
+        filename: fire_mage.png
+        metadata:
+          element: "fire"
+      
+      - id: archer_001
+        name: Elven Archer
+        prompt: "elf with bow and arrows, forest ranger outfit"
+        filename: elf_archer.png
+        metadata:
+          element: "nature"
+
+  # Enemy characters
+  - name: Enemy Characters
+    output_dir: characters/enemies
+    seed_offset: 100
+    metadata:
+      style: "dark fantasy monster art"
+      quality: "high detail"
+    assets:
+      - id: goblin_001
+        name: Goblin Warrior
+        prompt: "small green goblin with crude weapon, menacing expression"
+      
+      - id: dragon_001
+        name: Fire Dragon
+        prompt: "large red dragon breathing fire, scales and wings"
+        metadata:
+          element: "fire"
+          size: "large"
+
+  # Environment backgrounds
+  - name: Backgrounds
+    output_dir: backgrounds
+    seed_offset: 200
+    metadata:
+      aspect: "landscape"
+      style: "painterly environment art"
+    
+    # Nested subgroups for different environment types
+    subgroups:
+      - name: Dungeons
+        output_dir: dungeons
+        seed_offset: 0
+        metadata:
+          lighting: "dark and moody"
+        assets:
+          - id: dungeon_entrance
+            name: Dungeon Entrance
+            prompt: "stone archway entrance to dark dungeon, torches"
+          
+          - id: dungeon_corridor
+            name: Dungeon Corridor
+            prompt: "long stone corridor with pillars, shadows"
+      
+      - name: Forests
+        output_dir: forests
+        seed_offset: 50
+        metadata:
+          lighting: "dappled sunlight"
+        assets:
+          - id: forest_clearing
+            name: Forest Clearing
+            prompt: "peaceful forest clearing with flowers, sunbeams through trees"
+          
+          - id: forest_path
+            name: Forest Path
+            prompt: "winding path through dense forest, mushrooms and ferns"
+
+  # UI Elements
+  - name: UI Elements
+    output_dir: ui
+    seed_offset: 300
+    assets:
+      - id: button_normal
+        name: Button Normal State
+        prompt: "ornate fantasy game button, stone and metal, neutral"
+        metadata:
+          state: "normal"
+          style: "fantasy UI element"
+      
+      - id: button_hover
+        name: Button Hover State
+        prompt: "ornate fantasy game button, stone and metal, glowing"
+        metadata:
+          state: "hover"
+          style: "fantasy UI element"

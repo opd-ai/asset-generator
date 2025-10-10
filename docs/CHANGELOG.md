@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Pipeline system refactored to be fully generic**: Major breaking change
+  - Removed all tarot-specific code and data structures
+  - Replaced with flexible, hierarchical asset group system
+  - Metadata-driven prompt enhancement (metadata values appended to prompts)
+  - Support for unlimited nesting via subgroups
+  - Flexible directory structure configuration
+  - Metadata cascading from parent to child groups
+  - Generic seed offset and filename management
+  - **Breaking**: Old tarot YAML format no longer supported
+  - Migration guide provided in docs/PIPELINE_MIGRATION.md
+  - Complete documentation in docs/GENERIC_PIPELINE.md
+  - Example conversion in examples/tarot-deck-converted.yaml
+  - New generic examples in examples/generic-pipeline.yaml
+  - Demo script updated (demo-generic-pipeline.sh)
+
 ### Added
 - **Server status command**: New `status` command to query SwarmUI server health and configuration
   - Real-time server connectivity verification

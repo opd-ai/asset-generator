@@ -42,38 +42,28 @@ var (
 	pipelineSkimmedCFGEnd   float64
 )
 
-// PipelineSpec represents the structure of a pipeline YAML file
+// PipelineSpec represents the structure of a generic pipeline YAML file
 type PipelineSpec struct {
-	MajorArcana []MajorArcanaCard `yaml:"major_arcana"`
-	MinorArcana MinorArcanaSpec   `yaml:"minor_arcana"`
+	Assets []AssetGroup `yaml:"assets"`
 }
 
-// MajorArcanaCard represents a single Major Arcana card
-type MajorArcanaCard struct {
-	Number int    `yaml:"number"`
-	Name   string `yaml:"name"`
-	Prompt string `yaml:"prompt"`
+// AssetGroup represents a collection of related assets
+type AssetGroup struct {
+	Name       string                 `yaml:"name"`                 // Group name (e.g., "characters", "backgrounds")
+	OutputDir  string                 `yaml:"output_dir"`           // Subdirectory for this group
+	SeedOffset int64                  `yaml:"seed_offset"`          // Offset to add to base seed
+	Metadata   map[string]interface{} `yaml:"metadata,omitempty"`   // Group metadata (appended to prompts)
+	Assets     []Asset                `yaml:"assets"`               // Individual assets in this group
+	Subgroups  []AssetGroup           `yaml:"subgroups,omitempty"`  // Nested groups
 }
 
-// MinorArcanaSpec represents the Minor Arcana structure
-type MinorArcanaSpec struct {
-	Wands     SuitSpec `yaml:"wands"`
-	Cups      SuitSpec `yaml:"cups"`
-	Swords    SuitSpec `yaml:"swords"`
-	Pentacles SuitSpec `yaml:"pentacles"`
-}
-
-// SuitSpec represents a suit with metadata and cards
-type SuitSpec struct {
-	SuitElement string     `yaml:"suit_element"`
-	SuitColor   string     `yaml:"suit_color"`
-	Cards       []RankCard `yaml:"cards"`
-}
-
-// RankCard represents a single card in a suit
-type RankCard struct {
-	Rank   string `yaml:"rank"`
-	Prompt string `yaml:"prompt"`
+// Asset represents a single asset to generate
+type Asset struct {
+	ID       string                 `yaml:"id"`                 // Unique identifier for the asset
+	Name     string                 `yaml:"name"`               // Display name
+	Prompt   string                 `yaml:"prompt"`             // Generation prompt
+	Filename string                 `yaml:"filename,omitempty"` // Custom filename (optional, defaults to sanitized ID)
+	Metadata map[string]interface{} `yaml:"metadata,omitempty"` // Asset metadata (appended to prompt)
 }
 
 // pipelineCmd represents the pipeline command
@@ -85,34 +75,57 @@ var pipelineCmd = &cobra.Command{
 The pipeline command allows you to define complex asset generation workflows
 in YAML files and process them automatically without external scripts.
 
-Supports structured pipelines like tarot decks, game sprite collections,
-character sheets, and other multi-asset projects.
+Supports structured pipelines for any multi-asset project: game sprites,
+character sheets, card decks, UI elements, and more.
 
 Examples:
-  # Process a tarot deck pipeline
+  # Process a generic asset pipeline
+  asset-generator pipeline --file assets-spec.yaml --output-dir ./assets
+  
+  # Process a legacy tarot deck pipeline (backward compatible)
   asset-generator pipeline --file tarot-spec.yaml --output-dir ./deck
   
   # Preview what would be generated (dry run)
-  asset-generator pipeline --file tarot-spec.yaml --dry-run
+  asset-generator pipeline --file assets-spec.yaml --dry-run
   
   # Use custom generation parameters
-  asset-generator pipeline --file tarot-spec.yaml \
+  asset-generator pipeline --file assets-spec.yaml \
     --base-seed 42 --steps 40 --width 768 --height 1344
   
   # Add style suffix to all prompts
-  asset-generator pipeline --file tarot-spec.yaml \
+  asset-generator pipeline --file assets-spec.yaml \
     --style-suffix "detailed illustration, ornate border, rich colors"
   
-  # Continue on error (don't stop if one card fails)
-  asset-generator pipeline --file tarot-spec.yaml --continue-on-error
+  # Continue on error (don't stop if one asset fails)
+  asset-generator pipeline --file assets-spec.yaml --continue-on-error
   
   # With postprocessing
-  asset-generator pipeline --file tarot-spec.yaml \
+  asset-generator pipeline --file assets-spec.yaml \
     --auto-crop --downscale-width 1024
 
-Pipeline File Structure:
-  The pipeline file should follow this structure:
-  
+Pipeline File Structure (Generic Format):
+  assets:
+    - name: Characters
+      output_dir: characters
+      seed_offset: 0
+      assets:
+        - id: hero_01
+          name: Hero Character
+          prompt: "heroic warrior, detailed armor..."
+          filename: hero.png
+        - id: villain_01
+          name: Villain Character
+          prompt: "dark sorcerer, mysterious robes..."
+          
+    - name: Backgrounds
+      output_dir: backgrounds
+      seed_offset: 100
+      assets:
+        - id: forest
+          name: Forest Scene
+          prompt: "mystical forest, sunbeams..."
+
+Legacy Tarot Format (Backward Compatible):
   major_arcana:
     - number: 0
       name: The Fool
@@ -127,18 +140,8 @@ Pipeline File Structure:
           prompt: "card description..."
 
 Output Structure:
-  Generated assets will be organized in subdirectories:
-  
-  output-dir/
-    ├── major-arcana/
-    │   ├── 00-the_fool.png
-    │   ├── 01-the_magician.png
-    │   └── ...
-    └── minor-arcana/
-        ├── wands/
-        ├── cups/
-        ├── swords/
-        └── pentacles/`,
+  Generated assets will be organized according to the structure
+  defined in your pipeline file.`,
 	RunE: runPipeline,
 }
 
@@ -203,19 +206,11 @@ func runPipeline(cmd *cobra.Command, args []string) error {
 	}
 
 	// Calculate total work
-	totalCards := len(spec.MajorArcana)
-	totalCards += len(spec.MinorArcana.Wands.Cards)
-	totalCards += len(spec.MinorArcana.Cups.Cards)
-	totalCards += len(spec.MinorArcana.Swords.Cards)
-	totalCards += len(spec.MinorArcana.Pentacles.Cards)
+	totalAssets := countAssets(spec.Assets)
 
 	if !quiet {
-		fmt.Fprintf(os.Stderr, "Pipeline loaded: %d total assets\n", totalCards)
-		fmt.Fprintf(os.Stderr, "  - Major Arcana: %d cards\n", len(spec.MajorArcana))
-		fmt.Fprintf(os.Stderr, "  - Minor Arcana (Wands): %d cards\n", len(spec.MinorArcana.Wands.Cards))
-		fmt.Fprintf(os.Stderr, "  - Minor Arcana (Cups): %d cards\n", len(spec.MinorArcana.Cups.Cards))
-		fmt.Fprintf(os.Stderr, "  - Minor Arcana (Swords): %d cards\n", len(spec.MinorArcana.Swords.Cards))
-		fmt.Fprintf(os.Stderr, "  - Minor Arcana (Pentacles): %d cards\n", len(spec.MinorArcana.Pentacles.Cards))
+		fmt.Fprintf(os.Stderr, "Pipeline loaded: %d total assets\n", totalAssets)
+		printGroupSummary(spec.Assets, "")
 		fmt.Fprintf(os.Stderr, "\n")
 	}
 
@@ -224,9 +219,9 @@ func runPipeline(cmd *cobra.Command, args []string) error {
 		return previewPipeline(spec)
 	}
 
-	// Create output directory structure
-	if err := createOutputDirectories(pipelineOutputDir); err != nil {
-		return fmt.Errorf("failed to create output directories: %w", err)
+	// Create output directory
+	if err := os.MkdirAll(pipelineOutputDir, 0755); err != nil {
+		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
 	if !quiet {
@@ -240,98 +235,14 @@ func runPipeline(cmd *cobra.Command, args []string) error {
 	completed := 0
 	failed := 0
 
-	// Process Major Arcana
-	if len(spec.MajorArcana) > 0 {
-		if !quiet {
-			fmt.Fprintf(os.Stderr, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-			fmt.Fprintf(os.Stderr, "Processing Major Arcana (%d cards)\n", len(spec.MajorArcana))
-			fmt.Fprintf(os.Stderr, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n")
-		}
-
-		for _, card := range spec.MajorArcana {
-			if err := ctx.Err(); err != nil {
-				return fmt.Errorf("pipeline cancelled: %w", err)
-			}
-
-			seed := pipelineBaseSeed + int64(card.Number)
-			paddedNum := fmt.Sprintf("%02d", card.Number)
-			filename := fmt.Sprintf("%s-%s.png", paddedNum, sanitizeFilename(card.Name))
-			outputPath := filepath.Join(pipelineOutputDir, "major-arcana", filename)
-
-			if !quiet {
-				fmt.Fprintf(os.Stderr, "[%d/%d] Generating: %s - %s\n", completed+1, totalCards, paddedNum, card.Name)
-			}
-
-			if err := generateCard(ctx, card.Prompt, card.Name, outputPath, seed); err != nil {
-				failed++
-				if pipelineContinueError {
-					fmt.Fprintf(os.Stderr, "  ⚠ Warning: Failed to generate %s: %v\n", card.Name, err)
-				} else {
-					return fmt.Errorf("failed to generate %s: %w", card.Name, err)
-				}
-			} else {
-				completed++
-				if !quiet {
-					fmt.Fprintf(os.Stderr, "  ✓ Saved to: %s\n", outputPath)
-				}
-			}
-			fmt.Fprintln(os.Stderr)
-		}
-	}
-
-	// Process Minor Arcana
-	minorSeedOffset := 100
-	suits := []struct {
-		name   string
-		spec   SuitSpec
-		offset int
-	}{
-		{"wands", spec.MinorArcana.Wands, 0},
-		{"cups", spec.MinorArcana.Cups, 20},
-		{"swords", spec.MinorArcana.Swords, 40},
-		{"pentacles", spec.MinorArcana.Pentacles, 60},
-	}
-
-	for _, suit := range suits {
-		if len(suit.spec.Cards) == 0 {
-			continue
-		}
-
-		if !quiet {
-			fmt.Fprintf(os.Stderr, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-			fmt.Fprintf(os.Stderr, "Processing Minor Arcana - %s (%d cards)\n", strings.Title(suit.name), len(suit.spec.Cards))
-			fmt.Fprintf(os.Stderr, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n")
-		}
-
-		for i, card := range suit.spec.Cards {
-			if err := ctx.Err(); err != nil {
-				return fmt.Errorf("pipeline cancelled: %w", err)
-			}
-
-			seed := pipelineBaseSeed + int64(minorSeedOffset+suit.offset+i)
-			rankNum := getRankNumber(card.Rank)
-			filename := fmt.Sprintf("%02d-%s_of_%s.png", rankNum, sanitizeFilename(card.Rank), suit.name)
-			outputPath := filepath.Join(pipelineOutputDir, "minor-arcana", suit.name, filename)
-
-			if !quiet {
-				fmt.Fprintf(os.Stderr, "[%d/%d] Generating: %s of %s\n", completed+1, totalCards, card.Rank, strings.Title(suit.name))
-			}
-
-			cardName := fmt.Sprintf("%s of %s", card.Rank, strings.Title(suit.name))
-			if err := generateCard(ctx, card.Prompt, cardName, outputPath, seed); err != nil {
-				failed++
-				if pipelineContinueError {
-					fmt.Fprintf(os.Stderr, "  ⚠ Warning: Failed to generate %s: %v\n", cardName, err)
-				} else {
-					return fmt.Errorf("failed to generate %s: %w", cardName, err)
-				}
-			} else {
-				completed++
-				if !quiet {
-					fmt.Fprintf(os.Stderr, "  ✓ Saved to: %s\n", outputPath)
-				}
-			}
-			fmt.Fprintln(os.Stderr)
+	// Process all groups
+	for _, group := range spec.Assets {
+		c, f, err := processGroup(ctx, group, pipelineOutputDir, &completed, totalAssets, nil)
+		completed += c
+		failed += f
+		
+		if err != nil && !pipelineContinueError {
+			return err
 		}
 	}
 
@@ -340,7 +251,7 @@ func runPipeline(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(os.Stderr, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
 		fmt.Fprintf(os.Stderr, "Pipeline Complete!\n")
 		fmt.Fprintf(os.Stderr, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n")
-		fmt.Fprintf(os.Stderr, "Total cards generated: %d/%d\n", completed, totalCards)
+		fmt.Fprintf(os.Stderr, "Total assets generated: %d/%d\n", completed, totalAssets)
 		if failed > 0 {
 			fmt.Fprintf(os.Stderr, "Failed: %d\n", failed)
 		}
@@ -352,6 +263,147 @@ func runPipeline(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+// countAssets recursively counts all assets in groups and subgroups
+func countAssets(groups []AssetGroup) int {
+	count := 0
+	for _, group := range groups {
+		count += len(group.Assets)
+		count += countAssets(group.Subgroups)
+	}
+	return count
+}
+
+// printGroupSummary prints a summary of asset groups
+func printGroupSummary(groups []AssetGroup, indent string) {
+	for _, group := range groups {
+		if len(group.Assets) > 0 {
+			fmt.Fprintf(os.Stderr, "%s  - %s: %d assets\n", indent, group.Name, len(group.Assets))
+		}
+		if len(group.Subgroups) > 0 {
+			printGroupSummary(group.Subgroups, indent+"  ")
+		}
+	}
+}
+
+// processGroup processes a single asset group and its subgroups
+func processGroup(ctx context.Context, group AssetGroup, baseOutputDir string, completed *int, totalAssets int, parentMetadata map[string]interface{}) (int, int, error) {
+	groupCompleted := 0
+	groupFailed := 0
+
+	// Merge parent metadata with group metadata
+	groupMetadata := mergeMetadata(parentMetadata, group.Metadata)
+
+	// Create group output directory
+	groupOutputDir := filepath.Join(baseOutputDir, group.OutputDir)
+	if err := os.MkdirAll(groupOutputDir, 0755); err != nil {
+		return 0, 0, fmt.Errorf("failed to create group directory %s: %w", groupOutputDir, err)
+	}
+
+	if len(group.Assets) > 0 && !quiet {
+		fmt.Fprintf(os.Stderr, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+		fmt.Fprintf(os.Stderr, "Processing: %s (%d assets)\n", group.Name, len(group.Assets))
+		fmt.Fprintf(os.Stderr, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n")
+	}
+
+	// Process assets in this group
+	for i, asset := range group.Assets {
+		if err := ctx.Err(); err != nil {
+			return groupCompleted, groupFailed, fmt.Errorf("pipeline cancelled: %w", err)
+		}
+
+		// Merge group metadata with asset metadata
+		assetMetadata := mergeMetadata(groupMetadata, asset.Metadata)
+
+		// Calculate seed
+		seed := pipelineBaseSeed + group.SeedOffset + int64(i)
+
+		// Determine filename
+		filename := asset.Filename
+		if filename == "" {
+			filename = sanitizeFilename(asset.ID) + ".png"
+		}
+		outputPath := filepath.Join(groupOutputDir, filename)
+
+		if !quiet {
+			fmt.Fprintf(os.Stderr, "[%d/%d] Generating: %s\n", *completed+1, totalAssets, asset.Name)
+		}
+
+		// Build enhanced prompt with metadata
+		enhancedPrompt := buildEnhancedPrompt(asset.Prompt, assetMetadata)
+
+		if err := generateAsset(ctx, enhancedPrompt, asset.Name, outputPath, seed, assetMetadata); err != nil {
+			groupFailed++
+			if pipelineContinueError {
+				fmt.Fprintf(os.Stderr, "  ⚠ Warning: Failed to generate %s: %v\n", asset.Name, err)
+			} else {
+				return groupCompleted, groupFailed, fmt.Errorf("failed to generate %s: %w", asset.Name, err)
+			}
+		} else {
+			groupCompleted++
+			*completed++
+			if !quiet {
+				fmt.Fprintf(os.Stderr, "  ✓ Saved to: %s\n", outputPath)
+			}
+		}
+		fmt.Fprintln(os.Stderr)
+	}
+
+	// Process subgroups
+	for _, subgroup := range group.Subgroups {
+		c, f, err := processGroup(ctx, subgroup, groupOutputDir, completed, totalAssets, groupMetadata)
+		groupCompleted += c
+		groupFailed += f
+		if err != nil && !pipelineContinueError {
+			return groupCompleted, groupFailed, err
+		}
+	}
+
+	return groupCompleted, groupFailed, nil
+}
+
+// mergeMetadata merges parent metadata with child metadata (child takes precedence)
+func mergeMetadata(parent, child map[string]interface{}) map[string]interface{} {
+	if parent == nil && child == nil {
+		return nil
+	}
+	
+	result := make(map[string]interface{})
+	
+	// Copy parent metadata
+	for k, v := range parent {
+		result[k] = v
+	}
+	
+	// Override with child metadata
+	for k, v := range child {
+		result[k] = v
+	}
+	
+	return result
+}
+
+// buildEnhancedPrompt builds a prompt with metadata appended
+func buildEnhancedPrompt(basePrompt string, metadata map[string]interface{}) string {
+	if len(metadata) == 0 {
+		return basePrompt
+	}
+
+	// Collect metadata values as strings
+	var metadataParts []string
+	for _, v := range metadata {
+		if str, ok := v.(string); ok && str != "" {
+			metadataParts = append(metadataParts, str)
+		}
+	}
+
+	if len(metadataParts) == 0 {
+		return basePrompt
+	}
+
+	// Append metadata to prompt
+	return fmt.Sprintf("%s, %s", basePrompt, strings.Join(metadataParts, ", "))
 }
 
 func loadPipelineSpec(filename string) (*PipelineSpec, error) {
@@ -368,25 +420,7 @@ func loadPipelineSpec(filename string) (*PipelineSpec, error) {
 	return &spec, nil
 }
 
-func createOutputDirectories(baseDir string) error {
-	dirs := []string{
-		filepath.Join(baseDir, "major-arcana"),
-		filepath.Join(baseDir, "minor-arcana", "wands"),
-		filepath.Join(baseDir, "minor-arcana", "cups"),
-		filepath.Join(baseDir, "minor-arcana", "swords"),
-		filepath.Join(baseDir, "minor-arcana", "pentacles"),
-	}
-
-	for _, dir := range dirs {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return fmt.Errorf("failed to create directory %s: %w", dir, err)
-		}
-	}
-
-	return nil
-}
-
-func generateCard(ctx context.Context, prompt, name, outputPath string, seed int64) error {
+func generateAsset(ctx context.Context, prompt, name, outputPath string, seed int64, metadata map[string]interface{}) error {
 	// Build full prompt with style suffix
 	fullPrompt := prompt
 	if pipelineStyleSuffix != "" {
@@ -437,15 +471,21 @@ func generateCard(ctx context.Context, prompt, name, outputPath string, seed int
 		return fmt.Errorf("no images generated")
 	}
 
+	// Merge metadata for download
+	downloadMetadata := map[string]interface{}{
+		"prompt": prompt,
+		"name":   name,
+		"seed":   seed,
+	}
+	for k, v := range metadata {
+		downloadMetadata[k] = v
+	}
+
 	// Download with postprocessing options
 	opts := &client.DownloadOptions{
 		OutputDir:        filepath.Dir(outputPath),
 		FilenameTemplate: filepath.Base(outputPath),
-		Metadata: map[string]interface{}{
-			"prompt": prompt,
-			"name":   name,
-			"seed":   seed,
-		},
+		Metadata:         downloadMetadata,
 		// Auto-crop options
 		AutoCrop:               pipelineAutoCrop,
 		AutoCropThreshold:      uint8(pipelineAutoCropThreshold),
@@ -470,39 +510,7 @@ func previewPipeline(spec *PipelineSpec) error {
 	fmt.Println("Pipeline Preview:")
 	fmt.Println()
 
-	fmt.Println("Major Arcana:")
-	for _, card := range spec.MajorArcana {
-		seed := pipelineBaseSeed + int64(card.Number)
-		fmt.Printf("  %02d - %-25s (seed: %d)\n", card.Number, card.Name, seed)
-		if verbose {
-			fmt.Printf("       Prompt: %s\n", card.Prompt)
-		}
-	}
-
-	fmt.Println()
-	fmt.Println("Minor Arcana:")
-
-	suits := []struct {
-		name   string
-		spec   SuitSpec
-		offset int
-	}{
-		{"Wands", spec.MinorArcana.Wands, 0},
-		{"Cups", spec.MinorArcana.Cups, 20},
-		{"Swords", spec.MinorArcana.Swords, 40},
-		{"Pentacles", spec.MinorArcana.Pentacles, 60},
-	}
-
-	for _, suit := range suits {
-		fmt.Printf("\n  %s (%s):\n", suit.name, suit.spec.SuitElement)
-		for i, card := range suit.spec.Cards {
-			seed := pipelineBaseSeed + int64(100+suit.offset+i)
-			fmt.Printf("    %02d - %-20s (seed: %d)\n", getRankNumber(card.Rank), card.Rank, seed)
-			if verbose {
-				fmt.Printf("         Prompt: %s\n", card.Prompt)
-			}
-		}
-	}
+	previewGroups(spec.Assets, "", nil)
 
 	fmt.Println()
 	fmt.Println("Generation Parameters:")
@@ -523,6 +531,41 @@ func previewPipeline(spec *PipelineSpec) error {
 	return nil
 }
 
+func previewGroups(groups []AssetGroup, indent string, parentMetadata map[string]interface{}) {
+	for _, group := range groups {
+		fmt.Printf("%s%s (%s):\n", indent, group.Name, group.OutputDir)
+		
+		// Merge metadata
+		groupMetadata := mergeMetadata(parentMetadata, group.Metadata)
+		if len(groupMetadata) > 0 {
+			fmt.Printf("%s  Metadata: %v\n", indent, groupMetadata)
+		}
+
+		// Preview assets
+		for i, asset := range group.Assets {
+			seed := pipelineBaseSeed + group.SeedOffset + int64(i)
+			assetMetadata := mergeMetadata(groupMetadata, asset.Metadata)
+			enhancedPrompt := buildEnhancedPrompt(asset.Prompt, assetMetadata)
+			
+			fmt.Printf("%s  [%s] %s (seed: %d)\n", indent, asset.ID, asset.Name, seed)
+			if verbose {
+				fmt.Printf("%s    Prompt: %s\n", indent, enhancedPrompt)
+				if asset.Filename != "" {
+					fmt.Printf("%s    Filename: %s\n", indent, asset.Filename)
+				}
+			}
+		}
+
+		// Preview subgroups
+		if len(group.Subgroups) > 0 {
+			fmt.Println()
+			previewGroups(group.Subgroups, indent+"  ", groupMetadata)
+		}
+		
+		fmt.Println()
+	}
+}
+
 func sanitizeFilename(name string) string {
 	// Convert to lowercase and replace spaces with underscores
 	name = strings.ToLower(name)
@@ -537,28 +580,4 @@ func sanitizeFilename(name string) string {
 	}
 
 	return result.String()
-}
-
-func getRankNumber(rank string) int {
-	rankMap := map[string]int{
-		"Ace":    1,
-		"Two":    2,
-		"Three":  3,
-		"Four":   4,
-		"Five":   5,
-		"Six":    6,
-		"Seven":  7,
-		"Eight":  8,
-		"Nine":   9,
-		"Ten":    10,
-		"Page":   11,
-		"Knight": 12,
-		"Queen":  13,
-		"King":   14,
-	}
-
-	if num, ok := rankMap[rank]; ok {
-		return num
-	}
-	return 0
 }
