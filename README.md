@@ -444,8 +444,8 @@ asset-generator downscale large.png --width 512 --filter bilinear
 ### Downscale Flags
 | Flag | Short | Description | Default |
 |------|-------|-------------|---------|
-| `--width` | | Target width in pixels (0=auto from height) | `0` |
-| `--height` | | Target height in pixels (0=auto from width) | `0` |
+| `--width` | `-w` | Target width in pixels (0=auto from height) | `0` |
+| `--height` | `-l` | Target height in pixels (0=auto from width) | `0` |
 | `--percentage` | `-p` | Scale by percentage (1-100, overrides width/height) | `0` |
 | `--filter` | | Resampling filter: lanczos, bilinear, nearest | `lanczos` |
 | `--quality` | | JPEG quality (1-100) | `90` |

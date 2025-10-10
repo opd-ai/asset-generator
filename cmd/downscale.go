@@ -70,8 +70,8 @@ The command will:
 func init() {
 	rootCmd.AddCommand(downscaleCmd)
 
-	downscaleCmd.Flags().IntVar(&downscaleWidth, "width", 0, "target width in pixels (0=auto from height)")
-	downscaleCmd.Flags().IntVar(&downscaleHeight, "height", 0, "target height in pixels (0=auto from width)")
+	downscaleCmd.Flags().IntVarP(&downscaleWidth, "width", "w", 0, "target width in pixels (0=auto from height)")
+	downscaleCmd.Flags().IntVarP(&downscaleHeight, "height", "l", 0, "target height in pixels (0=auto from width)")
 	downscaleCmd.Flags().Float64VarP(&downscalePercentage, "percentage", "p", 0, "scale by percentage (1-100, 0=use width/height instead)")
 	downscaleCmd.Flags().StringVar(&downscaleFilter, "filter", "lanczos", "resampling filter: lanczos, bilinear, nearest")
 	downscaleCmd.Flags().IntVar(&downscaleQuality, "quality", 90, "JPEG quality (1-100)")
