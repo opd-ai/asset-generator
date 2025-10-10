@@ -177,6 +177,28 @@ asset-generator status -v
 
 See [docs/STATUS_COMMAND.md](docs/STATUS_COMMAND.md) for complete documentation.
 
+### Cancel Generations
+
+Stop ongoing or queued image generations:
+
+```bash
+# Cancel the current generation
+asset-generator cancel
+
+# Cancel all queued generations
+asset-generator cancel --all
+
+# Cancel quietly (for scripts)
+asset-generator cancel -q
+```
+
+Useful for:
+- Stopping long-running generations (e.g., Flux models: 5-40 minutes)
+- Clearing a backlog of queued generations
+- Recovering from stuck generations
+
+See [docs/CANCEL_COMMAND.md](docs/CANCEL_COMMAND.md) for complete documentation.
+
 ### Configuration
 
 Manage your CLI configuration:

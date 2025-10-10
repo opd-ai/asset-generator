@@ -60,7 +60,6 @@ func TestCancelCommand(t *testing.T) {
 	}
 }
 
-
 func TestCancelCommandHelp(t *testing.T) {
 	// Test that help output can be generated without panic
 	var buf bytes.Buffer
@@ -72,7 +71,7 @@ func TestCancelCommandHelp(t *testing.T) {
 
 	// Get help
 	cancelCmd.SetArgs([]string{"--help"})
-	
+
 	// This should not panic
 	defer func() {
 		if r := recover(); r != nil {

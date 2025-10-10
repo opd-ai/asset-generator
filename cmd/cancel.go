@@ -40,7 +40,7 @@ Examples:
 
 func init() {
 	rootCmd.AddCommand(cancelCmd)
-	
+
 	cancelCmd.Flags().BoolVar(&cancelAll, "all", false, "Cancel all queued generations instead of just the current one")
 }
 
