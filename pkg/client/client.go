@@ -1385,27 +1385,27 @@ func (c *AssetClient) getBackendStatus(ctx context.Context, sessionID string) (*
 
 	for _, b := range apiResp.Backends {
 		backend := BackendStatus{}
-		
+
 		if id, ok := b["backend_id"].(string); ok {
 			backend.ID = id
 		} else if id, ok := b["id"].(string); ok {
 			backend.ID = id
 		}
-		
+
 		if bType, ok := b["type"].(string); ok {
 			backend.Type = bType
 		}
-		
+
 		if status, ok := b["status"].(string); ok {
 			backend.Status = status
 		}
-		
+
 		if model, ok := b["model_loaded"].(string); ok {
 			backend.ModelLoaded = model
 		} else if model, ok := b["current_model"].(string); ok {
 			backend.ModelLoaded = model
 		}
-		
+
 		if gpu, ok := b["gpu"].(string); ok {
 			backend.GPU = gpu
 		} else if gpu, ok := b["gpu_id"].(string); ok {
