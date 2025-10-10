@@ -30,6 +30,9 @@ type DownscaleOptions struct {
 	Width int
 	// Target height in pixels (0 means auto-calculate based on aspect ratio)
 	Height int
+	// Percentage to scale by (0-100, 0 means use Width/Height instead)
+	// If set, this takes precedence over Width/Height
+	Percentage float64
 	// Scaling algorithm to use (default: Lanczos)
 	Filter ResizeFilter
 	// Quality for JPEG output (1-100, default: 90)
@@ -54,8 +57,12 @@ type DownscaleOptions struct {
 //   - Uses Lanczos3 resampling for optimal quality
 func DownscaleImage(inputPath, outputPath string, opts DownscaleOptions) error {
 	// Validate options
-	if opts.Width == 0 && opts.Height == 0 {
-		return fmt.Errorf("at least one dimension (width or height) must be specified")
+	if opts.Percentage == 0 && opts.Width == 0 && opts.Height == 0 {
+		return fmt.Errorf("either percentage or at least one dimension (width or height) must be specified")
+	}
+
+	if opts.Percentage < 0 || opts.Percentage > 100 {
+		return fmt.Errorf("percentage must be between 0 and 100")
 	}
 
 	if opts.Width < 0 || opts.Height < 0 {
@@ -85,15 +92,25 @@ func DownscaleImage(inputPath, outputPath string, opts DownscaleOptions) error {
 	srcWidth := srcBounds.Dx()
 	srcHeight := srcBounds.Dy()
 
-	// Calculate target dimensions while maintaining aspect ratio
-	targetWidth := opts.Width
-	targetHeight := opts.Height
+	// Calculate target dimensions
+	var targetWidth, targetHeight int
 
-	// If only one dimension is specified, calculate the other to maintain aspect ratio
-	if targetWidth == 0 {
-		targetWidth = int(float64(targetHeight) * float64(srcWidth) / float64(srcHeight))
-	} else if targetHeight == 0 {
-		targetHeight = int(float64(targetWidth) * float64(srcHeight) / float64(srcWidth))
+	// If percentage is specified, use it to calculate dimensions
+	if opts.Percentage > 0 {
+		scale := opts.Percentage / 100.0
+		targetWidth = int(float64(srcWidth) * scale)
+		targetHeight = int(float64(srcHeight) * scale)
+	} else {
+		// Otherwise use explicit dimensions
+		targetWidth = opts.Width
+		targetHeight = opts.Height
+
+		// If only one dimension is specified, calculate the other to maintain aspect ratio
+		if targetWidth == 0 {
+			targetWidth = int(float64(targetHeight) * float64(srcWidth) / float64(srcHeight))
+		} else if targetHeight == 0 {
+			targetHeight = int(float64(targetWidth) * float64(srcHeight) / float64(srcWidth))
+		}
 	}
 
 	// Validate that we're actually downscaling (not upscaling)

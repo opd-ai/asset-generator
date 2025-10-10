@@ -195,6 +195,7 @@ Available for all commands:
 | `--filename-template` | | Custom filename pattern (see placeholders below) | |
 | `--downscale-width` | | Downscale to this width after download (0=auto) | `0` |
 | `--downscale-height` | | Downscale to this height after download (0=auto) | `0` |
+| `--downscale-percentage` | | Downscale by percentage (1-100, takes precedence) | `0` |
 | `--downscale-filter` | | Downscaling algorithm: lanczos, bilinear, nearest | `lanczos` |
 
 > **Note:** The `--length` flag is used for the vertical dimension (height) for API compatibility with SwarmUI. Both `--length` and `--height` are supported as aliases.
@@ -328,6 +329,13 @@ asset-generator generate image \
   --save-images \
   --downscale-width 1024
 
+# Downscale by percentage (simplest method)
+asset-generator generate image \
+  --prompt "high resolution photo" \
+  --width 2048 --height 2048 \
+  --save-images \
+  --downscale-percentage 50  # Results in 1024x1024
+
 # Downscale by height (width auto-calculated)
 asset-generator generate image \
   --prompt "portrait" \
@@ -346,6 +354,7 @@ asset-generator generate image \
 **Downscaling Features:**
 - Applied locally after download (saves API bandwidth)
 - Uses Lanczos3 resampling by default for best quality
+- Percentage-based scaling maintains aspect ratio automatically
 - Auto-maintains aspect ratio when only one dimension specified
 - Prevents accidental upscaling
 - Three filter options: `lanczos` (highest quality), `bilinear` (balanced), `nearest` (fastest)
@@ -355,6 +364,7 @@ asset-generator generate image \
 |------|-------------|---------|
 | `--downscale-width` | Target width in pixels (0=auto from height) | `0` |
 | `--downscale-height` | Target height in pixels (0=auto from width) | `0` |
+| `--downscale-percentage` | Scale by percentage (1-100, overrides width/height) | `0` |
 | `--downscale-filter` | Algorithm: `lanczos`, `bilinear`, `nearest` | `lanczos` |
 
 ### Output
@@ -402,6 +412,58 @@ asset-generator crop image.png --threshold 240 --tolerance 5
 | `--in-place` | `-i` | Replace original file(s) | `false` |
 
 See [Auto-Crop Documentation](AUTO_CROP_FEATURE.md) for detailed usage and sensitivity tuning.
+
+## Image Downscaling
+
+The `downscale` command allows you to resize images independently of the generation workflow. Supports both absolute dimensions and percentage-based scaling.
+
+### Usage
+
+```bash
+# Downscale to specific width (auto-calculates height)
+asset-generator downscale image.png --width 1024
+
+# Downscale by percentage (simplest method)
+asset-generator downscale image.png --percentage 50
+
+# Downscale to specific dimensions
+asset-generator downscale photo.jpg --width 800 --height 600
+
+# Downscale in-place (replaces original)
+asset-generator downscale image.png --percentage 75 --in-place
+
+# Batch downscale multiple images
+asset-generator downscale *.jpg --percentage 50 --in-place
+
+# Custom output location
+asset-generator downscale input.png --width 512 --output resized.png
+
+# Choose different filter for speed
+asset-generator downscale large.png --width 512 --filter bilinear
+```
+
+### Downscale Flags
+| Flag | Short | Description | Default |
+|------|-------|-------------|---------|
+| `--width` | `-w` | Target width in pixels (0=auto from height) | `0` |
+| `--height` | `-l` | Target height in pixels (0=auto from width) | `0` |
+| `--percentage` | `-p` | Scale by percentage (1-100, overrides width/height) | `0` |
+| `--filter` | | Resampling filter: lanczos, bilinear, nearest | `lanczos` |
+| `--quality` | | JPEG quality (1-100) | `90` |
+| `--output-file` | | Output file path (single file mode) | |
+| `--in-place` | | Replace original file(s) | `false` |
+
+**Filter Options:**
+- `lanczos` - Highest quality, best for photographs (default)
+- `bilinear` - Good balance of speed and quality
+- `nearest` - Fastest, best for pixel art or icons
+
+**Features:**
+- Percentage-based scaling automatically maintains aspect ratio
+- Automatically calculates missing dimension to maintain aspect ratio
+- Prevents accidental upscaling (will error if target > source)
+- Preserves image format (PNG/JPEG)
+- Batch processing support
 
 ## SVG Conversion
 

@@ -363,6 +363,125 @@ func TestDownscaleImage_AspectRatioPreservation(t *testing.T) {
 	}
 }
 
+// TestDownscaleByPercentage tests percentage-based downscaling
+func TestDownscaleByPercentage(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	tests := []struct {
+		name          string
+		srcWidth      int
+		srcHeight     int
+		percentage    float64
+		expectError   bool
+		errorContains string
+	}{
+		{
+			name:        "Downscale to 50%",
+			srcWidth:    1000,
+			srcHeight:   800,
+			percentage:  50,
+			expectError: false,
+		},
+		{
+			name:        "Downscale to 75%",
+			srcWidth:    1920,
+			srcHeight:   1080,
+			percentage:  75,
+			expectError: false,
+		},
+		{
+			name:        "Downscale to 25%",
+			srcWidth:    800,
+			srcHeight:   600,
+			percentage:  25,
+			expectError: false,
+		},
+		{
+			name:          "Error: Percentage over 100",
+			srcWidth:      640,
+			srcHeight:     480,
+			percentage:    150,
+			expectError:   true,
+			errorContains: "percentage must be between 0 and 100",
+		},
+		{
+			name:          "Error: Negative percentage",
+			srcWidth:      640,
+			srcHeight:     480,
+			percentage:    -10,
+			expectError:   true,
+			errorContains: "percentage must be between 0 and 100",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create source image
+			srcPath := filepath.Join(tmpDir, tt.name+"_source.png")
+			createTestImage(t, srcPath, tt.srcWidth, tt.srcHeight)
+
+			// Create output path
+			dstPath := filepath.Join(tmpDir, tt.name+"_output.png")
+
+			// Run downscale with percentage
+			opts := DownscaleOptions{
+				Percentage:  tt.percentage,
+				Filter:      FilterLanczos,
+				JPEGQuality: 90,
+			}
+
+			err := DownscaleImage(srcPath, dstPath, opts)
+
+			// Check error expectations
+			if tt.expectError {
+				if err == nil {
+					t.Fatalf("Expected error containing '%s', got no error", tt.errorContains)
+				}
+				if tt.errorContains != "" && !contains(err.Error(), tt.errorContains) {
+					t.Fatalf("Expected error containing '%s', got: %v", tt.errorContains, err)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+
+			// Verify output file exists
+			if _, err := os.Stat(dstPath); os.IsNotExist(err) {
+				t.Fatalf("Output file was not created")
+			}
+
+			// Verify output dimensions match percentage
+			width, height, err := GetImageDimensions(dstPath)
+			if err != nil {
+				t.Fatalf("Failed to read output image dimensions: %v", err)
+			}
+
+			// Calculate expected dimensions
+			scale := tt.percentage / 100.0
+			expectedWidth := int(float64(tt.srcWidth) * scale)
+			expectedHeight := int(float64(tt.srcHeight) * scale)
+
+			if width != expectedWidth || height != expectedHeight {
+				t.Fatalf("Expected dimensions %dx%d (%.0f%% of %dx%d), got %dx%d",
+					expectedWidth, expectedHeight, tt.percentage, tt.srcWidth, tt.srcHeight, width, height)
+			}
+
+			// Verify aspect ratio preserved
+			srcAspect := float64(tt.srcWidth) / float64(tt.srcHeight)
+			dstAspect := float64(width) / float64(height)
+			aspectDiff := srcAspect - dstAspect
+			if aspectDiff < 0 {
+				aspectDiff = -aspectDiff
+			}
+			if aspectDiff > 0.01 { // Allow small rounding error
+				t.Fatalf("Aspect ratio not preserved: source %.3f, output %.3f", srcAspect, dstAspect)
+			}
+		})
+	}
+}
+
 // Helper function to check if a string contains a substring
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||

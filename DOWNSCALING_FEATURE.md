@@ -3,6 +3,8 @@
 ## Overview
 Added local postprocessing capability to automatically downscale downloaded images using high-quality Lanczos filtering. This feature applies after images are downloaded from the API, allowing users to generate at high resolution but save bandwidth and disk space by storing downscaled versions.
 
+**NEW:** Percentage-based downscaling support for easier scaling operations.
+
 ## Implementation Details
 
 ### 1. New Package: `pkg/processor`
@@ -16,8 +18,10 @@ Added local postprocessing capability to automatically downscale downloaded imag
   - **Lanczos** (default): Highest quality, best for downscaling
   - **BiLinear**: Good balance of speed and quality
   - **NearestNeighbor**: Fastest but lowest quality
+- **NEW:** Percentage-based scaling (e.g., 50% reduces both dimensions by half)
 
 **Features:**
+- Percentage-based scaling maintains aspect ratio automatically
 - Maintains aspect ratio when only one dimension specified
 - Prevents accidental upscaling (errors if target > source)
 - Preserves image format (PNG/JPEG)
@@ -25,11 +29,12 @@ Added local postprocessing capability to automatically downscale downloaded imag
 - Automatic temporary file handling for in-place operations
 
 **File: `pkg/processor/resize_test.go`**
-- Comprehensive test suite with 6 test functions
+- Comprehensive test suite with 7 test functions
 - Tests all filter algorithms
+- Tests percentage-based scaling
 - Tests aspect ratio preservation
 - Tests error conditions (invalid dimensions, missing files, upscaling)
-- All 16 sub-tests pass successfully
+- All tests pass successfully
 
 ### 2. Client Library Updates
 
@@ -43,10 +48,11 @@ type DownloadOptions struct {
     Metadata         map[string]interface{}
     
     // New postprocessing options
-    DownscaleWidth   int    // Target width (0=auto)
-    DownscaleHeight  int    // Target height (0=auto)
-    DownscaleFilter  string // "lanczos", "bilinear", "nearest"
-    JPEGQuality      int    // JPEG quality (1-100)
+    DownscaleWidth      int     // Target width (0=auto)
+    DownscaleHeight     int     // Target height (0=auto)
+    DownscalePercentage float64 // Scale by percentage (takes precedence if > 0)
+    DownscaleFilter     string  // "lanczos", "bilinear", "nearest"
+    JPEGQuality         int     // JPEG quality (1-100)
 }
 ```
 
@@ -68,13 +74,15 @@ type DownloadOptions struct {
 **New flags:**
 - `--downscale-width`: Target width in pixels (0=auto from height)
 - `--downscale-height`: Target height in pixels (0=auto from width)
+- `--downscale-percentage`: Scale by percentage (1-100, takes precedence)
 - `--downscale-filter`: Algorithm selection (lanczos/bilinear/nearest)
 
 **New variables:**
 ```go
-generateDownscaleWidth   int
-generateDownscaleHeight  int
-generateDownscaleFilter  string
+generateDownscaleWidth      int
+generateDownscaleHeight     int
+generateDownscalePercentage float64
+generateDownscaleFilter     string
 ```
 
 **Updated download flow:**
@@ -91,9 +99,11 @@ generateDownscaleFilter  string
 
 **File: `README.md`**
 - Added "Image Postprocessing" emoji to features list
-- Added downscaling flags to the flags table
+- Added downscaling flags to the flags table (including percentage)
 - Added "Local Postprocessing" section with examples
+- Added dedicated "Image Downscaling" section
 - Documented all three filter options and their characteristics
+- Added percentage-based scaling examples
 - Added table showing downscale-specific flags
 
 **File: `IMAGE_DOWNLOAD_FEATURE.md`**
@@ -106,12 +116,31 @@ generateDownscaleFilter  string
 
 ### Basic Downscaling
 ```bash
-# Generate at 2048x2048, save at 1024x1024
+# Generate at 2048x2048, save at 1024x1024 (absolute dimensions)
 asset-generator generate image \
   --prompt "detailed artwork" \
   --width 2048 --height 2048 \
   --save-images \
   --downscale-width 1024
+
+# Generate at 2048x2048, save at 1024x1024 (percentage - simpler)
+asset-generator generate image \
+  --prompt "detailed artwork" \
+  --width 2048 --height 2048 \
+  --save-images \
+  --downscale-percentage 50
+```
+
+### Standalone Downscaling
+```bash
+# Downscale existing images by percentage
+asset-generator downscale image.png --percentage 50
+
+# Downscale to specific dimensions
+asset-generator downscale photo.jpg --width 800 --height 600
+
+# Batch downscale in-place
+asset-generator downscale *.jpg --percentage 75 --in-place
 ```
 
 ### Auto-Calculate Dimensions
