@@ -28,3 +28,13 @@ generate:
   # skimmed-cfg-scale: 3.0      # Typically lower than standard CFG
   # skimmed-cfg-start: 0.0      # Start applying at 0% (0.0-1.0)
   # skimmed-cfg-end: 1.0        # Stop applying at 100% (0.0-1.0)
+  
+  # LoRA (Low-Rank Adaptation) settings - style and content adaptation
+  # LoRAs can be specified with inline weights or as separate lists
+  # Format 1 (inline): "lora-name:weight"
+  # Format 2 (name only): "lora-name" (uses default weight)
+  # loras:
+  #   - anime-style-v1:0.8
+  #   - detailed-faces:0.6
+  #   - cyberpunk-lora        # Uses default weight
+  # lora-default-weight: 1.0   # Default weight when not specified

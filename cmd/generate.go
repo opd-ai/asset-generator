@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"sort"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -45,6 +46,10 @@ var (
 	generateDownscaleHeight     int     // Target height for postprocessing downscale
 	generateDownscalePercentage float64 // Scale by percentage
 	generateDownscaleFilter     string  // Downscaling algorithm (lanczos, bilinear, nearest)
+	// LoRA (Low-Rank Adaptation) options
+	generateLoras       []string  // LoRA models to apply (format: "name" or "name:weight")
+	generateLoraWeights []float64 // Explicit weights for LoRAs (alternative to inline format)
+	generateDefaultLora string    // Default LoRA weight if not specified
 )
 
 // generateCmd represents the generate command
@@ -112,6 +117,16 @@ Examples:
     --prompt "detailed portrait" \
     --skimmed-cfg --skimmed-cfg-scale 3.0
   
+  # Apply LoRA models for style adaptation
+  asset-generator generate image \
+    --prompt "anime character" \
+    --lora "anime-style-v1:0.8" --lora "detailed-faces:0.6"
+  
+  # Multiple LoRAs with different weights
+  asset-generator generate image \
+    --prompt "cyberpunk cityscape" \
+    --lora "cyberpunk-lora" --lora "neon-lights:1.2" --lora "futuristic:0.5"
+  
   # Skimmed CFG with custom range (apply only during middle of generation)
   asset-generator generate image \
     --prompt "landscape painting" \
@@ -139,7 +154,13 @@ Filename Template Placeholders:
   {height}        - Image height
   {prompt}        - First 50 chars of prompt (sanitized)
   {original}      - Original filename from server
-  {ext}           - Original file extension`,
+  {ext}           - Original file extension
+
+LoRA Support:
+  LoRAs can be specified in two formats:
+  1. Inline weight: --lora "model-name:0.8"
+  2. Name only: --lora "model-name" (uses default weight of 1.0)
+  Multiple LoRAs can be applied by using --lora multiple times.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		// Validate that both --length and --height are not specified simultaneously
 		// They are aliases for the same parameter but both being set creates ambiguity
@@ -187,6 +208,10 @@ func init() {
 	generateImageCmd.Flags().Float64Var(&generateSkimmedCFGScale, "skimmed-cfg-scale", 3.0, "Skimmed CFG scale value (typically lower than standard CFG)")
 	generateImageCmd.Flags().Float64Var(&generateSkimmedCFGStart, "skimmed-cfg-start", 0.0, "start percentage for Skimmed CFG application (0.0-1.0)")
 	generateImageCmd.Flags().Float64Var(&generateSkimmedCFGEnd, "skimmed-cfg-end", 1.0, "end percentage for Skimmed CFG application (0.0-1.0)")
+	// LoRA (Low-Rank Adaptation) flags - style and content adaptation
+	generateImageCmd.Flags().StringSliceVar(&generateLoras, "lora", []string{}, "LoRA model to apply (format: 'name:weight' or just 'name'). Can be specified multiple times")
+	generateImageCmd.Flags().Float64SliceVar(&generateLoraWeights, "lora-weight", []float64{}, "explicit LoRA weights (alternative to inline format, applied in order)")
+	generateImageCmd.Flags().StringVar(&generateDefaultLora, "lora-default-weight", "1.0", "default weight for LoRAs when not specified (default: 1.0)")
 
 	generateImageCmd.MarkFlagRequired("prompt")
 
@@ -202,6 +227,9 @@ func init() {
 	viper.BindPFlag("generate.skimmed-cfg-scale", generateImageCmd.Flags().Lookup("skimmed-cfg-scale"))
 	viper.BindPFlag("generate.skimmed-cfg-start", generateImageCmd.Flags().Lookup("skimmed-cfg-start"))
 	viper.BindPFlag("generate.skimmed-cfg-end", generateImageCmd.Flags().Lookup("skimmed-cfg-end"))
+	viper.BindPFlag("generate.loras", generateImageCmd.Flags().Lookup("lora"))
+	viper.BindPFlag("generate.lora-weights", generateImageCmd.Flags().Lookup("lora-weight"))
+	viper.BindPFlag("generate.lora-default-weight", generateImageCmd.Flags().Lookup("lora-default-weight"))
 }
 
 func runGenerateImage(cmd *cobra.Command, args []string) error {
@@ -257,6 +285,24 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 		}
 		if generateSkimmedCFGEnd != 1.0 {
 			req.Parameters["skimmedcfgend"] = generateSkimmedCFGEnd
+		}
+	}
+
+	// Add LoRA parameters if specified
+	if len(generateLoras) > 0 {
+		loras, err := parseLoraParameters(generateLoras, generateLoraWeights, generateDefaultLora)
+		if err != nil {
+			return fmt.Errorf("failed to parse LoRA parameters: %w", err)
+		}
+
+		if len(loras) > 0 {
+			req.Parameters["loras"] = loras
+			if !quiet && verbose {
+				fmt.Fprintf(os.Stderr, "Using %d LoRA model(s):\n", len(loras))
+				for name, weight := range loras {
+					fmt.Fprintf(os.Stderr, "  - %s: %.2f\n", name, weight)
+				}
+			}
 		}
 	}
 
@@ -518,4 +564,87 @@ func setupSignalHandler(cancel context.CancelFunc) {
 		fmt.Fprintln(os.Stderr, "\nReceived interrupt signal, cancelling...")
 		cancel()
 	}()
+}
+
+// parseLoraParameters parses LoRA specifications and returns a map of LoRA names to weights.
+// Supports two formats:
+//  1. Inline weight: "lora-name:0.8"
+//  2. Name only: "lora-name" (uses default weight)
+//
+// Also supports explicit weights via the loraWeights slice (applied in order).
+func parseLoraParameters(loras []string, explicitWeights []float64, defaultWeightStr string) (map[string]float64, error) {
+	if len(loras) == 0 {
+		return nil, nil
+	}
+
+	// Parse default weight
+	defaultWeight := 1.0
+	if defaultWeightStr != "" {
+		var err error
+		defaultWeight, err = parseFloat(defaultWeightStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid default LoRA weight '%s': %w", defaultWeightStr, err)
+		}
+	}
+
+	result := make(map[string]float64)
+
+	for i, lora := range loras {
+		lora = strings.TrimSpace(lora)
+		if lora == "" {
+			continue
+		}
+
+		var name string
+		var weight float64
+
+		// Check if LoRA contains inline weight (format: "name:weight")
+		if strings.Contains(lora, ":") {
+			parts := strings.SplitN(lora, ":", 2)
+			name = strings.TrimSpace(parts[0])
+			weightStr := strings.TrimSpace(parts[1])
+
+			var err error
+			weight, err = parseFloat(weightStr)
+			if err != nil {
+				return nil, fmt.Errorf("invalid LoRA weight in '%s': %w", lora, err)
+			}
+		} else {
+			// No inline weight, check explicit weights or use default
+			name = lora
+			if i < len(explicitWeights) {
+				weight = explicitWeights[i]
+			} else {
+				weight = defaultWeight
+			}
+		}
+
+		if name == "" {
+			return nil, fmt.Errorf("empty LoRA name in '%s'", lora)
+		}
+
+		// Validate weight range (typically 0.0 to 2.0, but allow wider range)
+		if weight < -2.0 || weight > 5.0 {
+			return nil, fmt.Errorf("LoRA weight %.2f for '%s' is outside reasonable range (-2.0 to 5.0)", weight, name)
+		}
+
+		result[name] = weight
+	}
+
+	return result, nil
+}
+
+// parseFloat parses a float64 from a string with better error handling
+func parseFloat(s string) (float64, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return 0, fmt.Errorf("empty value")
+	}
+
+	val, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return 0, fmt.Errorf("not a valid number: %w", err)
+	}
+
+	return val, nil
 }

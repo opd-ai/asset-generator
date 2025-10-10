@@ -5,6 +5,7 @@ A powerful command-line interface for interacting with AI asset generation APIs.
 ## Features
 
 - 🎨 **Asset Generation**: Generate images using text-to-image models
+- 🎯 **LoRA Support**: Apply Low-Rank Adaptation models for style and content customization
 - 🎯 **Skimmed CFG**: Advanced sampling technique for improved quality and speed
 - 🔄 **Pipeline Processing**: Automated batch generation from YAML pipeline files
 - 💾 **Image Download**: Automatically download and save generated images locally
@@ -98,6 +99,21 @@ asset-generator generate image \
   --prompt "detailed portrait photograph" \
   --skimmed-cfg \
   --skimmed-cfg-scale 3.0
+
+# Apply LoRA models for style customization
+asset-generator generate image \
+  --prompt "anime character in magical forest" \
+  --lora "anime-style-v2:0.9" \
+  --lora "detailed-eyes:0.7"
+
+# Combine LoRAs with other features
+asset-generator generate image \
+  --prompt "cyberpunk cityscape" \
+  --lora "cyberpunk-aesthetic:1.0" \
+  --lora "neon-lights:0.7" \
+  --skimmed-cfg \
+  --batch 4 \
+  --save-images
 ```
 
 ### Pipeline Processing
@@ -255,6 +271,37 @@ Skimmed CFG (also known as Distilled CFG or Dynamic CFG) is an advanced sampling
 - Not all models support this feature - check your model documentation
 
 **Learn more:** See the [Skimmed CFG documentation](docs/SKIMMED_CFG.md) for detailed usage examples and best practices.
+
+## LoRA Support
+
+LoRA (Low-Rank Adaptation) models allow you to customize and fine-tune the style, content, and characteristics of generated images without changing the base model. Apply lightweight model adaptations for anime styles, photorealistic enhancements, specific characters, or artistic themes.
+
+**Basic usage:**
+```bash
+# Single LoRA with default weight
+asset-generator generate image --prompt "anime character" --lora "anime-style"
+
+# Single LoRA with custom weight (0.8)
+asset-generator generate image --prompt "portrait" --lora "realistic-faces:0.8"
+
+# Multiple LoRAs for complex styles
+asset-generator generate image \
+  --prompt "cyberpunk cityscape" \
+  --lora "cyberpunk-aesthetic:1.0" \
+  --lora "neon-lights:0.7" \
+  --lora "detailed-architecture:0.5"
+```
+
+**Key features:**
+- Support for multiple LoRAs simultaneously
+- Flexible weight control (inline or explicit)
+- Negative weights to remove unwanted styles
+- Config file support for default LoRAs
+- Weight validation and helpful error messages
+
+**Learn more:** 
+- [LoRA Support Documentation](docs/LORA_SUPPORT.md) - Complete guide with examples
+- [LoRA Quick Reference](docs/LORA_QUICKREF.md) - Quick command reference
 
 ## Image Download Feature
 
