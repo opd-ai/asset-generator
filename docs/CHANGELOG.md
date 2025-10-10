@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Server status command**: New `status` command to query SwarmUI server health and configuration
+  - Real-time server connectivity verification
+  - Response time measurement
+  - Backend status and information display
+  - Model availability and loading status
+  - System information (GPU, memory, etc.)
+  - Multiple output formats (table with ANSI colors, JSON, YAML)
+  - Exit codes for automation (0=online, 1=offline)
+  - Graceful handling of missing API endpoints
+  - Comprehensive documentation in docs/STATUS_COMMAND.md
+  - Quick reference guide in docs/STATUS_QUICKREF.md
+  - Demo script (demo-status.sh) with usage examples
 - **Skimmed CFG support**: Advanced sampling technique for improved generation quality and speed
   - `--skimmed-cfg` flag to enable Skimmed CFG (Distilled CFG)
   - `--skimmed-cfg-scale` for adjusting guidance scale (default: 3.0)

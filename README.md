@@ -13,6 +13,7 @@ A powerful command-line interface for interacting with AI asset generation APIs.
 - ✂️ **Auto-Crop**: Remove whitespace borders from images while preserving aspect ratio
 - 🔽 **Image Postprocessing**: High-quality Lanczos downscaling after download
 - 🎨 **SVG Conversion**: Convert images to SVG format using geometric shapes or edge tracing
+- 🏥 **Server Status**: Check SwarmUI server health and backend information
 - 📦 **Model Management**: List and inspect available models
 - ⚙️ **Configuration**: Easy configuration management with multiple sources
 - 📊 **Multiple Output Formats**: Table, JSON, and YAML output support
@@ -158,6 +159,23 @@ asset-generator models list --format json
 # Get details about a specific model
 asset-generator models get stable-diffusion-xl
 ```
+
+### Server Status
+
+Check the SwarmUI server status and health:
+
+```bash
+# Check server status
+asset-generator status
+
+# Get status as JSON for automation
+asset-generator status --format json
+
+# Verbose output with API details
+asset-generator status -v
+```
+
+See [docs/STATUS_COMMAND.md](docs/STATUS_COMMAND.md) for complete documentation.
 
 ### Configuration
 

@@ -1231,6 +1231,193 @@ func (c *AssetClient) applyDownscale(imagePath string, opts *DownloadOptions) er
 	return nil
 }
 
+// ServerStatus represents the status of the SwarmUI server
+type ServerStatus struct {
+	ServerURL    string                 `json:"server_url"`
+	Status       string                 `json:"status"`
+	ResponseTime string                 `json:"response_time"`
+	Version      string                 `json:"version,omitempty"`
+	SessionID    string                 `json:"session_id,omitempty"`
+	Backends     []BackendStatus        `json:"backends,omitempty"`
+	ModelsCount  int                    `json:"models_count"`
+	ModelsLoaded int                    `json:"models_loaded"`
+	SystemInfo   map[string]interface{} `json:"system_info,omitempty"`
+}
+
+// BackendStatus represents the status of a single backend
+type BackendStatus struct {
+	ID          string `json:"id"`
+	Type        string `json:"type"`
+	Status      string `json:"status"`
+	ModelLoaded string `json:"model_loaded,omitempty"`
+	GPU         string `json:"gpu,omitempty"`
+}
+
+// GetServerStatus queries the SwarmUI server for its current status
+func (c *AssetClient) GetServerStatus(ctx context.Context) (*ServerStatus, error) {
+	status := &ServerStatus{
+		ServerURL: c.config.BaseURL,
+		Status:    "unknown",
+	}
+
+	// Try to get a session to verify connectivity
+	sessionID, sessionErr := c.GetNewSession(ctx)
+	if sessionErr == nil {
+		status.SessionID = sessionID
+		status.Status = "online"
+	} else {
+		// Server might be offline or have issues
+		status.Status = "offline"
+		return status, fmt.Errorf("server unreachable: %w", sessionErr)
+	}
+
+	// Try to get backend status information
+	// SwarmUI exposes backend info through the ListBackends API
+	backendInfo, backendErr := c.getBackendStatus(ctx, sessionID)
+	if backendErr == nil && backendInfo != nil {
+		status.Backends = backendInfo.Backends
+		status.SystemInfo = backendInfo.SystemInfo
+		status.Version = backendInfo.Version
+	}
+
+	// Get model information
+	models, modelsErr := c.ListModels()
+	if modelsErr == nil {
+		status.ModelsCount = len(models)
+		// Count loaded models
+		loadedCount := 0
+		for _, model := range models {
+			if model.Loaded {
+				loadedCount++
+			}
+		}
+		status.ModelsLoaded = loadedCount
+	}
+
+	return status, nil
+}
+
+// backendInfo holds backend status information from SwarmUI
+type backendInfo struct {
+	Backends   []BackendStatus        `json:"backends"`
+	Version    string                 `json:"version"`
+	SystemInfo map[string]interface{} `json:"system_info"`
+}
+
+// getBackendStatus queries SwarmUI for backend status information
+func (c *AssetClient) getBackendStatus(ctx context.Context, sessionID string) (*backendInfo, error) {
+	endpoint := fmt.Sprintf("%s/API/ListBackends", c.config.BaseURL)
+
+	payload := map[string]interface{}{
+		"session_id": sessionID,
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", endpoint, bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if c.config.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+c.config.APIKey)
+	}
+
+	if c.config.Verbose {
+		fmt.Printf("Request: POST %s\n", endpoint)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		// Backend listing might not be available in all SwarmUI versions
+		// This is not a critical error, so we'll return nil instead
+		if c.config.Verbose {
+			fmt.Printf("Backend status unavailable (status %d): %s\n", resp.StatusCode, string(bodyBytes))
+		}
+		return nil, nil
+	}
+
+	// Parse the response
+	var apiResp struct {
+		Backends   []map[string]interface{} `json:"backends"`
+		Version    string                   `json:"version"`
+		SystemInfo map[string]interface{}   `json:"system_info"`
+		Error      string                   `json:"error,omitempty"`
+		ErrorID    string                   `json:"error_id,omitempty"`
+	}
+
+	if err := json.Unmarshal(bodyBytes, &apiResp); err != nil {
+		// If we can't parse the response, it's not critical
+		if c.config.Verbose {
+			fmt.Printf("Failed to parse backend response: %v\n", err)
+		}
+		return nil, nil
+	}
+
+	if apiResp.Error != "" {
+		// Backend errors are not critical for status command
+		if c.config.Verbose {
+			fmt.Printf("Backend API error: %s\n", apiResp.Error)
+		}
+		return nil, nil
+	}
+
+	// Convert backend data to structured format
+	info := &backendInfo{
+		Version:    apiResp.Version,
+		SystemInfo: apiResp.SystemInfo,
+		Backends:   make([]BackendStatus, 0, len(apiResp.Backends)),
+	}
+
+	for _, b := range apiResp.Backends {
+		backend := BackendStatus{}
+		
+		if id, ok := b["backend_id"].(string); ok {
+			backend.ID = id
+		} else if id, ok := b["id"].(string); ok {
+			backend.ID = id
+		}
+		
+		if bType, ok := b["type"].(string); ok {
+			backend.Type = bType
+		}
+		
+		if status, ok := b["status"].(string); ok {
+			backend.Status = status
+		}
+		
+		if model, ok := b["model_loaded"].(string); ok {
+			backend.ModelLoaded = model
+		} else if model, ok := b["current_model"].(string); ok {
+			backend.ModelLoaded = model
+		}
+		
+		if gpu, ok := b["gpu"].(string); ok {
+			backend.GPU = gpu
+		} else if gpu, ok := b["gpu_id"].(string); ok {
+			backend.GPU = gpu
+		}
+
+		info.Backends = append(info.Backends, backend)
+	}
+
+	return info, nil
+}
+
 // Close closes any open connections
 func (c *AssetClient) Close() error {
 	c.mu.Lock()
