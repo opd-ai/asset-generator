@@ -53,9 +53,9 @@ If you've submitted multiple generations and want to cancel them all:
 
 ```bash
 # Submit multiple generations
-asset-generator generate image --prompt "prompt 1" --images 5 &
-asset-generator generate image --prompt "prompt 2" --images 5 &
-asset-generator generate image --prompt "prompt 3" --images 5 &
+asset-generator generate image --prompt "prompt 1" --batch 5 &
+asset-generator generate image --prompt "prompt 2" --batch 5 &
+asset-generator generate image --prompt "prompt 3" --batch 5 &
 
 # Cancel all of them
 asset-generator cancel --all

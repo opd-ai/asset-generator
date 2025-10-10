@@ -185,15 +185,20 @@ asset-generator generate image \
 
 ### List Available LoRAs
 
-Use the `models list` command with the LoRA subtype filter:
+The current implementation of `models list` lists all available models including LoRAs. To filter for LoRAs specifically, use grep or other text filtering tools:
 
 ```bash
-# List all LoRA models
-asset-generator models list --subtype LoRA
+# List all models (including LoRAs)
+asset-generator models list
 
-# Search for specific LoRA
-asset-generator models list --subtype LoRA | grep anime
+# Filter for LoRA models using grep
+asset-generator models list | grep -i lora
+
+# Use JSON output for more precise filtering
+asset-generator models list --format json | jq '.[] | select(.type | contains("LoRA"))'
 ```
+
+**Note**: The SwarmUI API supports `ListModels` with a `subtype` parameter for filtering (e.g., "LoRA", "Wildcards"), but this is not yet exposed in the CLI. A future enhancement could add `--subtype` flag to the `models list` command.
 
 ### Check LoRA Compatibility
 

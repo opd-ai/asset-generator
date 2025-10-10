@@ -179,12 +179,14 @@ asset-generator config view --format yaml
 ### Using Environment Variables
 
 ```bash
-export SWARMUI_API_URL=http://localhost:7801
-export SWARMUI_API_KEY=your-key
-export SWARMUI_FORMAT=json
+export ASSET_GENERATOR_API_URL=http://localhost:7801
+export ASSET_GENERATOR_API_KEY=your-key
+export ASSET_GENERATOR_FORMAT=json
 
 asset-generator models list  # Uses environment config
 ```
+
+**Note**: Environment variables must use the `ASSET_GENERATOR_` prefix and replace dashes with underscores (e.g., `api-url` becomes `ASSET_GENERATOR_API_URL`).
 
 ### Config File
 
