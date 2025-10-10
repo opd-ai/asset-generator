@@ -81,7 +81,7 @@ func NewAssetClient(config *Config) (*AssetClient, error) {
 	return &AssetClient{
 		config: config,
 		httpClient: &http.Client{
-			Timeout: 10 * time.Minute, // Extended timeout for Flux generation (can take 5-10 minutes)
+			Timeout: 40 * time.Minute, // Extended timeout for Flux generation (can take up to 40 minutes for complex generations)
 		},
 		sessions: make(map[string]*GenerationSession),
 	}, nil
@@ -395,7 +395,7 @@ func (c *AssetClient) GenerateImageWS(ctx context.Context, req *GenerationReques
 
 	// Connect to WebSocket
 	dialer := websocket.Dialer{
-		HandshakeTimeout: 45 * time.Second,
+		HandshakeTimeout: 10 * time.Minute, // 10 minutes for WebSocket handshake
 	}
 
 	conn, _, err := dialer.DialContext(ctx, wsURL, nil)
@@ -803,6 +803,168 @@ func (c *AssetClient) GetModel(name string) (*Model, error) {
 	}
 
 	return nil, fmt.Errorf("model '%s' not found", name)
+}
+
+// Interrupt cancels the current generation in progress
+func (c *AssetClient) Interrupt(ctx context.Context) error {
+	// Get session ID
+	sessionID, err := c.ensureSession()
+	if err != nil {
+		return fmt.Errorf("failed to get session: %w", err)
+	}
+
+	endpoint := fmt.Sprintf("%s/API/InterruptGeneration", c.config.BaseURL)
+
+	payload := map[string]interface{}{
+		"session_id": sessionID,
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", endpoint, bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if c.config.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+c.config.APIKey)
+	}
+
+	if c.config.Verbose {
+		fmt.Printf("Request: POST %s\n", endpoint)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	// Parse the response
+	var apiResp struct {
+		Success bool   `json:"success"`
+		Error   string `json:"error,omitempty"`
+		ErrorID string `json:"error_id,omitempty"`
+	}
+
+	if err := json.Unmarshal(bodyBytes, &apiResp); err != nil {
+		// If we can't parse the response, assume success if status was OK
+		if c.config.Verbose {
+			fmt.Printf("Warning: Failed to parse interrupt response: %v\n", err)
+		}
+		return nil
+	}
+
+	if apiResp.Error != "" {
+		// Handle session expiration
+		if apiResp.ErrorID == "invalid_session_id" {
+			// Clear session and retry once
+			c.mu.Lock()
+			c.sessionID = ""
+			c.mu.Unlock()
+			return c.Interrupt(ctx)
+		}
+		if apiResp.ErrorID != "" {
+			return fmt.Errorf("SwarmUI error (%s): %s", apiResp.ErrorID, apiResp.Error)
+		}
+		return fmt.Errorf("SwarmUI error: %s", apiResp.Error)
+	}
+
+	return nil
+}
+
+// InterruptAll cancels all queued generations
+func (c *AssetClient) InterruptAll(ctx context.Context) error {
+	// Get session ID
+	sessionID, err := c.ensureSession()
+	if err != nil {
+		return fmt.Errorf("failed to get session: %w", err)
+	}
+
+	endpoint := fmt.Sprintf("%s/API/InterruptAll", c.config.BaseURL)
+
+	payload := map[string]interface{}{
+		"session_id": sessionID,
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", endpoint, bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if c.config.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+c.config.APIKey)
+	}
+
+	if c.config.Verbose {
+		fmt.Printf("Request: POST %s\n", endpoint)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	// Parse the response
+	var apiResp struct {
+		Success bool   `json:"success"`
+		Error   string `json:"error,omitempty"`
+		ErrorID string `json:"error_id,omitempty"`
+	}
+
+	if err := json.Unmarshal(bodyBytes, &apiResp); err != nil {
+		// If we can't parse the response, assume success if status was OK
+		if c.config.Verbose {
+			fmt.Printf("Warning: Failed to parse interrupt response: %v\n", err)
+		}
+		return nil
+	}
+
+	if apiResp.Error != "" {
+		// Handle session expiration
+		if apiResp.ErrorID == "invalid_session_id" {
+			// Clear session and retry once
+			c.mu.Lock()
+			c.sessionID = ""
+			c.mu.Unlock()
+			return c.InterruptAll(ctx)
+		}
+		if apiResp.ErrorID != "" {
+			return fmt.Errorf("SwarmUI error (%s): %s", apiResp.ErrorID, apiResp.Error)
+		}
+		return fmt.Errorf("SwarmUI error: %s", apiResp.Error)
+	}
+
+	return nil
 }
 
 // simulateProgress provides progress updates for HTTP-based generation
