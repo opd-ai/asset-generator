@@ -83,6 +83,20 @@ func (f *Formatter) formatSliceTable(data []interface{}) (string, error) {
 		return "No data available", nil
 	}
 
+	// Check if this is a models list (has name, type, loaded fields)
+	if len(data) > 0 {
+		if first, ok := data[0].(map[string]interface{}); ok {
+			if _, hasName := first["name"]; hasName {
+				if _, hasType := first["type"]; hasType {
+					if _, hasLoaded := first["loaded"]; hasLoaded {
+						// This looks like a models list, use specialized formatting
+						return FormatModelsTable(data)
+					}
+				}
+			}
+		}
+	}
+
 	var buf strings.Builder
 
 	// Get first element to determine structure
@@ -98,17 +112,17 @@ func (f *Formatter) formatSliceTable(data []interface{}) (string, error) {
 	// Map list - extract headers from first element
 	headers := make([]string, 0)
 	for key := range first {
-		headers = append(headers, strings.Title(key))
+		headers = append(headers, strings.ToUpper(key))
 	}
 
 	// Calculate column widths for proper alignment
 	colWidths := make([]int, len(headers))
-	
+
 	// Initialize with header lengths
 	for i, header := range headers {
 		colWidths[i] = len(header)
 	}
-	
+
 	// Calculate max width for each column by scanning all data
 	for _, item := range data {
 		itemMap, _ := item.(map[string]interface{})
@@ -151,9 +165,7 @@ func (f *Formatter) formatSliceTable(data []interface{}) (string, error) {
 	}
 
 	return buf.String(), nil
-}
-
-// formatMapTable formats a map as a table
+} // formatMapTable formats a map as a table
 func (f *Formatter) formatMapTable(data map[string]interface{}) (string, error) {
 	var buf strings.Builder
 
@@ -162,7 +174,7 @@ func (f *Formatter) formatMapTable(data map[string]interface{}) (string, error) 
 	}
 
 	// Calculate column widths
-	keyWidth := 3 // minimum width for "Key" header
+	keyWidth := 3   // minimum width for "Key" header
 	valueWidth := 5 // minimum width for "Value" header
 
 	// Calculate max widths needed
@@ -222,6 +234,110 @@ func (f *Formatter) padRight(str string, width int) string {
 		return str
 	}
 	return str + strings.Repeat(" ", width-len(str))
+}
+
+// truncateString truncates a string to maxLen, adding "..." if truncated
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	if maxLen <= 3 {
+		return s[:maxLen]
+	}
+	return s[:maxLen-3] + "..."
+}
+
+// FormatModelsTable formats a slice of models as a readable table
+func FormatModelsTable(models []interface{}) (string, error) {
+	if len(models) == 0 {
+		return "No models available", nil
+	}
+
+	var buf strings.Builder
+
+	// Define column headers and widths
+	nameHeader := "NAME"
+	typeHeader := "TYPE"
+	versionHeader := "VERSION"
+	loadedHeader := "LOADED"
+
+	nameWidth := len(nameHeader)
+	typeWidth := len(typeHeader)
+	versionWidth := len(versionHeader)
+	loadedWidth := len(loadedHeader)
+
+	// Calculate max widths by scanning data
+	for _, item := range models {
+		model, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		name := fmt.Sprintf("%v", model["name"])
+		modelType := fmt.Sprintf("%v", model["type"])
+		version := fmt.Sprintf("%v", model["version"])
+
+		// Limit name length for readability
+		if len(name) > 60 {
+			name = name[:60]
+		}
+
+		if len(name) > nameWidth {
+			nameWidth = len(name)
+		}
+		if len(modelType) > typeWidth {
+			typeWidth = len(modelType)
+		}
+		if len(version) > versionWidth {
+			versionWidth = len(version)
+		}
+	}
+
+	// Write header row
+	buf.WriteString(fmt.Sprintf("%-*s  %-*s  %-*s  %-*s\n",
+		nameWidth, nameHeader,
+		typeWidth, typeHeader,
+		versionWidth, versionHeader,
+		loadedWidth, loadedHeader))
+
+	// Write separator
+	buf.WriteString(strings.Repeat("=", nameWidth))
+	buf.WriteString("  ")
+	buf.WriteString(strings.Repeat("=", typeWidth))
+	buf.WriteString("  ")
+	buf.WriteString(strings.Repeat("=", versionWidth))
+	buf.WriteString("  ")
+	buf.WriteString(strings.Repeat("=", loadedWidth))
+	buf.WriteString("\n")
+
+	// Write data rows
+	for _, item := range models {
+		model, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		name := fmt.Sprintf("%v", model["name"])
+		modelType := fmt.Sprintf("%v", model["type"])
+		version := fmt.Sprintf("%v", model["version"])
+		loaded := "✗"
+		if loadedBool, ok := model["loaded"].(bool); ok && loadedBool {
+			loaded = "✓"
+		}
+
+		// Truncate name if too long
+		if len(name) > 60 {
+			name = truncateString(name, 60)
+		}
+
+		buf.WriteString(fmt.Sprintf("%-*s  %-*s  %-*s  %-*s\n",
+			nameWidth, name,
+			typeWidth, modelType,
+			versionWidth, version,
+			loadedWidth, loaded))
+	}
+
+	return buf.String(), nil
 }
 
 // WriteToFile writes data to a file with timestamp

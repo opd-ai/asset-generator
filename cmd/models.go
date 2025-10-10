@@ -67,9 +67,21 @@ func runModelsList(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to list models: %w", err)
 	}
 
+	// Convert models to interface{} slice for the formatter
+	modelsInterface := make([]interface{}, len(models))
+	for i, model := range models {
+		modelsInterface[i] = map[string]interface{}{
+			"name":        model.Name,
+			"type":        model.Type,
+			"description": model.Description,
+			"version":     model.Version,
+			"loaded":      model.Loaded,
+		}
+	}
+
 	// Format and output result
 	formatter := output.NewFormatter(viper.GetString("format"))
-	outputData, err := formatter.Format(models)
+	outputData, err := formatter.Format(modelsInterface)
 	if err != nil {
 		return fmt.Errorf("failed to format output: %w", err)
 	}
