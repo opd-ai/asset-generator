@@ -5,7 +5,8 @@ A powerful command-line interface for interacting with AI asset generation APIs.
 ## Features
 
 - 🎨 **Asset Generation**: Generate images using text-to-image models
-- 💾 **Image Download**: Automatically download and save generated images locally
+- � **Pipeline Processing**: Automated batch generation from YAML pipeline files
+- �💾 **Image Download**: Automatically download and save generated images locally
 - 🔒 **Automatic Metadata Stripping**: All PNG images have metadata removed for privacy and security
 - ✂️ **Auto-Crop**: Remove whitespace borders from images while preserving aspect ratio
 - 🔽 **Image Postprocessing**: High-quality Lanczos downscaling after download
@@ -91,6 +92,34 @@ asset-generator generate image \
   --save-images \
   --output-dir ./landscapes
 ```
+
+### Pipeline Processing
+
+Process YAML pipeline files for automated batch generation:
+
+```bash
+# Process a tarot deck pipeline (78 cards)
+asset-generator pipeline --file tarot-spec.yaml --output-dir ./deck
+
+# Preview what would be generated (dry run)
+asset-generator pipeline --file tarot-spec.yaml --dry-run
+
+# Custom generation parameters
+asset-generator pipeline --file tarot-spec.yaml \
+  --base-seed 42 \
+  --steps 40 \
+  --width 768 \
+  --height 1344 \
+  --style-suffix "detailed illustration, ornate border, rich colors"
+
+# With postprocessing
+asset-generator pipeline --file tarot-spec.yaml \
+  --auto-crop \
+  --downscale-width 1024 \
+  --continue-on-error
+```
+
+See [docs/PIPELINE.md](docs/PIPELINE.md) for complete documentation and the [examples/tarot-deck/](examples/tarot-deck/) directory for a full working example.
 
 ### Model Management
 

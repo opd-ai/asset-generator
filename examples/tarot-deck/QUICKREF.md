@@ -2,10 +2,27 @@
 
 ## Commands
 
-### Essential Pipeline
+### Native Pipeline Command (Recommended)
+```bash
+# Generate all 78 cards with pipeline command
+asset-generator pipeline --file tarot-spec.yaml
+
+# Preview before generating
+asset-generator pipeline --file tarot-spec.yaml --dry-run
+
+# Custom output directory and seed
+asset-generator pipeline --file tarot-spec.yaml \
+  --output-dir ./my-deck --base-seed 42
+
+# With postprocessing
+asset-generator pipeline --file tarot-spec.yaml \
+  --auto-crop --downscale-width 1024
+```
+
+### Shell Script Wrappers (Legacy)
 ```bash
 ./quick-demo.sh                  # Test with 5 sample cards (~5 min)
-./generate-tarot-deck.sh         # Generate all 78 cards (~90 min)
+./generate-tarot-deck.sh         # Wrapper: generates all 78 cards
 ./generate-card-back.sh          # Generate 4 card back designs
 ./post-process-deck.sh           # Create multiple formats
 ./package-for-print.sh           # Package for distribution
@@ -13,18 +30,21 @@
 
 ### Custom Parameters
 ```bash
+# Pipeline command with custom parameters
+asset-generator pipeline --file tarot-spec.yaml \
+  --output-dir OUTPUT_DIR --base-seed BASE_SEED
+
+# Wrapper script (backward compatible)
 ./generate-tarot-deck.sh OUTPUT_DIR BASE_SEED
-./generate-card-back.sh OUTPUT_DIR SEED
-./post-process-deck.sh INPUT_DIR OUTPUT_DIR
-./package-for-print.sh INPUT_DIR OUTPUT_DIR
+./generate-tarot-deck.sh OUTPUT_DIR BASE_SEED --dry-run
 ```
 
 ## File Structure
 
 ```
 examples/tarot-deck/
-├── tarot-spec.yaml              # 78 card definitions
-├── generate-tarot-deck.sh       # Main generator
+├── tarot-spec.yaml              # 78 card definitions (YAML)
+├── generate-tarot-deck.sh       # Pipeline wrapper script
 ├── generate-card-back.sh        # Card back generator
 ├── post-process-deck.sh         # Format converter
 ├── package-for-print.sh         # Print packager
@@ -96,20 +116,38 @@ tarot-deck-packages/             # Distribution
 ## Customization Quick Tips
 
 ### Change Art Style
-Edit `generate-tarot-deck.sh`:
+Use pipeline command flags:
+```bash
+asset-generator pipeline --file tarot-spec.yaml \
+  --style-suffix "watercolor painting, soft edges, artistic"
+```
+
+Or edit wrapper script `generate-tarot-deck.sh`:
 ```bash
 STYLE_SUFFIX="your style here, artistic keywords"
 ```
 
 ### Change Card Size
-Edit `generate-tarot-deck.sh`:
+Use pipeline command flags:
+```bash
+asset-generator pipeline --file tarot-spec.yaml \
+  --width 750 --height 1050
+```
+
+Or edit wrapper script `generate-tarot-deck.sh`:
 ```bash
 WIDTH=750    # Your width
 HEIGHT=1050  # Your height
 ```
 
 ### Adjust Quality
-Edit `generate-tarot-deck.sh`:
+Use pipeline command flags:
+```bash
+asset-generator pipeline --file tarot-spec.yaml \
+  --steps 50 --cfg-scale 8.0
+```
+
+Or edit wrapper script `generate-tarot-deck.sh`:
 ```bash
 STEPS=50         # Higher = better quality, slower
 CFG_SCALE=8.0    # Higher = more prompt adherence
@@ -126,33 +164,28 @@ Edit `tarot-spec.yaml`:
 
 | Issue | Solution |
 |-------|----------|
-| Command not found | `chmod +x *.sh` |
+| Command not found | `chmod +x *.sh` or use pipeline directly |
 | Asset-generator error | `asset-generator config view` |
-| Slow generation | Reduce STEPS to 25-30 |
-| Quality issues | Increase STEPS to 50 |
+| Slow generation | Use `--steps 25` flag |
+| Quality issues | Use `--steps 50` flag |
 | Out of disk space | Check with `df -h` |
-| yq not found | Install: see Prerequisites |
+| Pipeline fails | Try `--continue-on-error` flag |
 
 ## Prerequisites Checklist
 
-- [ ] asset-generator CLI installed
+- [ ] asset-generator CLI installed (`go install` or binary)
 - [ ] Asset generation service running (http://localhost:7801)
-- [ ] yq installed (mikefarah's Go version, NOT python-yq)
 - [ ] Sufficient disk space (~500 MB minimum)
 - [ ] GPU with adequate VRAM (recommended)
-- [ ] Scripts executable (`chmod +x *.sh`)
+- [ ] For shell scripts: `chmod +x *.sh`
 
-**Install yq (correct version):**
-```bash
-wget -qO /tmp/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-sudo mv /tmp/yq /usr/local/bin/yq
-sudo chmod +x /usr/local/bin/yq
-yq --version  # Should show mikefarah's version
-```
+**No external dependencies needed!** The native pipeline command uses built-in Go YAML parsing.
 
 ## Quick Links
 
-- **Full Documentation**: [README.md](README.md)
+- **Pipeline Documentation**: [../../docs/PIPELINE.md](../../docs/PIPELINE.md)
+- **Pipeline Quick Reference**: [../../docs/PIPELINE_QUICKREF.md](../../docs/PIPELINE_QUICKREF.md)
+- **Full Tarot Documentation**: [README.md](README.md)
 - **Visual Workflow**: [WORKFLOW.md](WORKFLOW.md)
 - **Technical Details**: [DEMONSTRATION.md](DEMONSTRATION.md)
 - **Main CLI Docs**: [../../README.md](../../README.md)

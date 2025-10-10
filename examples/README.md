@@ -112,9 +112,7 @@ All examples require:
 - POSIX-compliant shell (bash, dash, zsh)
 - Basic utilities (wget, zip, etc.)
 
-Some examples may require:
-- `yq` for YAML parsing
-- Additional image processing tools
+**Note:** Previous examples may have required `yq` for YAML parsing, but the new native `pipeline` command eliminates this dependency. Shell scripts in examples are now simple wrappers around the pipeline command.
 
 See individual example READMEs for specific requirements.
 

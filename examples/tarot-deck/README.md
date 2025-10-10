@@ -30,28 +30,66 @@ This pipeline generates:
 # Install asset-generator CLI
 # (See main README for installation instructions)
 
-# Install yq (mikefarah's Go version, NOT python-yq)
-# This is required for YAML parsing in the pipeline scripts
-wget -qO /tmp/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-sudo mv /tmp/yq /usr/local/bin/yq
-sudo chmod +x /usr/local/bin/yq
-
-# Verify correct yq version
-yq --version
-# Should output: yq (https://github.com/mikefarah/yq/) version ...
-
 # Configure asset-generator
 asset-generator config set api-url http://localhost:7801
 ```
 
 ### Generate Complete Deck
 
+**Option 1: Using the Built-in Pipeline Command (Recommended)**
+
+The native pipeline command eliminates the need for external scripts and yq:
+
 ```bash
 cd examples/tarot-deck
 
-# Make scripts executable
-chmod +x *.sh
+# Generate all 78 cards
+asset-generator pipeline --file tarot-spec.yaml --output-dir ./tarot-deck-output
 
+# Preview before generating (dry run)
+asset-generator pipeline --file tarot-spec.yaml --dry-run
+
+# With custom parameters and postprocessing
+asset-generator pipeline --file tarot-spec.yaml \
+  --output-dir ./my-deck \
+  --base-seed 42 \
+  --steps 50 \
+  --style-suffix "detailed illustration, ornate border, rich colors" \
+  --auto-crop \
+  --downscale-width 1024
+```
+
+**Option 2: Using the Shell Script Wrapper**
+
+The `generate-tarot-deck.sh` script is now a convenient wrapper around the pipeline command:
+
+```bash
+cd examples/tarot-deck
+
+# Make script executable
+chmod +x generate-tarot-deck.sh
+
+# Generate with default settings
+./generate-tarot-deck.sh
+
+# Custom output directory and seed
+./generate-tarot-deck.sh ./my-deck 42
+
+# Pass additional flags to pipeline command
+./generate-tarot-deck.sh ./my-deck 42 --dry-run
+```
+
+**Benefits of the wrapper approach:**
+- ✅ No external dependencies (yq no longer required)
+- ✅ Native YAML parsing in Go
+- ✅ Backward compatible interface
+- ✅ 59% less code (101 vs 246 lines)
+- ✅ Better error handling and progress tracking
+- ✅ Consistent with other asset-generator commands
+
+### Traditional Workflow
+
+```bash
 # Generate all 78 cards (takes 30-60 minutes depending on your hardware)
 ./generate-tarot-deck.sh
 
@@ -66,8 +104,8 @@ chmod +x *.sh
 
 ```
 examples/tarot-deck/
-├── tarot-spec.yaml              # Complete deck specification
-├── generate-tarot-deck.sh       # Main generation script
+├── tarot-spec.yaml              # Complete deck specification (YAML)
+├── generate-tarot-deck.sh       # Pipeline wrapper script
 ├── generate-card-back.sh        # Card back generator
 ├── post-process-deck.sh         # Multi-format conversion
 ├── quick-demo.sh                # Quick demo (5 sample cards)
@@ -148,24 +186,30 @@ asset-generator generate image \
 ### Generate Single Suit
 
 ```bash
-# Extract just wands from spec and generate
-yq eval '.minor_arcana.wands.cards' tarot-spec.yaml
+# Use pipeline command with a custom YAML containing just one suit
+asset-generator pipeline --file wands-only.yaml --output-dir ./wands-output
 
-# Use generate-tarot-deck.sh and interrupt after wands complete
+# Or use generate command for manual single-card generation
+asset-generator generate image \
+  --prompt "Ace of Wands, flaming wand..." \
+  --seed 142 \
+  --output-dir ./single-cards
 ```
 
 ### Custom Styling
 
-Edit `generate-tarot-deck.sh` to modify:
+Modify styling via pipeline command flags or edit the wrapper script:
 
 ```bash
-# Change style suffix for different artistic approaches
-STYLE_SUFFIX="watercolor painting, soft edges, artistic, hand-painted look"
+# Pass custom style via pipeline command
+asset-generator pipeline --file tarot-spec.yaml \
+  --style-suffix "watercolor painting, soft edges, artistic, hand-painted look"
 
 # Or for modern minimalist style
-STYLE_SUFFIX="minimalist design, clean lines, modern interpretation, flat colors"
+asset-generator pipeline --file tarot-spec.yaml \
+  --style-suffix "minimalist design, clean lines, modern interpretation, flat colors"
 
-# Or for vintage woodcut style
+# Or edit generate-tarot-deck.sh to change default STYLE_SUFFIX variable:
 STYLE_SUFFIX="vintage woodcut print, engraving style, black and white, high contrast"
 ```
 
@@ -304,11 +348,11 @@ asset-generator generate image --prompt "test card" --verbose
 
 ### Script Errors
 
-**Problem:** `yq: command not found`  
-**Solution:** Install yq as shown in Prerequisites
-
 **Problem:** Permission denied on scripts  
 **Solution:** `chmod +x *.sh`
+
+**Problem:** `asset-generator: command not found`  
+**Solution:** Install asset-generator and ensure it's in your PATH
 
 **Problem:** Asset generator not found  
 **Solution:** Ensure `asset-generator` is in PATH or use full path
