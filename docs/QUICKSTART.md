@@ -1,6 +1,6 @@
-# SwarmUI CLI - Quick Start Guide
+# Asset Generator CLI - Quick Start Guide
 
-Welcome to the SwarmUI CLI! This guide will get you up and running in 5 minutes.
+Welcome to the Asset Generator CLI! This guide will get you up and running in 5 minutes.
 
 ## Installation
 

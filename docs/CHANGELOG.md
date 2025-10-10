@@ -7,12 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- **`generate image` command**: Added missing `--downscale-percentage` flag registration (October 10, 2025)
-  - Flag variable existed but wasn't registered in cobra command
-  - Users can now use percentage-based downscaling with generate command
-  - Example: `--downscale-percentage 50` to downscale output by 50%
-
 ### Added
 - **Pipeline processing feature**: Native YAML pipeline file processing for batch generation
   - `pipeline` command for automated multi-asset generation workflows

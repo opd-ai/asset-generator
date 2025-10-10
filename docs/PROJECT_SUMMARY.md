@@ -6,8 +6,8 @@ A production-ready command-line interface for asset generation APIs, built with 
 
 ## 📊 Project Statistics
 
-- **Total Lines of Code**: ~2,500+ lines of Go
-- **Binary Size**: ~9.5MB (with optimizations)
+- **Total Lines of Code**: ~7,000 lines of Go
+- **Binary Size**: ~15MB (with debug symbols), ~10MB (stripped)
 - **Test Coverage**: 60-95% across packages
 - **Commands**: 10+ commands across 5 categories
 - **Dependencies**: Minimal, well-licensed

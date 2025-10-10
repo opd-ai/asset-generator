@@ -1,28 +1,15 @@
 # Percentage-Based Downscaling Feature
 
-## ✅ IMPLEMENTATION STATUS (Updated: October 10, 2025)
+## ✅ IMPLEMENTATION STATUS
 
 | Command | Status | Flag Name | Notes |
 |---------|--------|-----------|-------|
-| `downscale` | ✅ **FULLY IMPLEMENTED** | `--percentage` / `-p` | Works correctly |
-| `pipeline` | ✅ **FULLY IMPLEMENTED** | `--downscale-percentage` | Works correctly |
-| `generate image` | ✅ **FULLY IMPLEMENTED** | `--downscale-percentage` | **FIXED** - Flag now registered |
-
-### Bug Fix - October 10, 2025
-
-**Previous Issue**: The `--downscale-percentage` flag was not registered in the `generate image` command.
-
-**Status**: ✅ **FIXED** - Flag has been added to `cmd/generate.go` and is now fully functional.
-
-**Change Made**:
-```go
-// Added to cmd/generate.go init() function:
-generateImageCmd.Flags().Float64Var(&generateDownscalePercentage, 
-    "downscale-percentage", 0, "downscale by percentage (1-100, 0=disabled, overrides width/height)")
-```
+| `downscale` | ✅ **FULLY IMPLEMENTED** | `--percentage` / `-p` | Working |
+| `pipeline` | ✅ **FULLY IMPLEMENTED** | `--downscale-percentage` | Working |
+| `generate image` | ✅ **FULLY IMPLEMENTED** | `--downscale-percentage` | Working |
 
 ## Overview
-Percentage-based downscaling support allows users to specify a percentage (e.g., 50%) instead of calculating exact pixel dimensions. This feature is now **fully working** in all commands: `downscale`, `pipeline`, and `generate image`.
+Percentage-based downscaling support allows users to specify a percentage (e.g., 50%) instead of calculating exact pixel dimensions. This feature is fully working in all commands: `downscale`, `pipeline`, and `generate image`.
 
 ## Implementation Summary
 
@@ -56,13 +43,13 @@ Percentage-based downscaling support allows users to specify a percentage (e.g.,
 - Passes percentage through pipeline processing
 
 **File: `cmd/generate.go`**
-- ✅ Variable `generateDownscalePercentage` defined **(WORKING)**
-- ✅ Flag `--downscale-percentage` registered **(FIXED - October 10, 2025)**
-- ✅ Passes percentage through `DownloadOptions` to client **(WORKING)**
+- ✅ Variable `generateDownscalePercentage` defined and flag registered
+- Passes percentage through `DownloadOptions` to client
+- Works correctly with all generation operations
 
 ## Working Usage Examples
 
-### Standalone Downscaling (✅ Fully Working)
+### Standalone Downscaling
 ```bash
 # Downscale to 50% of original size
 asset-generator downscale image.png --percentage 50
@@ -74,7 +61,7 @@ asset-generator downscale image.png -p 50
 asset-generator downscale *.jpg -p 75 --in-place
 ```
 
-### Pipeline Processing (✅ Fully Working)
+### Pipeline Processing
 ```bash
 # Generate pipeline with 50% downscaling
 asset-generator pipeline --file tarot-spec.yaml \
@@ -82,44 +69,44 @@ asset-generator pipeline --file tarot-spec.yaml \
   --downscale-percentage 50
 ```
 
-### Generate Command (✅ NOW WORKING - FIXED!)
+### Generate Command
 ```bash
-# Downscale by percentage - NOW WORKS!
+# Downscale by percentage
 asset-generator generate image \
   --prompt "high resolution artwork" \
   --width 2048 --height 2048 \
   --save-images \
-  --downscale-percentage 50  # ✅ Results in 1024x1024
+  --downscale-percentage 50  # Results in 1024x1024
 
 # Also works with explicit dimensions
 asset-generator generate image \
   --prompt "artwork" \
   --width 2048 --height 2048 \
   --save-images \
-  --downscale-width 1024  # ✅ Still works
+  --downscale-width 1024
 ```
 
 ## Command-Line Flags
 
-### Downscale Command (✅ All Working)
+### Downscale Command
 - `--width` / `-w`: Target width in pixels
 - `--height` / `-l`: Target height in pixels
-- `--percentage` / `-p`: ✅ Scale by percentage (1-100, takes precedence over width/height)
+- `--percentage` / `-p`: Scale by percentage (1-100, takes precedence over width/height)
 - `--filter`: Resampling algorithm (lanczos, bilinear, nearest)
 - `--quality`: JPEG quality (1-100)
 - `--output-file`: Output path for single file
 - `--in-place`: Replace original file(s)
 
-### Pipeline Command (✅ All Working)
-- `--downscale-percentage`: ✅ Scale by percentage (0=disabled)
+### Pipeline Command
+- `--downscale-percentage`: Scale by percentage (0=disabled)
 - `--downscale-width`: Target width
 - `--downscale-height`: Target height
 - `--downscale-filter`: Resampling algorithm
 
-### Generate Command (✅ Now Fully Working - FIXED!)
-- `--downscale-width`: ✅ Target width for postprocessing
-- `--downscale-height`: ✅ Target height for postprocessing  
-- `--downscale-percentage`: ✅ **NOW AVAILABLE** (bug fixed October 10, 2025)
-- `--downscale-filter`: ✅ Resampling algorithm
+### Generate Command
+- `--downscale-width`: Target width for postprocessing
+- `--downscale-height`: Target height for postprocessing  
+- `--downscale-percentage`: Scale by percentage (takes precedence over width/height)
+- `--downscale-filter`: Resampling algorithm
 
 ## Benefits
