@@ -1002,6 +1002,13 @@ func (c *AssetClient) downloadFile(ctx context.Context, url, filepath string) er
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 
+	// Mandatory: Strip all PNG metadata from downloaded images
+	// This removes any generation parameters, timestamps, or other sensitive data
+	// that may have been embedded by the generation API
+	if err := processor.StripPNGMetadata(filepath); err != nil {
+		return fmt.Errorf("failed to strip PNG metadata: %w", err)
+	}
+
 	return nil
 }
 

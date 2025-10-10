@@ -1,0 +1,224 @@
+# Complete Tarot Deck Specification
+# 78 cards total: 22 Major Arcana + 56 Minor Arcana (4 suits × 14 cards)
+
+major_arcana:
+  - number: 0
+    name: The Fool
+    prompt: "tarot card art, The Fool, young traveler at cliff edge, white rose, small dog, mountain peaks, mystical symbols, ornate border, art nouveau style, vibrant colors"
+  
+  - number: 1
+    name: The Magician
+    prompt: "tarot card art, The Magician, figure with infinity symbol above head, all four suit symbols on table, red robe white undergarment, pointing up and down, mystical atmosphere"
+  
+  - number: 2
+    name: The High Priestess
+    prompt: "tarot card art, The High Priestess, seated between black and white pillars, crescent moon crown, Torah scroll, pomegranates, blue robe, mysterious wisdom"
+  
+  - number: 3
+    name: The Empress
+    prompt: "tarot card art, The Empress, regal woman on throne, venus symbol, wheat field, flowing river, crown of twelve stars, nature goddess, abundant fertility"
+  
+  - number: 4
+    name: The Emperor
+    prompt: "tarot card art, The Emperor, stern ruler on stone throne, rams head decorations, red robe, ankh scepter, mountains behind, authority and structure"
+  
+  - number: 5
+    name: The Hierophant
+    prompt: "tarot card art, The Hierophant, religious figure on throne, triple crown, crossed keys, two acolytes, blessing gesture, spiritual wisdom"
+  
+  - number: 6
+    name: The Lovers
+    prompt: "tarot card art, The Lovers, Adam and Eve, angel Raphael above, tree of knowledge, tree of life, mountain peak, choice and union"
+  
+  - number: 7
+    name: The Chariot
+    prompt: "tarot card art, The Chariot, warrior in chariot, black and white sphinxes, starry canopy, city behind, wand of power, triumph and willpower"
+  
+  - number: 8
+    name: Strength
+    prompt: "tarot card art, Strength, woman gently closing lion's mouth, infinity symbol above head, white robe, flower garland, inner power and courage"
+  
+  - number: 9
+    name: The Hermit
+    prompt: "tarot card art, The Hermit, old man on mountain peak, lantern with six-pointed star, grey robe and hood, walking staff, solitude and guidance"
+  
+  - number: 10
+    name: Wheel of Fortune
+    prompt: "tarot card art, Wheel of Fortune, large wheel with TARO letters, sphinx on top, snake descending, Anubis ascending, four winged creatures in corners"
+  
+  - number: 11
+    name: Justice
+    prompt: "tarot card art, Justice, figure on throne, sword in right hand, scales in left hand, purple cloak, red robe, balanced pillars"
+  
+  - number: 12
+    name: The Hanged Man
+    prompt: "tarot card art, The Hanged Man, figure suspended upside down from T-shaped cross, halo around head, serene expression, sacrifice and perspective"
+  
+  - number: 13
+    name: Death
+    prompt: "tarot card art, Death, skeleton in black armor on white horse, black flag with white rose, sun rising between towers, transformation and endings"
+  
+  - number: 14
+    name: Temperance
+    prompt: "tarot card art, Temperance, angel with sun on forehead, pouring water between cups, one foot on land one in water, iris flowers, balance and moderation"
+  
+  - number: 15
+    name: The Devil
+    prompt: "tarot card art, The Devil, Baphomet figure on pedestal, inverted pentagram, chained man and woman, torch, materialism and bondage"
+  
+  - number: 16
+    name: The Tower
+    prompt: "tarot card art, The Tower, tall tower struck by lightning, crown falling from top, two figures falling, grey clouds, sudden upheaval"
+  
+  - number: 17
+    name: The Star
+    prompt: "tarot card art, The Star, naked woman pouring water into pool and land, large star above, seven smaller stars, bird in tree, hope and inspiration"
+  
+  - number: 18
+    name: The Moon
+    prompt: "tarot card art, The Moon, full moon with face, crescent moons, dog and wolf howling, crayfish in pool, path between towers, illusion and intuition"
+  
+  - number: 19
+    name: The Sun
+    prompt: "tarot card art, The Sun, large sun with face, naked child on white horse, sunflowers, red banner, wall behind, joy and success"
+  
+  - number: 20
+    name: Judgement
+    prompt: "tarot card art, Judgement, angel Gabriel with trumpet, people rising from graves, cross on banner, mountains and water, resurrection and renewal"
+  
+  - number: 21
+    name: The World
+    prompt: "tarot card art, The World, naked dancer in laurel wreath, purple cloth, four creatures in corners, completion and fulfillment"
+
+minor_arcana:
+  wands:
+    suit_element: fire
+    suit_color: red
+    cards:
+      - rank: Ace
+        prompt: "tarot card art, Ace of Wands, hand emerging from cloud holding wooden staff, leaves sprouting, castle in distance, new beginnings and inspiration"
+      - rank: Two
+        prompt: "tarot card art, Two of Wands, man holding globe, wands crossed behind, castle view, planning and decisions"
+      - rank: Three
+        prompt: "tarot card art, Three of Wands, figure watching ships, three wands planted, mountain view, expansion and foresight"
+      - rank: Four
+        prompt: "tarot card art, Four of Wands, four wands with garland, two figures celebrating, castle behind, celebration and harmony"
+      - rank: Five
+        prompt: "tarot card art, Five of Wands, five figures with wands in conflict, competitive struggle, discord"
+      - rank: Six
+        prompt: "tarot card art, Six of Wands, rider on horse with laurel wreath, wand held high, five supporters, victory and recognition"
+      - rank: Seven
+        prompt: "tarot card art, Seven of Wands, figure on high ground defending with wand, six wands below, courage and perseverance"
+      - rank: Eight
+        prompt: "tarot card art, Eight of Wands, eight wands flying through air, river and hills, swift action and movement"
+      - rank: Nine
+        prompt: "tarot card art, Nine of Wands, wounded figure with bandaged head, eight wands behind, resilience and persistence"
+      - rank: Ten
+        prompt: "tarot card art, Ten of Wands, figure carrying ten heavy wands, burdened walk toward town, responsibility and burden"
+      - rank: Page
+        prompt: "tarot card art, Page of Wands, young person holding tall wand, desert with pyramids, enthusiasm and exploration"
+      - rank: Knight
+        prompt: "tarot card art, Knight of Wands, armored knight on rearing horse, wand held high, desert landscape, action and adventure"
+      - rank: Queen
+        prompt: "tarot card art, Queen of Wands, queen on throne with sunflower, black cat, wand and sunflower, confidence and determination"
+      - rank: King
+        prompt: "tarot card art, King of Wands, king on throne with salamander decorations, wand in hand, crown and robes, leadership and vision"
+
+  cups:
+    suit_element: water
+    suit_color: blue
+    cards:
+      - rank: Ace
+        prompt: "tarot card art, Ace of Cups, hand emerging from cloud holding chalice, dove descending, water overflowing, lotus flowers, love and new emotions"
+      - rank: Two
+        prompt: "tarot card art, Two of Cups, man and woman exchanging cups, caduceus above, lion head, partnership and union"
+      - rank: Three
+        prompt: "tarot card art, Three of Cups, three women raising cups, harvest celebration, fruit and flowers, friendship and celebration"
+      - rank: Four
+        prompt: "tarot card art, Four of Cups, figure under tree, three cups before, fourth offered by cloud hand, contemplation and apathy"
+      - rank: Five
+        prompt: "tarot card art, Five of Cups, cloaked figure looking at three spilled cups, two full cups behind, bridge and castle, loss and regret"
+      - rank: Six
+        prompt: "tarot card art, Six of Cups, children in garden, six cups with flowers, nostalgic scene, memories and innocence"
+      - rank: Seven
+        prompt: "tarot card art, Seven of Cups, silhouette before seven cups on clouds, various visions in each cup, illusion and choices"
+      - rank: Eight
+        prompt: "tarot card art, Eight of Cups, figure walking away from eight stacked cups, moon above mountains, leaving and transition"
+      - rank: Nine
+        prompt: "tarot card art, Nine of Cups, satisfied figure with folded arms, nine cups arranged behind, contentment and satisfaction"
+      - rank: Ten
+        prompt: "tarot card art, Ten of Cups, couple with children, rainbow of ten cups overhead, house in background, happiness and family"
+      - rank: Page
+        prompt: "tarot card art, Page of Cups, young person holding cup with fish, ocean behind, messages and intuition"
+      - rank: Knight
+        prompt: "tarot card art, Knight of Cups, knight on white horse, winged helmet, offering cup, river landscape, romance and charm"
+      - rank: Queen
+        prompt: "tarot card art, Queen of Cups, queen on throne by water, ornate cup, mermaids and fish decorations, intuition and compassion"
+      - rank: King
+        prompt: "tarot card art, King of Cups, king on throne on rough sea, ship and fish, cup held steady, emotional maturity and control"
+
+  swords:
+    suit_element: air
+    suit_color: yellow
+    cards:
+      - rank: Ace
+        prompt: "tarot card art, Ace of Swords, hand emerging from cloud holding upright sword, crown with laurel, mountains and wind, mental clarity and truth"
+      - rank: Two
+        prompt: "tarot card art, Two of Swords, blindfolded figure holding two crossed swords, crescent moon, sea behind, difficult decisions"
+      - rank: Three
+        prompt: "tarot card art, Three of Swords, heart pierced by three swords, stormy clouds and rain, heartbreak and sorrow"
+      - rank: Four
+        prompt: "tarot card art, Four of Swords, knight lying on tomb, three swords on wall, one beneath, stained glass window, rest and recuperation"
+      - rank: Five
+        prompt: "tarot card art, Five of Swords, figure collecting swords, two dejected figures walking away, stormy sky, conflict and defeat"
+      - rank: Six
+        prompt: "tarot card art, Six of Swords, ferryman rowing boat, woman and child passengers, six swords upright, calm water ahead, transition"
+      - rank: Seven
+        prompt: "tarot card art, Seven of Swords, figure tiptoeing away carrying five swords, two left behind, camp tents, deception"
+      - rank: Eight
+        prompt: "tarot card art, Eight of Swords, bound blindfolded figure surrounded by eight swords, castle on hill, restriction and imprisonment"
+      - rank: Nine
+        prompt: "tarot card art, Nine of Swords, figure sitting in bed, hands covering face, nine swords on wall, nightmares and anxiety"
+      - rank: Ten
+        prompt: "tarot card art, Ten of Swords, figure face down with ten swords in back, dark sky, dawn on horizon, painful ending"
+      - rank: Page
+        prompt: "tarot card art, Page of Swords, young person holding sword upright, wind-blown clouds, trees bending, vigilance and ideas"
+      - rank: Knight
+        prompt: "tarot card art, Knight of Swords, armored knight charging on horse, sword raised, stormy sky, swift action"
+      - rank: Queen
+        prompt: "tarot card art, Queen of Swords, queen on throne holding upright sword, clear sky, clouds, bird flying, clear thinking"
+      - rank: King
+        prompt: "tarot card art, King of Swords, king on throne holding sword, butterflies on throne, crescent moons, intellectual power"
+
+  pentacles:
+    suit_element: earth
+    suit_color: green
+    cards:
+      - rank: Ace
+        prompt: "tarot card art, Ace of Pentacles, hand emerging from cloud holding golden pentacle, garden with archway, lilies and roses, material opportunity"
+      - rank: Two
+        prompt: "tarot card art, Two of Pentacles, figure juggling two pentacles in infinity shape, ships on rough sea, balance and adaptability"
+      - rank: Three
+        prompt: "tarot card art, Three of Pentacles, craftsman working in cathedral, two figures with plans, collaboration and skill"
+      - rank: Four
+        prompt: "tarot card art, Four of Pentacles, figure clutching pentacle, crown on head, feet on two pentacles, city behind, possession and control"
+      - rank: Five
+        prompt: "tarot card art, Five of Pentacles, two impoverished figures in snow, stained glass window with five pentacles, hardship and isolation"
+      - rank: Six
+        prompt: "tarot card art, Six of Pentacles, merchant with scales giving coins to beggars, six pentacles, charity and generosity"
+      - rank: Seven
+        prompt: "tarot card art, Seven of Pentacles, farmer leaning on hoe, seven pentacles on vine, contemplating work, patience and assessment"
+      - rank: Eight
+        prompt: "tarot card art, Eight of Pentacles, craftsman engraving pentacles, completed ones hanging, town in distance, diligence and skill development"
+      - rank: Nine
+        prompt: "tarot card art, Nine of Pentacles, elegant woman in garden, falcon on hand, nine pentacles on vines, luxury and self-sufficiency"
+      - rank: Ten
+        prompt: "tarot card art, Ten of Pentacles, elderly man with two dogs, family in archway, ten pentacles in tree of life pattern, legacy and wealth"
+      - rank: Page
+        prompt: "tarot card art, Page of Pentacles, young person holding pentacle, green field, distant mountains, new opportunities and manifestation"
+      - rank: Knight
+        prompt: "tarot card art, Knight of Pentacles, armored knight on sturdy horse, holding pentacle, plowed field, reliability and hard work"
+      - rank: Queen
+        prompt: "tarot card art, Queen of Pentacles, queen on throne in garden, rabbit at feet, holding pentacle, flowers and fruit, nurturing abundance"
+      - rank: King
+        prompt: "tarot card art, King of Pentacles, king on throne with bull decorations, castle and grapevines, holding pentacle, wealth and success"

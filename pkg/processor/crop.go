@@ -115,6 +115,12 @@ func AutoCropImage(inputPath, outputPath string, opts CropOptions) error {
 		return fmt.Errorf("failed to encode output image: %w", err)
 	}
 
+	// Mandatory: Strip all PNG metadata for privacy and security
+	// This removes any generation parameters, timestamps, or other sensitive data
+	if err := StripPNGMetadata(outputPath); err != nil {
+		return fmt.Errorf("failed to strip PNG metadata: %w", err)
+	}
+
 	return nil
 }
 

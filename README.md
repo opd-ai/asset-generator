@@ -6,6 +6,7 @@ A powerful command-line interface for interacting with AI asset generation APIs.
 
 - 🎨 **Asset Generation**: Generate images using text-to-image models
 - 💾 **Image Download**: Automatically download and save generated images locally
+- 🔒 **Automatic Metadata Stripping**: All PNG images have metadata removed for privacy and security
 - ✂️ **Auto-Crop**: Remove whitespace borders from images while preserving aspect ratio
 - 🔽 **Image Postprocessing**: High-quality Lanczos downscaling after download
 - 🎨 **SVG Conversion**: Convert images to SVG format using geometric shapes or edge tracing
@@ -647,6 +648,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [SwarmUI Documentation](https://github.com/mcmonkeyprojects/SwarmUI)
 - [Report Issues](https://github.com/opd-ai/asset-generator/issues)
 - [Changelog](CHANGELOG.md)
+- [PNG Metadata Stripping](PNG_METADATA_STRIPPING.md)
+- [Auto-Crop Feature](AUTO_CROP_FEATURE.md)
+- [Downscaling Feature](DOWNSCALING_FEATURE.md)
+- [SVG Conversion](SVG_CONVERSION.md)
 
 ## Acknowledgments
 

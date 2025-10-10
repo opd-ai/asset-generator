@@ -31,10 +31,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Quality control via `--shapes`, `--mode`, and `--alpha` flags
 - Comprehensive documentation and examples for SVG conversion
 - Unit tests for converter package with 100% coverage
+- **PNG Metadata Stripping**: Automatic removal of all PNG metadata for privacy and security
+  - Mandatory, non-optional feature enforced on all PNG operations
+  - Strips all ancillary chunks (tEXt, zTXt, iTXt, tIME, pHYs, gAMA, iCCP, etc.)
+  - Preserves only critical chunks (IHDR, PLTE, IDAT, IEND)
+  - Applied automatically during download, crop, and resize operations
+  - Comprehensive test coverage for metadata stripping functionality
+  - Full documentation in PNG_METADATA_STRIPPING.md
 
 ### Features
 - Generate images using AI text-to-image APIs
 - **Download and save generated images locally**
+- **Automatic PNG metadata removal for all downloaded and processed images**
 - **Convert images to SVG format with artistic and technical options**
 - List and inspect available models
 - Configure API endpoint and authentication
@@ -46,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File output with timestamps
 - Progress feedback for image downloads
 - Graceful handling of partial download failures
+- **Privacy protection through mandatory metadata stripping**
 
 ## [0.1.0] - 2025-10-07
 
