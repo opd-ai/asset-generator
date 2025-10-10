@@ -138,4 +138,4 @@ The generated images will be identical when using the same seeds and prompts.
 
 See:
 - `examples/generic-pipeline.yaml` - Generic multi-asset pipeline
-- `examples/tarot-deck-converted.yaml` - Tarot deck in new format (coming soon)
+- `examples/tarot-deck-converted.yaml` - Tarot deck in new format
