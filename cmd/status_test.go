@@ -22,8 +22,9 @@ func TestFormatStatusTable(t *testing.T) {
 				GPU:         "NVIDIA RTX 3090",
 			},
 		},
-		ModelsCount:  10,
-		ModelsLoaded: 2,
+		ModelsCount:        10,
+		ModelsLoaded:       2,
+		GenerationsRunning: 0,
 		SystemInfo: map[string]interface{}{
 			"gpu_memory": "24GB",
 			"cpu_count":  16,
@@ -50,11 +51,50 @@ func TestFormatStatusTable(t *testing.T) {
 		"running",
 		"stable-diffusion-xl",
 		"NVIDIA RTX 3090",
+		"No generations currently running",
 	}
 
 	for _, expected := range expectedStrings {
 		if !contains(result, expected) {
 			t.Errorf("formatStatusTable output missing expected string: %s", expected)
+		}
+	}
+}
+
+func TestFormatStatusTableWithActiveGenerations(t *testing.T) {
+	status := &client.ServerStatus{
+		ServerURL:    "http://localhost:7801",
+		Status:       "online",
+		ResponseTime: "123ms",
+		Version:      "1.0.0",
+		SessionID:    "test-session-123",
+		ActiveGenerations: []client.ActiveGeneration{
+			{
+				SessionID: "gen-session-1",
+				Status:    "generating",
+				Progress:  0.45,
+				Duration:  "2.5m",
+			},
+		},
+		GenerationsRunning: 1,
+		ModelsCount:        10,
+		ModelsLoaded:       2,
+	}
+
+	result := formatStatusTable(status)
+
+	// Check for active generation information
+	expectedStrings := []string{
+		"Active Generations",
+		"gen-session-1",
+		"generating",
+		"45.0%",
+		"2.5m",
+	}
+
+	for _, expected := range expectedStrings {
+		if !contains(result, expected) {
+			t.Errorf("formatStatusTable output missing expected string for active generation: %s", expected)
 		}
 	}
 }
@@ -69,8 +109,11 @@ func TestColorizeStatus(t *testing.T) {
 		{"active status", "active"},
 		{"online status", "online"},
 		{"ready status", "ready"},
+		{"generating status", "generating"},
 		{"idle status", "idle"},
 		{"unloaded status", "unloaded"},
+		{"pending status", "pending"},
+		{"starting status", "starting"},
 		{"error status", "error"},
 		{"failed status", "failed"},
 		{"offline status", "offline"},

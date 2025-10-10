@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -15,6 +16,28 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/opd-ai/asset-generator/pkg/processor"
 )
+
+const (
+	// stateFileName is the name of the file used to persist generation state
+	stateFileName = ".asset-generator-state.json"
+	// stateMaxAge is the maximum age of sessions to keep in the state file
+	stateMaxAge = 24 * time.Hour
+)
+
+// persistedState represents the structure of the state file
+type persistedState struct {
+	Sessions  map[string]*PersistedSession `json:"sessions"`
+	UpdatedAt time.Time                    `json:"updated_at"`
+}
+
+// PersistedSession is the serializable version of GenerationSession
+type PersistedSession struct {
+	ID        string    `json:"id"`
+	Status    string    `json:"status"`
+	Progress  float64   `json:"progress"`
+	StartTime time.Time `json:"start_time"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
 
 // Config holds the client configuration
 type Config struct {
@@ -25,12 +48,13 @@ type Config struct {
 
 // AssetClient is the main client for interacting with asset generation APIs
 type AssetClient struct {
-	config     *Config
-	httpClient *http.Client
-	wsConn     *websocket.Conn // Reserved for future WebSocket implementation
-	mu         sync.RWMutex
-	sessions   map[string]*GenerationSession
-	sessionID  string // Current session ID for API calls
+	config        *Config
+	httpClient    *http.Client
+	wsConn        *websocket.Conn // Reserved for future WebSocket implementation
+	mu            sync.RWMutex
+	sessions      map[string]*GenerationSession
+	sessionID     string // Current session ID for API calls
+	stateFilePath string // Path to the persistent state file
 }
 
 // ProgressCallback is called with progress updates during generation
@@ -78,13 +102,30 @@ func NewAssetClient(config *Config) (*AssetClient, error) {
 		return nil, fmt.Errorf("base URL is required")
 	}
 
-	return &AssetClient{
+	// Determine state file path (current working directory)
+	cwd, err := os.Getwd()
+	if err != nil {
+		// If we can't get cwd, use temp directory as fallback
+		cwd = os.TempDir()
+	}
+	stateFilePath := filepath.Join(cwd, stateFileName)
+
+	client := &AssetClient{
 		config: config,
 		httpClient: &http.Client{
 			Timeout: 40 * time.Minute, // Extended timeout for Flux generation (can take up to 40 minutes for complex generations)
 		},
-		sessions: make(map[string]*GenerationSession),
-	}, nil
+		sessions:      make(map[string]*GenerationSession),
+		stateFilePath: stateFilePath,
+	}
+
+	// Load existing state from file
+	client.loadStateFromFile()
+
+	// Clean up old sessions
+	client.cleanupOldPersistedSessions()
+
+	return client, nil
 }
 
 // GetNewSession gets a new session ID from the asset generation API
@@ -157,8 +198,11 @@ func (c *AssetClient) GenerateImage(ctx context.Context, req *GenerationRequest)
 	c.sessions[sessionID] = session
 	c.mu.Unlock()
 
+	// Save initial state to file
+	c.saveStateToFile()
+
 	// Ensure session cleanup on function exit (success or error)
-	defer c.cleanupSession(sessionID)
+	defer c.removeSessionState(sessionID)
 
 	// Make HTTP request to generate endpoint
 	endpoint := fmt.Sprintf("%s/API/GenerateText2Image", c.config.BaseURL)
@@ -253,8 +297,11 @@ func (c *AssetClient) GenerateImage(ctx context.Context, req *GenerationRequest)
 	// Report initial progress
 	if req.ProgressCallback != nil {
 		req.ProgressCallback(0.0, "Starting generation...")
+		c.mu.Lock()
 		session.Progress = 0.0
 		session.Status = "starting"
+		c.mu.Unlock()
+		c.saveStateToFile()
 	}
 
 	// Start progress simulation in background for HTTP requests
@@ -426,6 +473,12 @@ func (c *AssetClient) GenerateImageWS(ctx context.Context, req *GenerationReques
 	c.sessions[sessionID] = session
 	c.mu.Unlock()
 
+	// Save initial state to file
+	c.saveStateToFile()
+
+	// Ensure session cleanup on function exit
+	defer c.removeSessionState(sessionID)
+
 	// Listen for progress updates
 	// SwarmUI sends multiple JSON messages over the WebSocket connection:
 	// 1. Progress updates: {"progress": 0.45, "status": "generating"}
@@ -469,6 +522,9 @@ func (c *AssetClient) GenerateImageWS(ctx context.Context, req *GenerationReques
 				c.mu.Lock()
 				session.Progress = progress
 				c.mu.Unlock()
+
+				// Persist progress to file
+				c.saveStateToFile()
 
 				if req.ProgressCallback != nil {
 					status := "Generating..."
@@ -551,6 +607,156 @@ func (c *AssetClient) cleanupOldSessions(maxAge time.Duration) {
 			delete(c.sessions, sessionID)
 		}
 	}
+}
+
+// loadStateFromFile loads persisted generation sessions from the state file
+func (c *AssetClient) loadStateFromFile() {
+	data, err := os.ReadFile(c.stateFilePath)
+	if err != nil {
+		// File doesn't exist or can't be read - this is fine for first run
+		if c.config.Verbose && !os.IsNotExist(err) {
+			fmt.Printf("Could not read state file: %v\n", err)
+		}
+		return
+	}
+
+	var state persistedState
+	if err := json.Unmarshal(data, &state); err != nil {
+		if c.config.Verbose {
+			fmt.Printf("Could not parse state file: %v\n", err)
+		}
+		return
+	}
+
+	// Load persisted sessions into memory
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for id, ps := range state.Sessions {
+		// Only load sessions that are still active
+		if ps.Status == "generating" || ps.Status == "starting" || ps.Status == "pending" {
+			c.sessions[id] = &GenerationSession{
+				ID:        ps.ID,
+				Status:    ps.Status,
+				Progress:  ps.Progress,
+				StartTime: ps.StartTime,
+			}
+		}
+	}
+
+	if c.config.Verbose && len(state.Sessions) > 0 {
+		fmt.Printf("Loaded %d session(s) from state file\n", len(state.Sessions))
+	}
+}
+
+// saveStateToFile persists current generation sessions to the state file
+func (c *AssetClient) saveStateToFile() error {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	state := persistedState{
+		Sessions:  make(map[string]*PersistedSession),
+		UpdatedAt: time.Now(),
+	}
+
+	// Convert in-memory sessions to persistable format
+	for id, session := range c.sessions {
+		// Only persist active sessions
+		if session.Status == "generating" || session.Status == "starting" || session.Status == "pending" {
+			state.Sessions[id] = &PersistedSession{
+				ID:        session.ID,
+				Status:    session.Status,
+				Progress:  session.Progress,
+				StartTime: session.StartTime,
+				UpdatedAt: time.Now(),
+			}
+		}
+	}
+
+	// Marshal to JSON
+	data, err := json.MarshalIndent(state, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal state: %w", err)
+	}
+
+	// Write to file (use temp file + rename for atomicity)
+	tempPath := c.stateFilePath + ".tmp"
+	if err := os.WriteFile(tempPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write state file: %w", err)
+	}
+
+	if err := os.Rename(tempPath, c.stateFilePath); err != nil {
+		os.Remove(tempPath) // Clean up temp file on error
+		return fmt.Errorf("failed to rename state file: %w", err)
+	}
+
+	if c.config.Verbose && len(state.Sessions) > 0 {
+		fmt.Printf("Saved %d session(s) to state file\n", len(state.Sessions))
+	}
+
+	return nil
+}
+
+// cleanupOldPersistedSessions removes old sessions from the state file
+func (c *AssetClient) cleanupOldPersistedSessions() {
+	data, err := os.ReadFile(c.stateFilePath)
+	if err != nil {
+		return // File doesn't exist or can't be read - nothing to clean
+	}
+
+	var state persistedState
+	if err := json.Unmarshal(data, &state); err != nil {
+		return // Can't parse - leave it alone
+	}
+
+	// Remove old sessions
+	cutoff := time.Now().Add(-stateMaxAge)
+	needsUpdate := false
+
+	for id, session := range state.Sessions {
+		// Remove if too old or if already completed/failed
+		if session.StartTime.Before(cutoff) || 
+		   (session.Status != "generating" && session.Status != "starting" && session.Status != "pending") {
+			delete(state.Sessions, id)
+			needsUpdate = true
+		}
+	}
+
+	// Save updated state if we removed anything
+	if needsUpdate {
+		state.UpdatedAt = time.Now()
+		data, err := json.MarshalIndent(state, "", "  ")
+		if err == nil {
+			os.WriteFile(c.stateFilePath, data, 0644)
+		}
+
+		if c.config.Verbose {
+			fmt.Printf("Cleaned up old sessions from state file\n")
+		}
+	}
+}
+
+// updateSessionState updates a session in both memory and persistent state
+func (c *AssetClient) updateSessionState(sessionID, status string, progress float64) error {
+	c.mu.Lock()
+	if session, exists := c.sessions[sessionID]; exists {
+		session.Status = status
+		session.Progress = progress
+	}
+	c.mu.Unlock()
+
+	// Persist to file
+	return c.saveStateToFile()
+}
+
+// removeSessionState removes a session from both memory and persistent state
+func (c *AssetClient) removeSessionState(sessionID string) error {
+	c.mu.Lock()
+	delete(c.sessions, sessionID)
+	c.mu.Unlock()
+
+	// Persist to file
+	return c.saveStateToFile()
 }
 
 // parseSwarmUIError attempts to parse a SwarmUI error response from raw body bytes
@@ -1395,15 +1601,26 @@ func (c *AssetClient) applyDownscale(imagePath string, opts *DownloadOptions) er
 
 // ServerStatus represents the status of the SwarmUI server
 type ServerStatus struct {
-	ServerURL    string                 `json:"server_url"`
-	Status       string                 `json:"status"`
-	ResponseTime string                 `json:"response_time"`
-	Version      string                 `json:"version,omitempty"`
-	SessionID    string                 `json:"session_id,omitempty"`
-	Backends     []BackendStatus        `json:"backends,omitempty"`
-	ModelsCount  int                    `json:"models_count"`
-	ModelsLoaded int                    `json:"models_loaded"`
-	SystemInfo   map[string]interface{} `json:"system_info,omitempty"`
+	ServerURL          string                 `json:"server_url"`
+	Status             string                 `json:"status"`
+	ResponseTime       string                 `json:"response_time"`
+	Version            string                 `json:"version,omitempty"`
+	SessionID          string                 `json:"session_id,omitempty"`
+	Backends           []BackendStatus        `json:"backends,omitempty"`
+	ModelsCount        int                    `json:"models_count"`
+	ModelsLoaded       int                    `json:"models_loaded"`
+	SystemInfo         map[string]interface{} `json:"system_info,omitempty"`
+	ActiveGenerations  []ActiveGeneration     `json:"active_generations,omitempty"`
+	GenerationsRunning int                    `json:"generations_running"`
+}
+
+// ActiveGeneration represents a currently running generation
+type ActiveGeneration struct {
+	SessionID string    `json:"session_id"`
+	Status    string    `json:"status"`
+	Progress  float64   `json:"progress"`
+	StartTime time.Time `json:"start_time"`
+	Duration  string    `json:"duration"`
 }
 
 // BackendStatus represents the status of a single backend
@@ -1413,6 +1630,40 @@ type BackendStatus struct {
 	Status      string `json:"status"`
 	ModelLoaded string `json:"model_loaded,omitempty"`
 	GPU         string `json:"gpu,omitempty"`
+}
+
+// GetActiveGenerations returns a list of currently running generation sessions
+func (c *AssetClient) GetActiveGenerations() []ActiveGeneration {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	activeGens := make([]ActiveGeneration, 0)
+
+	for _, session := range c.sessions {
+		// Only include sessions that are actively generating
+		if session.Status == "generating" || session.Status == "starting" || session.Status == "pending" {
+			duration := time.Since(session.StartTime)
+			activeGens = append(activeGens, ActiveGeneration{
+				SessionID: session.ID,
+				Status:    session.Status,
+				Progress:  session.Progress,
+				StartTime: session.StartTime,
+				Duration:  formatDuration(duration),
+			})
+		}
+	}
+
+	return activeGens
+}
+
+// formatDuration formats a duration into a human-readable string
+func formatDuration(d time.Duration) string {
+	if d < time.Minute {
+		return fmt.Sprintf("%.0fs", d.Seconds())
+	} else if d < time.Hour {
+		return fmt.Sprintf("%.1fm", d.Minutes())
+	}
+	return fmt.Sprintf("%.1fh", d.Hours())
 }
 
 // GetServerStatus queries the SwarmUI server for its current status
@@ -1454,6 +1705,21 @@ func (c *AssetClient) GetServerStatus(ctx context.Context) (*ServerStatus, error
 			}
 		}
 		status.ModelsLoaded = loadedCount
+	}
+
+	// Get active generation information from local tracking
+	activeGens := c.GetActiveGenerations()
+	status.ActiveGenerations = activeGens
+	status.GenerationsRunning = len(activeGens)
+
+	// If we don't have local session tracking, infer from backend status
+	// A backend with status "running" likely indicates an active generation
+	if len(activeGens) == 0 && len(status.Backends) > 0 {
+		for _, backend := range status.Backends {
+			if backend.Status == "running" || backend.Status == "generating" {
+				status.GenerationsRunning++
+			}
+		}
 	}
 
 	return status, nil

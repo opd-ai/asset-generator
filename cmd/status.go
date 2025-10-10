@@ -20,6 +20,7 @@ var statusCmd = &cobra.Command{
   - Available backends and their states
   - Current session information
   - Model loading status
+  - Active generation sessions (if any)
 
 Examples:
   # Check server status
@@ -125,8 +126,32 @@ func formatStatusTable(status *client.ServerStatus) string {
 		}
 	}
 
+	// Active generations info
+	if len(status.ActiveGenerations) > 0 {
+		result += fmt.Sprintf("\nActive Generations\n")
+		result += fmt.Sprintf("───────────────────────────────────────────────\n")
+		for i, gen := range status.ActiveGenerations {
+			result += fmt.Sprintf("  Generation %d:\n", i+1)
+			result += fmt.Sprintf("    Session ID:    %s\n", gen.SessionID)
+			result += fmt.Sprintf("    Status:        %s\n", colorizeStatus(gen.Status))
+			result += fmt.Sprintf("    Progress:      %.1f%%\n", gen.Progress*100)
+			result += fmt.Sprintf("    Duration:      %s\n", gen.Duration)
+			result += fmt.Sprintf("\n")
+		}
+	} else if status.GenerationsRunning > 0 {
+		result += fmt.Sprintf("\nActive Generations\n")
+		result += fmt.Sprintf("───────────────────────────────────────────────\n")
+		result += fmt.Sprintf("Estimated running: %d (inferred from backend status)\n", status.GenerationsRunning)
+		result += fmt.Sprintf("\nNote: Generation details unavailable - check backend status above\n")
+		result += fmt.Sprintf("      for more information about active processing.\n")
+	} else {
+		result += fmt.Sprintf("\nActive Generations\n")
+		result += fmt.Sprintf("───────────────────────────────────────────────\n")
+		result += fmt.Sprintf("No generations currently running\n")
+	}
+
 	// System info
-	if status.SystemInfo != nil && len(status.SystemInfo) > 0 {
+	if len(status.SystemInfo) > 0 {
 		result += fmt.Sprintf("\nSystem Information\n")
 		result += fmt.Sprintf("───────────────────────────────────────────────\n")
 		for key, value := range status.SystemInfo {
@@ -140,9 +165,9 @@ func formatStatusTable(status *client.ServerStatus) string {
 func colorizeStatus(status string) string {
 	// Simple status coloring using ANSI codes (works on Linux terminals)
 	switch status {
-	case "running", "loaded", "active", "online", "ready":
+	case "running", "loaded", "active", "online", "ready", "generating":
 		return fmt.Sprintf("\033[32m%s\033[0m", status) // Green
-	case "idle", "unloaded":
+	case "idle", "unloaded", "pending", "starting":
 		return fmt.Sprintf("\033[33m%s\033[0m", status) // Yellow
 	case "error", "failed", "offline":
 		return fmt.Sprintf("\033[31m%s\033[0m", status) // Red
