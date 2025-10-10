@@ -49,12 +49,12 @@ type PipelineSpec struct {
 
 // AssetGroup represents a collection of related assets
 type AssetGroup struct {
-	Name       string                 `yaml:"name"`                 // Group name (e.g., "characters", "backgrounds")
-	OutputDir  string                 `yaml:"output_dir"`           // Subdirectory for this group
-	SeedOffset int64                  `yaml:"seed_offset"`          // Offset to add to base seed
-	Metadata   map[string]interface{} `yaml:"metadata,omitempty"`   // Group metadata (appended to prompts)
-	Assets     []Asset                `yaml:"assets"`               // Individual assets in this group
-	Subgroups  []AssetGroup           `yaml:"subgroups,omitempty"`  // Nested groups
+	Name       string                 `yaml:"name"`                // Group name (e.g., "characters", "backgrounds")
+	OutputDir  string                 `yaml:"output_dir"`          // Subdirectory for this group
+	SeedOffset int64                  `yaml:"seed_offset"`         // Offset to add to base seed
+	Metadata   map[string]interface{} `yaml:"metadata,omitempty"`  // Group metadata (appended to prompts)
+	Assets     []Asset                `yaml:"assets"`              // Individual assets in this group
+	Subgroups  []AssetGroup           `yaml:"subgroups,omitempty"` // Nested groups
 }
 
 // Asset represents a single asset to generate
@@ -240,7 +240,7 @@ func runPipeline(cmd *cobra.Command, args []string) error {
 		c, f, err := processGroup(ctx, group, pipelineOutputDir, &completed, totalAssets, nil)
 		completed += c
 		failed += f
-		
+
 		if err != nil && !pipelineContinueError {
 			return err
 		}
@@ -368,19 +368,19 @@ func mergeMetadata(parent, child map[string]interface{}) map[string]interface{} 
 	if parent == nil && child == nil {
 		return nil
 	}
-	
+
 	result := make(map[string]interface{})
-	
+
 	// Copy parent metadata
 	for k, v := range parent {
 		result[k] = v
 	}
-	
+
 	// Override with child metadata
 	for k, v := range child {
 		result[k] = v
 	}
-	
+
 	return result
 }
 
@@ -534,7 +534,7 @@ func previewPipeline(spec *PipelineSpec) error {
 func previewGroups(groups []AssetGroup, indent string, parentMetadata map[string]interface{}) {
 	for _, group := range groups {
 		fmt.Printf("%s%s (%s):\n", indent, group.Name, group.OutputDir)
-		
+
 		// Merge metadata
 		groupMetadata := mergeMetadata(parentMetadata, group.Metadata)
 		if len(groupMetadata) > 0 {
@@ -546,7 +546,7 @@ func previewGroups(groups []AssetGroup, indent string, parentMetadata map[string
 			seed := pipelineBaseSeed + group.SeedOffset + int64(i)
 			assetMetadata := mergeMetadata(groupMetadata, asset.Metadata)
 			enhancedPrompt := buildEnhancedPrompt(asset.Prompt, assetMetadata)
-			
+
 			fmt.Printf("%s  [%s] %s (seed: %d)\n", indent, asset.ID, asset.Name, seed)
 			if verbose {
 				fmt.Printf("%s    Prompt: %s\n", indent, enhancedPrompt)
@@ -561,7 +561,7 @@ func previewGroups(groups []AssetGroup, indent string, parentMetadata map[string
 			fmt.Println()
 			previewGroups(group.Subgroups, indent+"  ", groupMetadata)
 		}
-		
+
 		fmt.Println()
 	}
 }
