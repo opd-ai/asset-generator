@@ -715,8 +715,8 @@ func (c *AssetClient) cleanupOldPersistedSessions() {
 
 	for id, session := range state.Sessions {
 		// Remove if too old or if already completed/failed
-		if session.StartTime.Before(cutoff) || 
-		   (session.Status != "generating" && session.Status != "starting" && session.Status != "pending") {
+		if session.StartTime.Before(cutoff) ||
+			(session.Status != "generating" && session.Status != "starting" && session.Status != "pending") {
 			delete(state.Sessions, id)
 			needsUpdate = true
 		}
