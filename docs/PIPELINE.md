@@ -110,7 +110,7 @@ asset-generator pipeline --file pipeline.yaml
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--output-dir` | `./pipeline-output` | Output directory for generated assets |
-| `--base-seed` | `42` | Base seed for reproducible generation |
+| `--base-seed` | `-1` (random) | Base seed for reproducible generation (0 or -1 for random) |
 | `--model` | (none) | Model to use for all generations |
 | `--steps` | `40` | Number of inference steps |
 | `--width` | `768` | Image width in pixels |
@@ -274,6 +274,10 @@ asset-generator pipeline --file deck.yaml --base-seed 42
 ```
 
 The pipeline automatically calculates unique seeds for each asset based on the base seed.
+
+**Note:** By default (when `--base-seed` is not specified, or set to `0` or `-1`), a random seed is 
+generated for each pipeline run. The generated seed is displayed in the output so you can reproduce 
+the same results later by explicitly specifying that seed with `--base-seed`.
 
 ### 3. Style Consistency
 

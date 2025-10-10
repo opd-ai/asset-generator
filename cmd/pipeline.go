@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/opd-ai/asset-generator/pkg/client"
 	"github.com/spf13/cobra"
@@ -153,7 +154,7 @@ func init() {
 	pipelineCmd.Flags().StringVar(&pipelineOutputDir, "output-dir", "./pipeline-output", "output directory for generated assets")
 
 	// Generation parameters
-	pipelineCmd.Flags().Int64Var(&pipelineBaseSeed, "base-seed", 42, "base seed for reproducible generation")
+	pipelineCmd.Flags().Int64Var(&pipelineBaseSeed, "base-seed", -1, "base seed for reproducible generation (0 or -1 for random)")
 	pipelineCmd.Flags().StringVar(&pipelineModel, "model", "", "model to use for all generations")
 	pipelineCmd.Flags().IntVar(&pipelineSteps, "steps", 40, "number of inference steps")
 	pipelineCmd.Flags().IntVar(&pipelineWidth, "width", 768, "image width")
@@ -212,6 +213,14 @@ func runPipeline(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(os.Stderr, "Pipeline loaded: %d total assets\n", totalAssets)
 		printGroupSummary(spec.Assets, "")
 		fmt.Fprintf(os.Stderr, "\n")
+	}
+
+	// Generate random seed if not specified (both -1 and 0 trigger random seed)
+	if pipelineBaseSeed == -1 || pipelineBaseSeed == 0 {
+		pipelineBaseSeed = time.Now().UnixNano()
+		if !quiet {
+			fmt.Fprintf(os.Stderr, "Generated random base seed: %d\n\n", pipelineBaseSeed)
+		}
 	}
 
 	if pipelineDryRun {

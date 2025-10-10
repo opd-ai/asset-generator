@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Random seed by default for pipeline command**: The `--base-seed` flag now defaults to `-1` (random)
+  instead of `42`. This provides more variety by default while still allowing reproducibility by
+  explicitly specifying a seed. The generated random seed is displayed in the output for later reproduction.
 - **Pipeline system refactored to be fully generic**: Major breaking change
   - Removed all tarot-specific code and data structures
   - Replaced with flexible, hierarchical asset group system

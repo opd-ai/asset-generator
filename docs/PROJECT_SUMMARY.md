@@ -202,7 +202,7 @@ asset-generator pipeline --file YAML    # Process pipeline file
 Flags:
   --file                    # Pipeline YAML file (required)
   --output-dir              # Output directory (default: ./pipeline-output)
-  --base-seed               # Base seed for reproducibility (default: 42)
+  --base-seed               # Base seed for reproducibility (default: -1 for random, 0 also triggers random)
   --model                   # Model to use
   --steps                   # Inference steps (default: 40)
   --width                   # Image width (default: 768)

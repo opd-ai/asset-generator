@@ -36,7 +36,7 @@ asset-generator pipeline --file deck.yaml \
 
 ### Generation
 - `--output-dir` - Output directory (default: `./pipeline-output`)
-- `--base-seed` - Base seed for reproducibility (default: `42`)
+- `--base-seed` - Base seed for reproducibility (default: `-1` for random, 0 also triggers random)
 - `--steps` - Inference steps (default: `40`)
 - `--width` - Image width (default: `768`)
 - `--height` - Image height (default: `1344`)

@@ -209,8 +209,11 @@ assets:
 
 Seeds are calculated as: `base_seed + group_seed_offset + asset_index`
 
+By default, if `--base-seed` is not specified, or set to `0` or `-1`, a random seed is generated 
+for each pipeline run. The generated seed is displayed in the output so you can reproduce results later.
+
 ```yaml
-# With --base-seed 1000
+# With --base-seed 1000 (or random if not specified or 0/-1)
 assets:
   - name: Group A
     seed_offset: 0
@@ -273,7 +276,7 @@ asset-generator pipeline [flags]
 Flags:
   --file string               Pipeline YAML file (required)
   --output-dir string         Output directory (default: "./pipeline-output")
-  --base-seed int            Base seed for reproducibility (default: 42)
+  --base-seed int            Base seed for reproducibility (0 or -1 for random, default: -1)
   --dry-run                  Preview without generating
   --continue-on-error        Don't stop if individual generations fail
   
