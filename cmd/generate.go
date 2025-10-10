@@ -30,6 +30,11 @@ var (
 	generateSaveImages       bool   // Download and save images locally
 	generateOutputDir        string // Directory to save downloaded images
 	generateFilenameTemplate string // Template for custom filenames
+	// SkimmedCFG (Distilled CFG) options
+	generateSkimmedCFG      bool    // Enable Skimmed CFG for improved quality/speed
+	generateSkimmedCFGScale float64 // Skimmed CFG scale value
+	generateSkimmedCFGStart float64 // Start percentage for Skimmed CFG (0-1)
+	generateSkimmedCFGEnd   float64 // End percentage for Skimmed CFG (0-1)
 	// Auto-crop postprocessing options
 	generateAutoCrop               bool // Enable auto-crop to remove whitespace
 	generateAutoCropThreshold      int  // Whitespace detection threshold (0-255)
@@ -102,6 +107,16 @@ Examples:
     --save-images --downscale-width 1024 \
     --downscale-filter lanczos
   
+  # Use Skimmed CFG for improved quality and faster generation
+  asset-generator generate image \
+    --prompt "detailed portrait" \
+    --skimmed-cfg --skimmed-cfg-scale 3.0
+  
+  # Skimmed CFG with custom range (apply only during middle of generation)
+  asset-generator generate image \
+    --prompt "landscape painting" \
+    --skimmed-cfg --skimmed-cfg-start 0.2 --skimmed-cfg-end 0.8
+  
   # Save metadata to specific file
   asset-generator generate image \
     --prompt "cat wearing sunglasses" \
@@ -167,6 +182,11 @@ func init() {
 	generateImageCmd.Flags().IntVar(&generateDownscaleHeight, "downscale-height", 0, "downscale images to this height after download (0=auto from width)")
 	generateImageCmd.Flags().Float64Var(&generateDownscalePercentage, "downscale-percentage", 0, "downscale by percentage (1-100, 0=disabled, overrides width/height)")
 	generateImageCmd.Flags().StringVar(&generateDownscaleFilter, "downscale-filter", "lanczos", "downscaling algorithm: lanczos (best), bilinear, nearest")
+	// SkimmedCFG (Distilled CFG) flags - advanced sampling technique for improved quality/speed
+	generateImageCmd.Flags().BoolVar(&generateSkimmedCFG, "skimmed-cfg", false, "enable Skimmed CFG (Distilled CFG) for improved quality and speed")
+	generateImageCmd.Flags().Float64Var(&generateSkimmedCFGScale, "skimmed-cfg-scale", 3.0, "Skimmed CFG scale value (typically lower than standard CFG)")
+	generateImageCmd.Flags().Float64Var(&generateSkimmedCFGStart, "skimmed-cfg-start", 0.0, "start percentage for Skimmed CFG application (0.0-1.0)")
+	generateImageCmd.Flags().Float64Var(&generateSkimmedCFGEnd, "skimmed-cfg-end", 1.0, "end percentage for Skimmed CFG application (0.0-1.0)")
 
 	generateImageCmd.MarkFlagRequired("prompt")
 
@@ -178,6 +198,10 @@ func init() {
 	viper.BindPFlag("generate.height", generateImageCmd.Flags().Lookup("height")) // Backward compatibility alias
 	viper.BindPFlag("generate.cfg-scale", generateImageCmd.Flags().Lookup("cfg-scale"))
 	viper.BindPFlag("generate.sampler", generateImageCmd.Flags().Lookup("sampler"))
+	viper.BindPFlag("generate.skimmed-cfg", generateImageCmd.Flags().Lookup("skimmed-cfg"))
+	viper.BindPFlag("generate.skimmed-cfg-scale", generateImageCmd.Flags().Lookup("skimmed-cfg-scale"))
+	viper.BindPFlag("generate.skimmed-cfg-start", generateImageCmd.Flags().Lookup("skimmed-cfg-start"))
+	viper.BindPFlag("generate.skimmed-cfg-end", generateImageCmd.Flags().Lookup("skimmed-cfg-end"))
 }
 
 func runGenerateImage(cmd *cobra.Command, args []string) error {
@@ -221,6 +245,19 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 	// Only include negative prompt if non-empty to avoid unnecessary API payload
 	if generateNegPrompt != "" {
 		req.Parameters["negative_prompt"] = generateNegPrompt
+	}
+
+	// Add SkimmedCFG parameters if enabled
+	if generateSkimmedCFG {
+		req.Parameters["skimmedcfg"] = true
+		req.Parameters["skimmedcfgscale"] = generateSkimmedCFGScale
+		// Only include start/end if they differ from defaults
+		if generateSkimmedCFGStart != 0.0 {
+			req.Parameters["skimmedcfgstart"] = generateSkimmedCFGStart
+		}
+		if generateSkimmedCFGEnd != 1.0 {
+			req.Parameters["skimmedcfgend"] = generateSkimmedCFGEnd
+		}
 	}
 
 	// Set model if specified

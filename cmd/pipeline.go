@@ -35,6 +35,11 @@ var (
 	pipelineDownscaleHeight        int
 	pipelineDownscalePercentage    float64
 	pipelineDownscaleFilter        string
+	// SkimmedCFG (Distilled CFG) options
+	pipelineSkimmedCFG      bool
+	pipelineSkimmedCFGScale float64
+	pipelineSkimmedCFGStart float64
+	pipelineSkimmedCFGEnd   float64
 )
 
 // PipelineSpec represents the structure of a pipeline YAML file
@@ -170,6 +175,11 @@ func init() {
 	pipelineCmd.Flags().IntVar(&pipelineDownscaleHeight, "downscale-height", 0, "downscale to this height (0=disabled)")
 	pipelineCmd.Flags().Float64Var(&pipelineDownscalePercentage, "downscale-percentage", 0, "downscale by percentage (0=disabled)")
 	pipelineCmd.Flags().StringVar(&pipelineDownscaleFilter, "downscale-filter", "lanczos", "downscaling filter (lanczos, bilinear, nearest)")
+	// SkimmedCFG (Distilled CFG) options
+	pipelineCmd.Flags().BoolVar(&pipelineSkimmedCFG, "skimmed-cfg", false, "enable Skimmed CFG for improved quality and speed")
+	pipelineCmd.Flags().Float64Var(&pipelineSkimmedCFGScale, "skimmed-cfg-scale", 3.0, "Skimmed CFG scale value")
+	pipelineCmd.Flags().Float64Var(&pipelineSkimmedCFGStart, "skimmed-cfg-start", 0.0, "start percentage for Skimmed CFG (0.0-1.0)")
+	pipelineCmd.Flags().Float64Var(&pipelineSkimmedCFGEnd, "skimmed-cfg-end", 1.0, "end percentage for Skimmed CFG (0.0-1.0)")
 
 	pipelineCmd.MarkFlagRequired("file")
 }
@@ -399,6 +409,18 @@ func generateCard(ctx context.Context, prompt, name, outputPath string, seed int
 
 	if pipelineNegPrompt != "" {
 		req.Parameters["negative_prompt"] = pipelineNegPrompt
+	}
+
+	// Add SkimmedCFG parameters if enabled
+	if pipelineSkimmedCFG {
+		req.Parameters["skimmedcfg"] = true
+		req.Parameters["skimmedcfgscale"] = pipelineSkimmedCFGScale
+		if pipelineSkimmedCFGStart != 0.0 {
+			req.Parameters["skimmedcfgstart"] = pipelineSkimmedCFGStart
+		}
+		if pipelineSkimmedCFGEnd != 1.0 {
+			req.Parameters["skimmedcfgend"] = pipelineSkimmedCFGEnd
+		}
 	}
 
 	if pipelineModel != "" {

@@ -5,8 +5,9 @@ A powerful command-line interface for interacting with AI asset generation APIs.
 ## Features
 
 - 🎨 **Asset Generation**: Generate images using text-to-image models
-- � **Pipeline Processing**: Automated batch generation from YAML pipeline files
-- �💾 **Image Download**: Automatically download and save generated images locally
+- 🎯 **Skimmed CFG**: Advanced sampling technique for improved quality and speed
+- 🔄 **Pipeline Processing**: Automated batch generation from YAML pipeline files
+- 💾 **Image Download**: Automatically download and save generated images locally
 - 🔒 **Automatic Metadata Stripping**: All PNG images have metadata removed for privacy and security
 - ✂️ **Auto-Crop**: Remove whitespace borders from images while preserving aspect ratio
 - 🔽 **Image Postprocessing**: High-quality Lanczos downscaling after download
@@ -91,6 +92,12 @@ asset-generator generate image \
   --batch 4 \
   --save-images \
   --output-dir ./landscapes
+
+# Use Skimmed CFG for improved quality and speed
+asset-generator generate image \
+  --prompt "detailed portrait photograph" \
+  --skimmed-cfg \
+  --skimmed-cfg-scale 3.0
 ```
 
 ### Pipeline Processing
@@ -226,8 +233,28 @@ Available for all commands:
 | `--downscale-height` | | Downscale to this height after download (0=auto) | `0` |
 | `--downscale-percentage` | | Downscale by percentage (1-100, takes precedence) | `0` |
 | `--downscale-filter` | | Downscaling algorithm: lanczos, bilinear, nearest | `lanczos` |
+| `--skimmed-cfg` | | Enable Skimmed CFG (Distilled CFG) for improved quality/speed | `false` |
+| `--skimmed-cfg-scale` | | Skimmed CFG scale value (typically lower than standard CFG) | `3.0` |
+| `--skimmed-cfg-start` | | Start percentage for Skimmed CFG application (0.0-1.0) | `0.0` |
+| `--skimmed-cfg-end` | | End percentage for Skimmed CFG application (0.0-1.0) | `1.0` |
 
 > **Note:** The `--length` flag is used for the vertical dimension (height) for API compatibility with SwarmUI. Both `--length` and `--height` are supported as aliases.
+
+### About Skimmed CFG
+
+Skimmed CFG (also known as Distilled CFG or Dynamic CFG) is an advanced sampling technique that can improve generation quality and speed with compatible models. It works by applying a more efficient guidance strategy during the denoising process.
+
+**Key benefits:**
+- Improved image quality and coherence
+- Potentially faster generation times
+- Better adherence to prompts with lower CFG scales
+
+**Usage tips:**
+- Use lower `--skimmed-cfg-scale` values (2.0-4.0) compared to standard CFG
+- Adjust `--skimmed-cfg-start` and `--skimmed-cfg-end` to apply only during specific phases of generation
+- Not all models support this feature - check your model documentation
+
+**Learn more:** See the [Skimmed CFG documentation](docs/SKIMMED_CFG.md) for detailed usage examples and best practices.
 
 ## Image Download Feature
 

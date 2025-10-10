@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Skimmed CFG support**: Advanced sampling technique for improved generation quality and speed
+  - `--skimmed-cfg` flag to enable Skimmed CFG (Distilled CFG)
+  - `--skimmed-cfg-scale` for adjusting guidance scale (default: 3.0)
+  - `--skimmed-cfg-start` for phase-specific application (0.0-1.0)
+  - `--skimmed-cfg-end` for phase-specific application (0.0-1.0)
+  - Available in both `generate image` and `pipeline` commands
+  - Config file support for default Skimmed CFG settings
+  - Comprehensive documentation in docs/SKIMMED_CFG.md
+  - Quick reference guide in docs/SKIMMED_CFG_QUICKREF.md
 - **Pipeline processing feature**: Native YAML pipeline file processing for batch generation
   - `pipeline` command for automated multi-asset generation workflows
   - Eliminates need for external shell scripts and yq dependencies
