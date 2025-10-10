@@ -175,7 +175,24 @@ asset-generator status --format json
 asset-generator status -v
 ```
 
-See [docs/STATUS_COMMAND.md](docs/STATUS_COMMAND.md) for complete documentation.
+**NEW: Cross-Process Generation Tracking** 🎉
+
+The status command now tracks active generations across different terminal windows using file-based state sharing:
+
+```bash
+# Terminal 1: Start a generation
+cd ~/my-project
+asset-generator generate image --prompt "artwork"
+
+# Terminal 2: Check status (different process!)
+cd ~/my-project
+asset-generator status
+# Shows: Generation details with progress!
+```
+
+State is persisted to `.asset-generator-state.json` in the working directory, enabling accurate cross-process tracking while maintaining project isolation.
+
+See [docs/STATUS_COMMAND.md](docs/STATUS_COMMAND.md) and [docs/STATE_FILE_SHARING.md](docs/STATE_FILE_SHARING.md) for complete documentation.
 
 ### Cancel Generations
 

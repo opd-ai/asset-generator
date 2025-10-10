@@ -140,28 +140,70 @@ fi
 
 ## How It Works
 
-The CLI tracks generation sessions locally in the client during active generation. When you run `status`, it:
+The CLI tracks generation sessions using a combination of in-memory and file-based state. When you run `status`, it:
 
-1. Queries the SwarmUI server for connectivity and backend info
-2. Checks the local session tracker for active generations
-3. Displays any sessions with status: `generating`, `starting`, or `pending`
-4. Shows progress and elapsed time for each active session
+1. Loads persisted state from `.asset-generator-state.json` in the current working directory
+2. Queries the SwarmUI server for connectivity and backend info
+3. Checks both file-based and in-memory session tracking for active generations
+4. Displays any sessions with status: `generating`, `starting`, or `pending`
+5. Shows progress and elapsed time for each active session
 
-### Important Limitations
+### File-Based State Sharing (NEW!)
 
-**Cross-Process Tracking**: The session tracking is in-memory only and not shared across different CLI processes. This means:
+Sessions are now persisted to a state file, enabling cross-process tracking:
 
-- ✅ **Works**: Checking status while a generation is running in the same process
-- ❌ **Doesn't work**: Checking status from a different terminal window
-- ❌ **Doesn't work**: Checking status after a generation completes (session is cleaned up)
+**State File**: `.asset-generator-state.json` (in current working directory)
 
-**Why**: Each `asset-generator` command creates a new process with its own memory. SwarmUI doesn't currently provide an API endpoint to query active generations globally.
+```json
+{
+  "sessions": {
+    "gen-abc123": {
+      "id": "gen-abc123",
+      "status": "generating",
+      "progress": 0.45,
+      "start_time": "2025-10-10T14:30:00Z",
+      "updated_at": "2025-10-10T14:32:15Z"
+    }
+  },
+  "updated_at": "2025-10-10T14:32:15Z"
+}
+```
 
-**Alternative**: Check the backend status to see if models are loaded and processing:
+### Cross-Process Tracking Now Works! ✅
+
+**Before**: Could only track within the same CLI process
+**Now**: Can track across different terminals if in the same directory
+
+```bash
+# Terminal 1
+cd ~/my-project
+asset-generator generate image --prompt "artwork"
+
+# Terminal 2 (different process!)
+cd ~/my-project
+asset-generator status
+# ✅ Shows full generation details!
+```
+
+### Important: Directory Matters
+
+The state file is directory-specific:
+- ✅ Same directory = shared state
+- ❌ Different directory = different state file
+
+This provides project isolation - each directory has its own independent state.
+
+### Alternative Detection
+
+If state file is unavailable (different directory, deleted, etc.), the CLI can still detect generations by checking backend status:
+
 ```bash
 asset-generator status --format json | jq '.backends[].status'
 ```
+
 If a backend shows status `running`, it's likely processing a generation.
+
+See [State File Sharing Documentation](STATE_FILE_SHARING.md) for complete details.
 
 ## Related Commands
 
