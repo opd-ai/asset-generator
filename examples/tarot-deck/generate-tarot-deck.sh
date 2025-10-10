@@ -15,27 +15,22 @@
 #
 # Examples:
 #   ./generate-tarot-deck.sh
-#   ./generate-tarot-deck.sh ./my-deck 42
-#   ./generate-tarot-deck.sh ./my-deck 42 --dry-run
-#   ./generate-tarot-deck.sh ./my-deck 42 --continue-on-error
 
 set -e
 
 # Configuration
-OUTPUT_DIR="${1:-./tarot-deck-output}"
-BASE_SEED="${2:-42}"
+OUTPUT_DIR="${OUTPUT_DIR:-./tarot-deck-output}"
+BASE_SEED="${BASE_SEED:-42}"
+MODEL="${MODEL:-XE-_Pixel_Flux_-_0-1.safetensors}"
 SPEC_FILE="tarot-spec.yaml"
 
-# Shift past the first two arguments so remaining args can be passed to pipeline
-shift 2 2>/dev/null || shift $# 2>/dev/null || true
-
 # Card dimensions (high resolution for printing)
-WIDTH=768
-HEIGHT=1344
+WIDTH=512
+HEIGHT=768
 
 # Generation parameters
 STEPS=40
-CFG_SCALE=7.5
+CFG_SCALE=4.5
 
 # Styling keywords for consistency
 STYLE_SUFFIX="detailed illustration, ornate decorative border, mystical symbols, rich colors, traditional tarot card design, professional quality"
@@ -70,6 +65,8 @@ echo "Using native pipeline command (no external dependencies needed)"
 echo ""
 
 # Execute the pipeline command with all configured parameters
+
+set -x  # Enable command echoing for transparency
 asset-generator pipeline \
     --file "$SPEC_FILE" \
     --output-dir "$OUTPUT_DIR" \
@@ -78,9 +75,11 @@ asset-generator pipeline \
     --height "$HEIGHT" \
     --steps "$STEPS" \
     --cfg-scale "$CFG_SCALE" \
+    --model "$MODEL" \
     --style-suffix "$STYLE_SUFFIX" \
     --negative-prompt "$NEGATIVE_PROMPT" \
     "$@"
+set +x  # Disable command echoing
 
 # Check exit status
 if [ $? -eq 0 ]; then
