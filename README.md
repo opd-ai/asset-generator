@@ -388,7 +388,7 @@ asset-generator generate image \
 - Prevents accidental upscaling
 - Three filter options: `lanczos` (highest quality), `bilinear` (balanced), `nearest` (fastest)
 
-**Flags:**
+**Flags for `generate image` command:**
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--downscale-width` | Target width in pixels (0=auto from height) | `0` |

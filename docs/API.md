@@ -1,171 +1,106 @@
-# SwarmUI API Documentation
+````markdown
+# Asset Generator CLI - SwarmUI API Integration Reference
+
+**Note**: This document describes how the Asset Generator CLI integrates with the SwarmUI API. For complete SwarmUI API documentation, refer to the [official SwarmUI repository](https://github.com/mcmonkeyprojects/SwarmUI).
+
+## Overview
+
+The Asset Generator CLI is a client application that communicates with SwarmUI (or compatible) image generation APIs. This document explains the API integration patterns used by the CLI.
 
 ### The Basics
 
-SwarmUI has a full-capability network API that you can use from external programs, both to use Swarm features (eg generate images) and to manage the Swarm instance (eg modify backends).
+SwarmUI provides a full-capability network API for image generation and model management. The Asset Generator CLI wraps these APIs to provide a convenient command-line interface.
 
-Swarm uses its own API - you can simply open the web interface, open your browser tools, and interact with Swarm to watch what API calls are made, and then replicate those from your own code.
+The majority of API calls take the form of `POST` requests sent to `(your server)/API/(route)`, containing JSON formatted inputs and receiving JSON formatted outputs.
 
-The majority of Swarm's API takes the form of `POST` requests sent to `(your server)/API/(route)`, containing JSON formatted inputs and receiving JSON formatted outputs.
+### WebSocket Support
 
-### Websockets
+The Asset Generator CLI supports WebSocket connections for real-time progress updates during image generation.
 
-Some API routes, designated with a `WS` suffix, take WebSocket connections. Usually these take one up front input, and give several outputs slowly over time (for example `GenerateText2ImageWS` gives progress updates as it goes and preview images).
+**WebSocket Feature Status**: ✅ **IMPLEMENTED**
+
+Use the `--websocket` flag with the `generate image` command to enable real-time progress tracking:
+
+```bash
+asset-generator generate image --prompt "your prompt" --websocket
+```
+
+WebSocket connections provide:
+- Real-time progress updates (actual progress, not simulated)
+- Live generation status
+- Detailed feedback during long-running generations (e.g., Flux models: 5-10 minutes)
+- Automatic fallback to HTTP if WebSocket connection fails
 
 ### Authorization
 
-All API routes, with the exception of `GetNewSession`, require a `session_id` input in the JSON. Naturally, call `GetNewSession` to get a session ID to use.
+All API routes, with the exception of `GetNewSession`, require a `session_id` input in the JSON. The Asset Generator CLI handles session management automatically.
 
-If the Swarm instance is configured to require accounts, you must feed a `cookie` named `swarm_token` with the value of a token associated with a valid SwarmUI account gotten from the UI (or direct API calls from an admin API handler).
-
-### Errors
-
-Any API route can potentially return an `error` or `error_id`.
-- If the `error_id` is `invalid_session_id`, you must recall `/API/GetNewSession` and try again.
-- Other `error_id`s are used contextually for specific calls.
-- Otherwise, generally `error` is display text fit to display to end users.
-
-## Quick Call Guide To Generate An Image
-
-The follow example generates an image using bash curl commands. This assumes running locally, on the default port without authorization requirement.
+If the SwarmUI instance is configured to require accounts, set your API key:
 
 ```bash
-# First, get a usable session ID:
-curl -H "Content-Type: application/json" -d "{}" -X POST http://localhost:7801/API/GetNewSession
-# EXAMPLE REPLY:
-#        {"session_id":"9D3534E30DA38499DE782BC38211976A58555AA6","user_id":"local","output_append_user":true,"version":"0.6.3.0.GIT-5ee406ba","server_id":"058716b5-c6f5-49ed-9ca3-be20d82e4c5f"}
-# Copy the "session_id" value above to reuse
-
-# Now, generate the image
-curl -H "Content-Type: application/json" -d '{"session_id":"9D3534E30DA38499DE782BC38211976A58555AA6","images":1,"prompt":"a cat","model":"OfficialStableDiffusion/sd_xl_base_1.0","width":1024,"height":1024}' -X POST http://localhost:7801/API/GenerateText2Image
-# EXAMPLE REPLY:
-#        {"images":["View/local/raw/2024-05-19/a cat-OfficialStableDiffusionsd_xl_base_10s-1872258705.png"]}
-# Copy the image URL
-
-# Now download the image to look at it
-wget "http://localhost:7801/View/local/raw/2024-05-19/a cat-OfficialStableDiffusionsd_xl_base_10s-1872258705.png"
+asset-generator config set api-key your-api-key-here
 ```
 
-## Routes
+### Error Handling
 
-Route documentation is categorized into a few sections:
+The Asset Generator CLI handles SwarmUI API errors gracefully:
+- `invalid_session_id`: Automatically obtains a new session and retries
+- Other errors: Displays descriptive error messages with troubleshooting suggestions
 
-- [AdminAPI](/docs/APIRoutes/AdminAPI.md) - Administrative server management APIs.
-- [BackendAPI](/docs/APIRoutes/BackendAPI.md) - Backend management APIs.
-- [UtilAPI](/docs/APIRoutes/UtilAPI.md) - General utility APIs.
-- [ModelsAPI](/docs/APIRoutes/ModelsAPI.md) - API routes related to handling models (including loras, wildcards, etc).
-- [T2IAPI](/docs/APIRoutes/T2IAPI.md) - Text2Image APIs.
-- [BasicAPIFeatures](/docs/APIRoutes/BasicAPIFeatures.md) - Basic general API routes, primarily for users and session handling.
-- Built-in-Extension APIs:
-    - [GridGeneratorExtension](/docs/APIRoutes/GridGeneratorExtension.md)
-    - [ComfyUIWebAPI](/docs/APIRoutes/ComfyUIWebAPI.md)
-    - [ImageBatchToolExtension](/docs/APIRoutes/ImageBatchToolExtension.md)
+## CLI Integration Examples
 
-## GET Routes
+The Asset Generator CLI provides a simplified interface to SwarmUI's API:
 
-The following `GET` routes are also available:
-- `/Text2Image` - HTML main page of the interface.
-- `/Install` - HTML page for the installer interface.
-- `/Error/404`, `/Error/BasicAPI`, `/Error/Internal`, `/Error/NoGetAPI` - Return HTML page displays explaining certain common errors.
-- `/css/*.css` - Stylesheets and themes.
-- `/js/*.js` - JavaScripts for the interface.
-- `/fonts/*.woff2`, `/imgs/*.jpg`, `/imgs/*.png`, `/favicon.ico` - Various asset files for the interface.
-- `/View/*.*` - Returns saved outputs. By default usually in a format like `/View/(user)/raw/(year-month-day)/(file).(ext)`, but is user-customizable.
-- `/Output/*.*` - legacy output call format. Do not use.
-- `/ViewSpecial/*.*` - Returns special data views. Notable example, `/ViewSpecial/Stable-Diffusion/OfficialStableDiffusion/sd_xl_base_1.0.safetensors` gets the preview icon for that model.
-- `/Audio/*.*` - Returns saved user audio files (in `Data/Audio`).
-- `/ExtensionFile/(extension)/*.*` - gets a web asset file from an extension.
-- `/ComfyBackendDirect/*.*` - direct pass-through to a comfy instance, if the [ComfyUI Backend Extension](/src/BuiltinExtensions/ComfyUIBackend/README.md) is in use.
+### Example 1: Generate an Image (CLI)
 
-## Example Client (C#)
-
-```cs
-using System.Text;
-using System.Net;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using FreneticUtilities.FreneticToolkit;
-using FreneticUtilities.FreneticExtensions;
-
-namespace MySwarmClient;
-
-public static class SwarmAPI
-{
-    public static HttpClient Client = new();
-
-    public static string Session = "";
-
-    public static string Address => "http://127.0.0.1:7801";
-
-    static SwarmAPI()
-    {
-        Client.DefaultRequestHeaders.Add("user-agent", "MySwarmClient/1.0");
-    }
-
-    public class SessionInvalidException : Exception
-    {
-    }
-
-    public static async Task GetSession()
-    {
-        JObject sessData = await Client.PostJson($"{Address}/API/GetNewSession", []);
-        Session = sessData["session_id"].ToString();
-    }
-
-    public static async Task<string> GenerateAnImage(string prompt)
-    {
-        return await RunWithSession(async () =>
-        {
-            JObject request = new()
-            {
-                ["images"] = 1,
-                ["session_id"] = Session,
-                ["donotsave"] = true,
-                ["prompt"] = prompt,
-                ["negativeprompt"] = "",
-                ["model"] = "OfficialStableDiffusion/sd_xl_base_1.0",
-                ["width"] = 1024,
-                ["height"] = 1024,
-                ["cfgscale"] = 7.5,
-                ["steps"] = 20,
-                ["seed"] = -1
-            };
-            JObject generated = await Client.PostJson($"{Address}/API/GenerateText2Image", request);
-            if (generated.TryGetValue("error_id", out JToken errorId) && errorId.ToString() == "invalid_session_id")
-            {
-                throw new SessionInvalidException();
-            }
-            else if (generated.TryGetValue("error", out JToken errorMessage))
-            {
-                throw new Exception($"Swarm API error: {errorMessage}");
-            }
-            return $"{generated["images"].First()}";
-        });
-    }
-
-    public static async Task<T> RunWithSession<T>(Func<Task<T>> call)
-    {
-        if (string.IsNullOrWhiteSpace(Session))
-        {
-            await GetSession();
-        }
-        try
-        {
-            return await call();
-        }
-        catch (SessionInvalidException)
-        {
-            await GetSession();
-            return await call();
-        }
-    }
-
-    /// <summary>Sends a JSON object post and receives a JSON object back.</summary>
-    public static async Task<JObject> PostJson(this HttpClient client, string url, JObject data)
-    {
-        ByteArrayContent content = new(data.ToString(Formatting.None).EncodeUTF8());
-        content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-        return JObject.Parse(await (await client.PostAsync(url, content)).Content.ReadAsStringAsync());
-    }
-}
+```bash
+# Using the Asset Generator CLI
+asset-generator generate image --prompt "a cat"
 ```
+
+This automatically:
+1. Obtains a session ID from `/API/GetNewSession`
+2. Submits generation request to `/API/GenerateText2Image`
+3. Parses the response and displays results
+
+### Example 2: Generate with WebSocket Progress (CLI)
+
+```bash
+# Use WebSocket for real-time progress
+asset-generator generate image --prompt "a cat" --websocket
+```
+
+This connects to `/API/GenerateText2ImageWS` for live updates.
+
+### Example 3: Download and Save Images (CLI)
+
+```bash
+# Download generated images to local disk
+asset-generator generate image \
+  --prompt "a cat" \
+  --save-images \
+  --output-dir ./my-images
+```
+
+## Implementation Details
+
+### API Client Features
+
+The Asset Generator CLI's API client (`pkg/client/client.go`) implements:
+
+- **HTTP Generation**: `GenerateImage()` - Standard REST API calls
+- **WebSocket Generation**: `GenerateImageWS()` - Real-time progress updates
+- **Session Management**: Automatic session creation, caching, and renewal
+- **Error Handling**: Automatic retry on session expiration
+- **Context Support**: Cancellation for graceful shutdown
+- **Progress Tracking**: Simulated progress (HTTP) or real-time progress (WebSocket)
+
+### Session Management
+
+Sessions are managed automatically:
+- First API call triggers session creation via `/API/GetNewSession`
+- Session ID is cached and reused for subsequent calls
+- Expired sessions are automatically renewed
+- Manual session management is not required
+
+## Direct API Access (Advanced)

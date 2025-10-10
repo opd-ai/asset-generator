@@ -137,6 +137,23 @@ asset-generator generate image \
   --seed 42
 ```
 
+### Generate with Real-Time Progress (WebSocket)
+
+Use WebSocket for authentic progress updates during generation:
+
+```bash
+asset-generator generate image \
+  --prompt "detailed fantasy landscape" \
+  --websocket
+```
+
+**Note**: WebSocket support requires SwarmUI server. Falls back to HTTP automatically if unavailable.
+
+Benefits:
+- Real-time progress updates (not simulated)
+- Particularly useful for long-running generations (Flux models: 5-10 minutes)
+- Live status feedback during generation
+
 ### Use Negative Prompts
 
 ```bash

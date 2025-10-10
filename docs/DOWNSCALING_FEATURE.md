@@ -1,7 +1,13 @@
 # Lanczos Downscaling Feature - Implementation Summary
 
 ## Overview
-Added local postprocessing capability to automatically downscale downloaded images using high-quality Lanczos filtering. This feature applies after images are downloaded from the API, allowing users to generate at high resolution but save bandwidth and disk space by storing downscaled versions.
+Add**File: `cmd/generate.go`**
+
+**Available flags for `generate image` command:**
+- `--downscale-width`: Target width in pixels (0=auto from height) ✅ **WORKING**
+- `--downscale-height`: Target height in pixels (0=auto from width) ✅ **WORKING**
+- `--downscale-percentage`: Scale by percentage (1-100, 0=disabled) ✅ **NOW WORKING** (fixed October 10, 2025)
+- `--downscale-filter`: Algorithm selection (lanczos/bilinear/nearest) ✅ **WORKING**postprocessing capability to automatically downscale downloaded images using high-quality Lanczos filtering. This feature applies after images are downloaded from the API, allowing users to generate at high resolution but save bandwidth and disk space by storing downscaled versions.
 
 **NEW:** Percentage-based downscaling support for easier scaling operations.
 
@@ -71,29 +77,44 @@ type DownloadOptions struct {
 
 **File: `cmd/generate.go`**
 
-**New flags:**
-- `--downscale-width`: Target width in pixels (0=auto from height)
-- `--downscale-height`: Target height in pixels (0=auto from width)
-- `--downscale-percentage`: Scale by percentage (1-100, takes precedence)
-- `--downscale-filter`: Algorithm selection (lanczos/bilinear/nearest)
+**Available flags for `generate image` command:**
+- `--downscale-width`: Target width in pixels (0=auto from height) ✅ **WORKING**
+- `--downscale-height`: Target height in pixels (0=auto from width) ✅ **WORKING**
+- `--downscale-filter`: Algorithm selection (lanczos/bilinear/nearest) ✅ **WORKING**
 
-**New variables:**
+**⚠️ MISSING FLAG:**
+- `--downscale-percentage`: ❌ **NOT AVAILABLE** (flag registration missing, see PERCENTAGE_DOWNSCALE_FEATURE.md)
+
+**Variables defined:**
 ```go
-generateDownscaleWidth      int
-generateDownscaleHeight     int
-generateDownscalePercentage float64
-generateDownscaleFilter     string
+generateDownscaleWidth      int     // ✅ Flag registered, works correctly
+generateDownscaleHeight     int     // ✅ Flag registered, works correctly
+generateDownscalePercentage float64 // ⚠️ Variable exists but flag NOT registered
+generateDownscaleFilter     string  // ✅ Flag registered, works correctly
 ```
+
+**File: `cmd/downscale.go`**
+
+**All flags working correctly:**
+- `--width` / `-w`: Target width ✅
+- `--height` / `-l`: Target height ✅
+- `--percentage` / `-p`: Scale by percentage ✅ **WORKING**
+- `--filter`: Algorithm selection ✅
+- `--output-file`: Output path ✅
+- `--in-place`: Replace original ✅
+
+**File: `cmd/pipeline.go`**
+
+**All flags working correctly:**
+- `--downscale-width`: Target width ✅
+- `--downscale-height`: Target height ✅
+- `--downscale-percentage`: Scale by percentage ✅ **WORKING**
+- `--downscale-filter`: Algorithm selection ✅
 
 **Updated download flow:**
 - All downloads now use `DownloadImagesWithOptions()`
 - Downscaling options passed through from CLI flags
 - Simplified logic by consolidating to single download method
-
-**Updated help text:**
-- Added example showing downscaling usage
-- Documents all three filter options
-- Explains aspect ratio auto-calculation
 
 ### 4. Documentation Updates
 
@@ -114,36 +135,59 @@ generateDownscaleFilter     string
 
 ## Usage Examples
 
-### Basic Downscaling
+### Generate Command (Postprocessing)
+
+**✅ WORKING - Using explicit dimensions:**
 ```bash
-# Generate at 2048x2048, save at 1024x1024 (absolute dimensions)
+# Generate at 2048x2048, save at 1024x1024
 asset-generator generate image \
   --prompt "detailed artwork" \
   --width 2048 --height 2048 \
   --save-images \
   --downscale-width 1024
+```
 
-# Generate at 2048x2048, save at 1024x1024 (percentage - simpler)
+**✅ NOW WORKING - Percentage-based (fixed October 10, 2025):**
+```bash
+# Generate at 2048x2048, save at 50% (1024x1024)
 asset-generator generate image \
   --prompt "detailed artwork" \
   --width 2048 --height 2048 \
   --save-images \
-  --downscale-percentage 50
+  --downscale-percentage 50  # ✅ NOW WORKS!
 ```
 
-### Standalone Downscaling
+### Standalone Downscaling Command
+
+**✅ ALL OPTIONS WORKING:**
 ```bash
-# Downscale existing images by percentage
+# Downscale existing images by percentage (WORKS)
 asset-generator downscale image.png --percentage 50
 
-# Downscale to specific dimensions
+# Downscale to specific dimensions (WORKS)
 asset-generator downscale photo.jpg --width 800 --height 600
 
-# Batch downscale in-place
+# Batch downscale in-place with percentage (WORKS)
 asset-generator downscale *.jpg --percentage 75 --in-place
 ```
 
+### Pipeline Command
+
+**✅ ALL OPTIONS WORKING:**
+```bash
+# Pipeline with percentage downscaling (WORKS)
+asset-generator pipeline --file spec.yaml \
+  --width 2048 --height 2048 \
+  --downscale-percentage 50
+
+# Pipeline with explicit dimensions (WORKS)
+asset-generator pipeline --file spec.yaml \
+  --downscale-width 1024
+```
+
 ### Auto-Calculate Dimensions
+
+**✅ WORKING - Generate command:**
 ```bash
 # Specify height only, width auto-calculated
 asset-generator generate image \

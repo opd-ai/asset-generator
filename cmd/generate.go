@@ -165,6 +165,7 @@ func init() {
 	// Downscale postprocessing flags
 	generateImageCmd.Flags().IntVar(&generateDownscaleWidth, "downscale-width", 0, "downscale images to this width after download (0=auto from height)")
 	generateImageCmd.Flags().IntVar(&generateDownscaleHeight, "downscale-height", 0, "downscale images to this height after download (0=auto from width)")
+	generateImageCmd.Flags().Float64Var(&generateDownscalePercentage, "downscale-percentage", 0, "downscale by percentage (1-100, 0=disabled, overrides width/height)")
 	generateImageCmd.Flags().StringVar(&generateDownscaleFilter, "downscale-filter", "lanczos", "downscaling algorithm: lanczos (best), bilinear, nearest")
 
 	generateImageCmd.MarkFlagRequired("prompt")
