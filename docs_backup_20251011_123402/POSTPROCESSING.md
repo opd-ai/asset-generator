@@ -528,8 +528,8 @@ Use `--auto-crop-preserve-aspect` for consistent dimensions:
 ## See Also
 
 - [SVG Conversion](SVG_CONVERSION.md) - Convert processed images to vector format
-- [User Guide - Filename Templates](USER_GUIDE.md#filename-templates) - Custom naming for downloaded images
-- [User Guide - Generation Features](USER_GUIDE.md#generation-features) - Scheduler, Skimmed CFG
+- [Filename Templates](FILENAME_TEMPLATES.md) - Custom naming for downloaded images
+- [Generation Features](GENERATION_FEATURES.md) - Scheduler, Skimmed CFG
 - [Pipeline Processing](PIPELINE.md) - Batch generation workflows with postprocessing
 - [Quick Start Guide](QUICKSTART.md) - Getting started with the CLI
 

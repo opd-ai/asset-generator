@@ -1,5 +1,5 @@
 ````markdown
-[🏠 Docs Home](README.md) | [📚 User Guide](USER_GUIDE.md) | [🔧 Commands](COMMANDS.md) | [🔗 Pipeline](PIPELINE.md)
+[🏠 Docs Home](README.md) | [📚 User Guide](GENERATION_FEATURES.md) | [🔧 Commands](COMMANDS.md) | [🔗 Pipeline](PIPELINE.md)
 
 ---
 
@@ -371,7 +371,7 @@ asset-generator generate image \
 
 Available schedulers: simple (default), normal, karras, exponential, sgm_uniform
 
-**Learn more:** See [USER_GUIDE.md](USER_GUIDE.md) for detailed scheduler comparison and usage guide.
+**Learn more:** See [GENERATION_FEATURES.md](GENERATION_FEATURES.md) for detailed scheduler comparison and usage guide.
 
 ### High-Quality Generation
 

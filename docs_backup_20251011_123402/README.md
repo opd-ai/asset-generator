@@ -21,11 +21,11 @@
 ### Feature Guides
 
 - **[Pipeline Processing](PIPELINE.md)** - Automated batch generation workflows
-- **[User Guide](USER_GUIDE.md)** - Complete feature guide with generation features, LoRA support, and filename templates
-- **[Troubleshooting](TROUBLESHOOTING.md)** - Error resolution and common issues
+- **[Generation Features](GENERATION_FEATURES.md)** - Scheduler, Skimmed CFG, and advanced parameters
+- **[LoRA Support](LORA_SUPPORT.md)** - Fine-tune generation with LoRA models
 - **[Postprocessing](POSTPROCESSING.md)** - Auto-crop, downscaling, and metadata stripping
 - **[SVG Conversion](SVG_CONVERSION.md)** - Convert images to vector format
-- **[Filename Templates](USER_GUIDE.md#filename-templates)** - Custom naming for downloaded images
+- **[Filename Templates](FILENAME_TEMPLATES.md)** - Custom naming for downloaded images
 
 ### Reference Documentation
 
@@ -46,12 +46,12 @@
 
 #### Generate Images
 - Basic generation → [Quick Start](QUICKSTART.md#generate-your-first-image)
-- Advanced parameters → [User Guide](USER_GUIDE.md)
-- Use LoRA models → [User Guide - LoRA Support](USER_GUIDE.md#lora-support)
+- Advanced parameters → [Generation Features](GENERATION_FEATURES.md)
+- Use LoRA models → [LoRA Support](LORA_SUPPORT.md)
 - Batch processing → [Pipeline Processing](PIPELINE.md)
 
 #### Process Images
-- Download images → [User Guide - Filename Templates](USER_GUIDE.md#filename-templates)
+- Download images → [Filename Templates](FILENAME_TEMPLATES.md)
 - Remove borders → [Postprocessing: Auto-Crop](POSTPROCESSING.md#auto-crop)
 - Resize images → [Postprocessing: Downscaling](POSTPROCESSING.md#downscaling)
 - Convert to SVG → [SVG Conversion](SVG_CONVERSION.md)
@@ -128,11 +128,11 @@ docs/
 │
 ├── Feature Guides
 │   ├── PIPELINE.md              Pipeline processing
-│   ├── USER_GUIDE.md            Complete user features guide
-│   ├── TROUBLESHOOTING.md       Error resolution guide
+│   ├── GENERATION_FEATURES.md   Advanced generation
+│   ├── LORA_SUPPORT.md          LoRA models
 │   ├── POSTPROCESSING.md        Image processing
 │   ├── SVG_CONVERSION.md        Vector conversion
-│   └── COMMANDS.md              Complete command reference
+│   └── FILENAME_TEMPLATES.md    Custom naming
 │
 ├── Reference
 │   └── SEED_BEHAVIOR.md         Seed handling

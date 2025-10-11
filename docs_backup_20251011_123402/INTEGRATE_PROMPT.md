@@ -262,7 +262,7 @@ assets:
         # Generates: enemy_goblin_001.png
 ```
 
-> 📖 **Further Reading**: See [USER_GUIDE.md - Filename Templates](USER_GUIDE.md#filename-templates) for advanced template patterns.
+> 📖 **Further Reading**: See [FILENAME_TEMPLATES.md](FILENAME_TEMPLATES.md) for advanced template patterns.
 
 ---
 
@@ -1525,15 +1525,15 @@ Now that you have asset-generator integrated into your project, explore advanced
 - **[QUICKSTART.md](QUICKSTART.md)** - Complete CLI usage guide
 - **[PIPELINE.md](PIPELINE.md)** - Advanced pipeline patterns and metadata cascading
 - **[COMMANDS.md](COMMANDS.md)** - Full command reference
-- **[USER_GUIDE.md](USER_GUIDE.md)** - Complete user features guide including generation features, LoRA support, and filename templates
+- **[GENERATION_FEATURES.md](GENERATION_FEATURES.md)** - LoRA, Skimmed CFG, and advanced parameters
 
 ### Advanced Topics
 
-- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Error resolution and common issues
+- **[FILENAME_TEMPLATES.md](FILENAME_TEMPLATES.md)** - Dynamic naming with variables and functions
 - **[POSTPROCESSING.md](POSTPROCESSING.md)** - Crop, downscale, and metadata management
 - **[SVG_CONVERSION.md](SVG_CONVERSION.md)** - Convert raster to vector graphics
 - **[STATE_FILE_SHARING.md](STATE_FILE_SHARING.md)** - Reproducibility and collaboration patterns
-- **[COMMANDS.md](COMMANDS.md)** - Complete command reference with all options and examples
+- **[LORA_SUPPORT.md](LORA_SUPPORT.md)** - Style adaptation with Low-Rank models
 
 ### Examples
 

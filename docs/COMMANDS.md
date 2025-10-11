@@ -1,227 +1,704 @@
-````markdown
-[🏠 Docs Home](README.md) | [📚 Quick Start](QUICKSTART.md) | [🔗 Pipeline](PIPELINE.md) | [⚙️ Generation Features](GENERATION_FEATURES.md)
+[🏠 Docs Home](README.md) | [📚 Quick Start](QUICKSTART.md) | [🔗 Pipeline](PIPELINE.md) | [👤 User Guide](USER_GUIDE.md)
 
 ---
 
 # Commands Reference
 
-This document provides comprehensive documentation for all Asset Generator CLI commands.
+> **Complete reference for all Asset Generator CLI commands**
+
+This document provides comprehensive documentation for all Asset Generator CLI commands, flags, and usage patterns.
 
 ## Table of Contents
 
-- [Cancel Command](#cancel-command)
-  - [Overview](#cancel-overview)
-  - [Usage](#cancel-usage)
-  - [Examples](#cancel-examples)
-  - [Flags](#cancel-flags)
-  - [Quick Reference](#cancel-quick-reference)
-- [Status Command](#status-command)
-  - [Overview](#status-overview)
-  - [Usage](#status-usage)
-  - [Output Formats](#status-output-formats)
-  - [Examples](#status-examples)
-  - [Quick Reference](#status-quick-reference)
+- [Global Options](#global-options)
+- [Generation Commands](#generation-commands)
+  - [generate image](#generate-image)
+- [Pipeline Commands](#pipeline-commands)
+  - [pipeline](#pipeline)
+- [Model Commands](#model-commands)
+  - [models list](#models-list)
+- [Configuration Commands](#configuration-commands)
+  - [config init](#config-init)
+  - [config get](#config-get)
+  - [config set](#config-set)
+  - [config view](#config-view)
+- [Conversion Commands](#conversion-commands)
+  - [convert svg](#convert-svg)
+- [Postprocessing Commands](#postprocessing-commands)
+  - [crop](#crop)
+  - [downscale](#downscale)
+- [Status Commands](#status-commands)
+  - [status](#status)
+  - [cancel](#cancel)
 
 ---
 
-## Cancel Command {#cancel-command}
+## Global Options {#global-options}
 
-The `cancel` command allows you to interrupt ongoing or queued image generations on the SwarmUI server.
+These flags are available for all commands:
 
-### Overview {#cancel-overview}
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--api-url` | string | `http://localhost:7801` | SwarmUI API endpoint |
+| `--api-key` | string | (empty) | API key for authentication |
+| `--config` | string | `~/.asset-generator/config.yaml` | Configuration file path |
+| `--format` | string | `table` | Output format: table, json, yaml |
+| `--output` | string | (stdout) | Output file path |
+| `--quiet` | bool | false | Suppress progress output |
+| `--verbose` | bool | false | Verbose logging |
+| `--help` | bool | false | Show help |
 
-During long-running generation tasks (especially with models like Flux that can take 5-40 minutes), you may need to cancel the generation for various reasons:
-- The generation is taking too long
-- You made a mistake in your prompt
-- You need to free up server resources
-- You have queued multiple generations and want to clear the backlog
-
-The `cancel` command provides two modes of operation:
-1. **Single Cancel**: Cancel only the current generation in progress
-2. **Cancel All**: Cancel all queued generations
-
-### Usage {#cancel-usage}
-
-#### Basic Usage
+### Examples
 
 ```bash
-# Cancel the current generation
+# Use different API endpoint
+asset-generator --api-url http://remote-server:7801 models list
+
+# Output to file in JSON format
+asset-generator --format json --output models.json models list
+
+# Quiet mode for scripting
+asset-generator --quiet generate image --prompt "test"
+
+# Verbose debugging
+asset-generator --verbose status
+```
+
+---
+
+## Generation Commands {#generation-commands}
+
+### generate image {#generate-image}
+
+Generate images using text-to-image models.
+
+#### Synopsis
+
+```bash
+asset-generator generate image --prompt PROMPT [flags]
+```
+
+#### Required Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--prompt`, `-p` | string | Text prompt for image generation (required) |
+
+#### Generation Parameters
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--model` | string | (from config) | Model name to use |
+| `--width` | int | 1024 | Image width in pixels |
+| `--height` | int | 1024 | Image height in pixels |
+| `--steps` | int | 25 | Number of inference steps |
+| `--cfg-scale` | float | 7.5 | Classifier-free guidance scale |
+| `--seed` | int | -1 | Seed for reproducibility (-1 = random) |
+| `--batch` | int | 1 | Number of images to generate |
+| `--sampler` | string | (default) | Sampling method |
+| `--scheduler` | string | `simple` | Noise scheduler |
+| `--negative-prompt` | string | (empty) | Negative prompt |
+
+#### LoRA Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--lora` | string | LoRA model with optional weight (name:weight) |
+| `--lora-weight` | float | Weight for LoRA (when not specified inline) |
+| `--lora-default-weight` | float | Default weight for LoRAs without weights |
+
+#### Skimmed CFG Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--skimmed-cfg` | bool | false | Enable Skimmed CFG |
+| `--skimmed-cfg-scale` | float | 3.0 | Skimmed CFG scale |
+| `--skimmed-cfg-start` | float | 0.0 | Start phase (0.0-1.0) |
+| `--skimmed-cfg-end` | float | 1.0 | End phase (0.0-1.0) |
+
+#### Image Download Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--save-images` | bool | false | Download images to local disk |
+| `--output-dir` | string | `.` | Directory to save images |
+| `--filename-template` | string | (empty) | Custom filename template |
+
+#### Postprocessing Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--auto-crop` | bool | false | Remove whitespace borders |
+| `--crop-threshold` | int | 10 | Whitespace detection threshold |
+| `--crop-preserve-aspect` | bool | false | Maintain original aspect ratio |
+| `--downscale-width` | int | 0 | Target width for downscaling |
+| `--downscale-height` | int | 0 | Target height for downscaling |
+| `--downscale-percentage` | int | 0 | Scale by percentage |
+
+#### Examples
+
+##### Basic Generation
+
+```bash
+asset-generator generate image --prompt "beautiful sunset over mountains"
+```
+
+##### High-Quality Portrait
+
+```bash
+asset-generator generate image \
+  --prompt "professional portrait, studio lighting" \
+  --width 768 \
+  --height 1024 \
+  --scheduler karras \
+  --steps 35 \
+  --cfg-scale 8.0
+```
+
+##### Batch with LoRAs
+
+```bash
+asset-generator generate image \
+  --prompt "anime character, detailed eyes" \
+  --lora "anime-style:0.9" \
+  --lora "detailed-faces:0.7" \
+  --batch 5 \
+  --save-images \
+  --filename-template "character-{index}-seed{seed}.png"
+```
+
+##### Complete Workflow
+
+```bash
+asset-generator generate image \
+  --prompt "fantasy landscape, mystical forest" \
+  --model "stable-diffusion-xl" \
+  --width 1024 \
+  --height 768 \
+  --scheduler karras \
+  --steps 30 \
+  --skimmed-cfg \
+  --skimmed-cfg-scale 3.0 \
+  --lora "fantasy-art:0.8" \
+  --batch 3 \
+  --save-images \
+  --output-dir ./fantasy-art \
+  --filename-template "{date}/{model}-{prompt}-{index}.png" \
+  --auto-crop \
+  --downscale-width 512
+```
+
+---
+
+## Pipeline Commands {#pipeline-commands}
+
+### pipeline {#pipeline}
+
+Process YAML pipeline files for automated batch generation.
+
+#### Synopsis
+
+```bash
+asset-generator pipeline --file FILE [flags]
+```
+
+#### Required Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--file`, `-f` | string | Pipeline YAML file path (required) |
+
+#### Pipeline Control Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--output-dir` | string | `./pipeline-output` | Base output directory |
+| `--dry-run` | bool | false | Preview without generating |
+| `--continue-on-error` | bool | false | Continue if individual assets fail |
+| `--base-seed` | int | -1 | Base seed for reproducibility (-1 = random) |
+
+#### Generation Override Flags
+
+All generation flags from `generate image` can be used to override pipeline defaults:
+
+```bash
+asset-generator pipeline --file assets.yaml \
+  --scheduler karras \
+  --steps 30 \
+  --save-images \
+  --auto-crop
+```
+
+#### Examples
+
+##### Basic Pipeline
+
+```bash
+asset-generator pipeline --file character-designs.yaml
+```
+
+##### Dry Run Preview
+
+```bash
+asset-generator pipeline --file assets.yaml --dry-run
+```
+
+##### Production Pipeline
+
+```bash
+asset-generator pipeline \
+  --file production-assets.yaml \
+  --output-dir ./final-assets \
+  --scheduler karras \
+  --steps 35 \
+  --continue-on-error \
+  --save-images \
+  --auto-crop \
+  --downscale-width 1024
+```
+
+---
+
+## Model Commands {#model-commands}
+
+### models list {#models-list}
+
+List available models on the SwarmUI server.
+
+#### Synopsis
+
+```bash
+asset-generator models list [flags]
+```
+
+#### Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--loaded-only` | bool | false | Show only loaded models |
+
+#### Examples
+
+##### List All Models
+
+```bash
+asset-generator models list
+```
+
+##### JSON Output for Scripting
+
+```bash
+asset-generator models list --format json
+```
+
+##### Filter Loaded Models
+
+```bash
+asset-generator models list --loaded-only
+```
+
+##### Extract Specific Information
+
+```bash
+# Get model names only
+asset-generator models list --format json | jq -r '.[].name'
+
+# Filter for specific type
+asset-generator models list --format json | jq '.[] | select(.type == "Stable-Diffusion")'
+
+# Count total models
+asset-generator models list --format json | jq 'length'
+```
+
+---
+
+## Configuration Commands {#configuration-commands}
+
+### config init {#config-init}
+
+Initialize configuration file with default settings.
+
+#### Synopsis
+
+```bash
+asset-generator config init [flags]
+```
+
+#### Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--force` | bool | false | Overwrite existing config |
+
+#### Examples
+
+```bash
+# Create initial config
+asset-generator config init
+
+# Overwrite existing config
+asset-generator config init --force
+```
+
+### config get {#config-get}
+
+Get a configuration value.
+
+#### Synopsis
+
+```bash
+asset-generator config get KEY
+```
+
+#### Examples
+
+```bash
+# Get API URL
+asset-generator config get api-url
+
+# Get output format
+asset-generator config get output-format
+```
+
+### config set {#config-set}
+
+Set a configuration value.
+
+#### Synopsis
+
+```bash
+asset-generator config set KEY VALUE
+```
+
+#### Examples
+
+```bash
+# Set API URL
+asset-generator config set api-url http://localhost:7801
+
+# Set API key
+asset-generator config set api-key your-api-key-here
+
+# Set default output format
+asset-generator config set output-format json
+```
+
+### config view {#config-view}
+
+View current configuration.
+
+#### Synopsis
+
+```bash
+asset-generator config view [flags]
+```
+
+#### Examples
+
+```bash
+# View current config
+asset-generator config view
+
+# View with file location
+asset-generator config view --verbose
+```
+
+---
+
+## Conversion Commands {#conversion-commands}
+
+### convert svg {#convert-svg}
+
+Convert images to SVG format using geometric shapes or edge tracing.
+
+#### Synopsis
+
+```bash
+asset-generator convert svg INPUT [flags]
+```
+
+#### Required Arguments
+
+| Argument | Type | Description |
+|----------|------|-------------|
+| `INPUT` | string | Input image file path |
+
+#### Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--output`, `-o` | string | (auto) | Output SVG file path |
+| `--method` | string | `primitive` | Conversion method: primitive, gotrace |
+| `--shapes` | int | 100 | Number of shapes (primitive method) |
+| `--mode` | int | 1 | Shape mode: 0=combo, 1=triangle, 2=rect, 3=ellipse, etc. |
+| `--alpha` | int | 128 | Shape alpha transparency (0-255) |
+| `--repeat` | int | 0 | Optimization iterations |
+
+#### Examples
+
+##### Basic Conversion
+
+```bash
+asset-generator convert svg photo.jpg
+```
+
+##### High Quality with Many Shapes
+
+```bash
+asset-generator convert svg artwork.png \
+  --shapes 500 \
+  --mode 3 \
+  --output artwork-detailed.svg
+```
+
+##### Gotrace Method for Line Art
+
+```bash
+asset-generator convert svg lineart.png \
+  --method gotrace \
+  --output lineart-vector.svg
+```
+
+##### Batch Conversion
+
+```bash
+#!/bin/bash
+for file in *.png; do
+    asset-generator convert svg "$file" \
+      --shapes 200 \
+      --mode 1 \
+      --output "${file%.png}.svg"
+done
+```
+
+---
+
+## Postprocessing Commands {#postprocessing-commands}
+
+### crop {#crop}
+
+Remove whitespace borders from images.
+
+#### Synopsis
+
+```bash
+asset-generator crop INPUT [flags]
+```
+
+#### Required Arguments
+
+| Argument | Type | Description |
+|----------|------|-------------|
+| `INPUT` | string | Input image file path |
+
+#### Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--output`, `-o` | string | (auto) | Output file path |
+| `--threshold` | int | 10 | Whitespace detection threshold |
+| `--preserve-aspect` | bool | false | Maintain original aspect ratio |
+
+#### Examples
+
+```bash
+# Basic crop
+asset-generator crop image-with-borders.png
+
+# Custom threshold
+asset-generator crop noisy-image.png --threshold 20
+
+# Preserve aspect ratio
+asset-generator crop logo.png --preserve-aspect --output logo-cropped.png
+```
+
+### downscale {#downscale}
+
+Resize images with high-quality Lanczos filtering.
+
+#### Synopsis
+
+```bash
+asset-generator downscale INPUT [flags]
+```
+
+#### Required Arguments
+
+| Argument | Type | Description |
+|----------|------|-------------|
+| `INPUT` | string | Input image file path |
+
+#### Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--output`, `-o` | string | (auto) | Output file path |
+| `--width` | int | 0 | Target width (0 = calculate from height) |
+| `--height` | int | 0 | Target height (0 = calculate from width) |
+| `--percentage` | int | 0 | Scale by percentage |
+
+#### Examples
+
+```bash
+# Resize to specific width
+asset-generator downscale large-image.png --width 1024
+
+# Scale by percentage
+asset-generator downscale huge-image.png --percentage 50
+
+# Specific dimensions
+asset-generator downscale wallpaper.png --width 1920 --height 1080
+```
+
+---
+
+## Status Commands {#status-commands}
+
+### status {#status}
+
+Check SwarmUI server health and configuration.
+
+#### Synopsis
+
+```bash
+asset-generator status [flags]
+```
+
+#### Examples
+
+```bash
+# Basic status check
+asset-generator status
+
+# JSON for scripting
+asset-generator status --format json
+
+# Check specific server
+asset-generator --api-url http://remote:7801 status
+```
+
+#### Output Information
+
+- Server connectivity and response time
+- Session information
+- Backend status and loaded models
+- Model counts
+- System information (if available)
+
+### cancel {#cancel}
+
+Cancel ongoing or queued image generations.
+
+#### Synopsis
+
+```bash
+asset-generator cancel [flags]
+```
+
+#### Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--all` | bool | false | Cancel all queued generations |
+
+#### Examples
+
+```bash
+# Cancel current generation
 asset-generator cancel
 
 # Cancel all queued generations
 asset-generator cancel --all
 
-# Cancel with verbose output to see API details
-asset-generator cancel -v
-
-# Cancel quietly (for scripts)
-asset-generator cancel -q
+# Quiet cancellation for scripts
+asset-generator --quiet cancel
 ```
-
-### Examples {#cancel-examples}
-
-#### Example 1: Cancel a Long-Running Generation
-
-```bash
-# Start a long-running generation
-asset-generator generate image --prompt "detailed fantasy landscape" --model flux &
-
-# Cancel it if you change your mind
-asset-generator cancel
-```
-
-**Output:**
-```
-Cancelling current generation...
-✓ Successfully cancelled current generation
-```
-
-#### Example 2: Clear All Queued Generations
-
-If you've submitted multiple generations and want to cancel them all:
-
-```bash
-# Submit multiple generations
-asset-generator generate image --prompt "prompt 1" --batch 5 &
-asset-generator generate image --prompt "prompt 2" --batch 5 &
-asset-generator generate image --prompt "prompt 3" --batch 5 &
-
-# Cancel all of them
-asset-generator cancel --all
-```
-
-**Output:**
-```
-Cancelling all queued generations...
-✓ Successfully cancelled all queued generations
-```
-
-#### Example 3: Script Integration
-
-For use in scripts where you don't want output:
-
-```bash
-#!/bin/bash
-# Emergency stop script
-asset-generator cancel --all -q || echo "Cancel failed"
-```
-
-#### Example 4: Interactive Development
-
-When iterating on prompts:
-
-```bash
-# Oops, forgot to add negative prompt
-asset-generator generate image --prompt "cat" &
-asset-generator cancel
-asset-generator generate image --prompt "cat" --negative-prompt "blurry, low quality"
-```
-
-#### Example 5: Resource Management
-
-If the server is running slow and you need to free up resources:
-
-```bash
-# Check what's running first
-asset-generator status
-# Cancel everything to free up GPU memory
-asset-generator cancel --all
-```
-
-### Flags {#cancel-flags}
-
-| Flag | Short | Description |
-|------|-------|-------------|
-| `--all` | | Cancel all queued generations instead of just the current one |
-| `--quiet` | `-q` | Suppress success messages (errors only) |
-| `--verbose` | `-v` | Show detailed API communication |
-
-#### Global Flags
-
-All global flags from the root command are available:
-- `--config`: Specify config file location
-- `--api-url`: Override the configured API URL
-- `--api-key`: Override the configured API key
-
-### How It Works
-
-The cancel command uses SwarmUI's interrupt API endpoints:
-
-1. **Single Cancel** (`asset-generator cancel`):
-   - Calls `/API/InterruptGeneration` endpoint
-   - Interrupts the currently running generation
-   - Queued generations continue processing
-
-2. **Cancel All** (`asset-generator cancel --all`):
-   - Calls `/API/InterruptAll` endpoint
-   - Interrupts the current generation
-   - Clears all queued generations
-   - Server returns to idle state
-
-### Error Handling
-
-#### Common Errors
-
-**No generations to cancel:**
-```
-failed to cancel generation: SwarmUI error: no active generation
-```
-This is informational - there was nothing to cancel.
-
-**Server not responding:**
-```
-failed to cancel generation: request failed: context deadline exceeded
-```
-Check server status: `asset-generator status`
-
-### Best Practices
-
-1. **Use Single Cancel for Specific Generations**: Stop current generation, let queued ones continue
-2. **Use Cancel All for Full Reset**: Clean slate when needed
-3. **Combine with Status Checks**: `asset-generator status` before and after
-4. **In Scripts, Use Quiet Mode**: `asset-generator cancel --all -q`
-5. **Use Verbose Mode for Debugging**: `asset-generator cancel -v`
-
-### Limitations
-
-- No partial cancel (cannot cancel specific generations by ID)
-- No undo (cancelled generations cannot be resumed)
-- Server-side operation (affects all clients)
-- Race conditions possible (generation might complete before cancel)
 
 ---
 
-### Cancel Quick Reference {#cancel-quick-reference}
+## Flag Reference Quick Lookup
 
-#### Synopsis
+### Generation Flags
+
+| Category | Key Flags | Values |
+|----------|-----------|---------|
+| **Basic** | `--prompt`, `--model` | Required, model name |
+| **Dimensions** | `--width`, `--height` | 512-2048 pixels |
+| **Quality** | `--steps`, `--cfg-scale` | 10-50 steps, 1.0-20.0 scale |
+| **Reproducibility** | `--seed` | Integer or -1 for random |
+| **Scheduler** | `--scheduler` | simple, normal, karras, exponential |
+| **LoRA** | `--lora` | "name:weight" format |
+| **Skimmed CFG** | `--skimmed-cfg`, `--skimmed-cfg-scale` | true/false, 1.0-5.0 |
+
+### Output Flags
+
+| Category | Key Flags | Values |
+|----------|-----------|---------|
+| **Download** | `--save-images`, `--output-dir` | true/false, directory path |
+| **Naming** | `--filename-template` | Template with placeholders |
+| **Processing** | `--auto-crop`, `--downscale-width` | true/false, pixels |
+
+### Control Flags
+
+| Category | Key Flags | Values |
+|----------|-----------|---------|
+| **Format** | `--format`, `--output` | table/json/yaml, file path |
+| **Verbosity** | `--quiet`, `--verbose` | true/false |
+| **API** | `--api-url`, `--api-key` | URL, key string |
+
+---
+
+## Common Command Patterns
+
+### Quick Generation
+
 ```bash
-asset-generator cancel [--all] [-q] [-v]
+# Basic
+asset-generator generate image -p "prompt here"
+
+# High quality
+asset-generator generate image -p "prompt" --scheduler karras --steps 35
+
+# With download
+asset-generator generate image -p "prompt" --save-images --output-dir ./images
 ```
 
-#### Common Use Cases
+### Batch Processing
 
-| Task | Command |
-|------|---------|
-| Stop current generation | `asset-generator cancel` |
-| Clear all pending work | `asset-generator cancel --all` |
-| Check before cancelling | `asset-generator status && asset-generator cancel` |
-| Script integration | `asset-generator cancel --all -q` |
+```bash
+# Pipeline
+asset-generator pipeline -f assets.yaml --save-images --auto-crop
 
-#### Exit Codes
+# Multiple single generations
+for prompt in "cat" "dog" "bird"; do
+  asset-generator generate image -p "$prompt" --save-images --quiet
+done
+```
 
-- `0` - Success
-- `1` - Error (connection, API, etc.)
+### Status and Configuration
 
-#### API Endpoints
+```bash
+# Health check
+asset-generator status
 
-| Operation | Endpoint | Description |
-|-----------|----------|-------------|
-| Single | `/API/InterruptGeneration` | Cancel current generation |
-| All | `/API/InterruptAll` | Cancel all queued generations |
+# Setup
+asset-generator config init
+asset-generator config set api-url http://localhost:7801
 
-#### Error Messages
+# List models
+asset-generator models list --format json | jq '.[].name'
+```
 
-| Error | Meaning |
+---
+
+## See Also
+
+- [User Guide](USER_GUIDE.md) - Advanced features and generation options
+- [Quick Start](QUICKSTART.md) - Getting started guide
+- [Pipeline Processing](PIPELINE.md) - Batch generation workflows
+- [Troubleshooting](TROUBLESHOOTING.md) - Common issues and solutions
+
+
 |-------|---------|
 | "no active generation" | Nothing to cancel (informational) |
 | "failed to get session" | Session/connection issue |
@@ -261,229 +738,3 @@ asset-generator status -v
 asset-generator status --output status.txt
 ```
 
-### Output Fields
-
-#### Server Information
-- **Server URL**: The SwarmUI API endpoint being queried
-- **Status**: Connection status (online/offline)
-- **Response Time**: Time taken to query the server
-- **Version**: SwarmUI server version (if available)
-
-#### Session Information
-- **Session ID**: Current active session identifier
-
-#### Backend Information
-For each available backend:
-- **ID**: Unique backend identifier
-- **Type**: Backend type (e.g., ComfyUI, Automatic1111)
-- **Status**: Operational status (running, idle, error)
-- **Model Loaded**: Currently loaded model (if any)
-- **GPU**: GPU device information
-
-#### Model Information
-- **Total Available**: Count of all available models
-- **Currently Loaded**: Number of models loaded in memory
-
-### Output Formats {#status-output-formats}
-
-#### Table Format (Default)
-
-Human-readable display with color coding:
-
-```
-SwarmUI Server Status
-═══════════════════════════════════════════════
-
-Server URL:      http://localhost:7801
-Status:          online
-Response Time:   145ms
-Version:         1.0.0
-
-Session
-───────────────────────────────────────────────
-Session ID:      abc123def456
-
-Backends
-───────────────────────────────────────────────
-  • backend-1
-    Type:          ComfyUI
-    Status:        running
-    Model Loaded:  stable-diffusion-xl
-    GPU:           NVIDIA RTX 3090
-
-Models
-───────────────────────────────────────────────
-Total Available: 15
-Currently Loaded: 2
-```
-
-**Status Colors:**
-- 🟢 Green: running, loaded, active, online, ready
-- 🟡 Yellow: idle, unloaded
-- 🔴 Red: error, failed, offline
-
-#### JSON Format
-
-```bash
-asset-generator status --format json
-```
-
-```json
-{
-  "server_url": "http://localhost:7801",
-  "status": "online",
-  "response_time": "145ms",
-  "session_id": "abc123def456",
-  "backends": [
-    {
-      "id": "backend-1",
-      "type": "ComfyUI",
-      "status": "running"
-    }
-  ],
-  "models_count": 15
-}
-```
-
-#### YAML Format
-
-```bash
-asset-generator status --format yaml
-```
-
-### Examples {#status-examples}
-
-#### Example 1: Health Check Before Generation
-
-```bash
-# Quick check before running a big job
-if asset-generator status > /dev/null 2>&1; then
-    asset-generator generate image --prompt "..."
-else
-    echo "Server is down!"
-    exit 1
-fi
-```
-
-#### Example 2: Monitoring Script
-
-```bash
-# Check status every minute
-while true; do
-    asset-generator status
-    sleep 60
-done
-```
-
-#### Example 3: Extract Specific Information (JSON)
-
-```bash
-# Get just the status
-asset-generator status --format json | jq -r '.status'
-
-# Count available models
-asset-generator status --format json | jq '.models_count'
-
-# List backends
-asset-generator status --format json | jq '.backends[].id'
-
-# Check response time
-asset-generator status --format json | jq -r '.response_time'
-```
-
-#### Example 4: Monitoring Different Servers
-
-```bash
-# Check production server
-asset-generator status --api-url https://prod.example.com:7801
-
-# Check local development server
-asset-generator status --api-url http://localhost:7801
-```
-
-#### Example 5: CI/CD Integration
-
-```yaml
-# Example GitHub Actions workflow
-- name: Check SwarmUI Health
-  run: |
-    asset-generator status --api-url $SWARM_URL
-  env:
-    SWARM_URL: ${{ secrets.SWARM_API_URL }}
-```
-
-### Troubleshooting
-
-#### Server Offline Error
-
-```
-Error: failed to get server status: server unreachable
-```
-
-**Solutions:**
-1. Verify SwarmUI is running: `curl http://localhost:7801`
-2. Check the API URL: `asset-generator config get api-url`
-3. Update if needed: `asset-generator config set api-url http://localhost:7801`
-
-#### Slow Response Time
-
-High response times (>5 seconds) may indicate:
-- Server under heavy load
-- Network latency issues
-- Server processing other requests
-
-Use `--verbose` flag to see detailed API request information.
-
----
-
-### Status Quick Reference {#status-quick-reference}
-
-#### Synopsis
-```bash
-asset-generator status [--format FORMAT] [-v]
-```
-
-#### What It Shows
-
-✅ Server connectivity and response time  
-✅ Session information  
-✅ Backend status and loaded models  
-✅ Model counts  
-✅ System information (if available)
-
-#### Common Use Cases
-
-| Task | Command |
-|------|---------|
-| Basic check | `asset-generator status` |
-| JSON for scripting | `asset-generator status --format json` |
-| Check before generation | `asset-generator status && asset-generator generate ...` |
-| Get specific field | `asset-generator status --format json \| jq '.status'` |
-
-#### Output Formats
-
-| Format | Flag | Use Case |
-|--------|------|----------|
-| Table | (default) | Human-readable |
-| JSON | `--format json` | Scripting, parsing |
-| YAML | `--format yaml` | Configuration, readability |
-
-#### Exit Codes
-
-- `0` - Server online and responding
-- `1` - Server offline or error
-
-#### API Endpoints Used
-
-- `/API/GetNewSession` - Connectivity check
-- `/API/ListBackends` - Backend information
-- `/API/ListModels` - Model counts
-
----
-
-## See Also
-
-- [Generation Features](GENERATION_FEATURES.md) - Scheduler, Skimmed CFG, and other generation parameters
-- [Pipeline Processing](PIPELINE.md) - Batch generation workflows
-- [Quick Start Guide](QUICKSTART.md) - Getting started with the CLI
-- [Development Documentation](DEVELOPMENT.md) - API integration details
