@@ -23,6 +23,9 @@ generate:
   sampler: euler_a
   scheduler: simple  # Scheduler/noise schedule (simple, normal, karras, exponential, sgm_uniform)
   
+  # Style enhancement options
+  # style-prefix: "masterpiece, high quality"  # Prefix prepended to all prompts
+  
   # SkimmedCFG (Distilled CFG) settings - advanced sampling technique
   # Enables improved quality and faster generation with compatible models
   # skimmed-cfg: false

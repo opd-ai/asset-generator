@@ -32,6 +32,7 @@ var (
 	generateSaveImages       bool   // Download and save images locally
 	generateOutputDir        string // Directory to save downloaded images
 	generateFilenameTemplate string // Template for custom filenames
+	generateStylePrefix     string // Prefix to prepend to all prompts
 	// SkimmedCFG (Distilled CFG) options
 	generateSkimmedCFG      bool    // Enable Skimmed CFG for improved quality/speed
 	generateSkimmedCFGScale float64 // Skimmed CFG scale value
@@ -70,6 +71,11 @@ var generateImageCmd = &cobra.Command{
 Examples:
   # Basic generation
   asset-generator generate image --prompt "a beautiful landscape"
+  
+  # Add style prefix to enhance all prompts
+  asset-generator generate image \
+    --prompt "a beautiful landscape" \
+    --style-prefix "masterpiece, high quality, detailed"
   
   # Advanced generation with parameters
   asset-generator generate image \
@@ -189,6 +195,7 @@ func init() {
 	generateImageCmd.Flags().IntVarP(&generateBatchSize, "batch", "b", 1, "number of images to generate")
 	generateImageCmd.Flags().Float64Var(&generateCfgScale, "cfg-scale", 7.5, "CFG scale (guidance)")
 	generateImageCmd.Flags().StringVarP(&generateNegPrompt, "negative-prompt", "n", "", "negative prompt")
+	generateImageCmd.Flags().StringVar(&generateStylePrefix, "style-prefix", "", "prefix to prepend to all prompts")
 	generateImageCmd.Flags().StringVar(&generateSampler, "sampler", "euler_a", "sampling method")
 	generateImageCmd.Flags().StringVar(&generateScheduler, "scheduler", "simple", "scheduler/noise schedule (simple, normal, karras, exponential, sgm_uniform)")
 	generateImageCmd.Flags().BoolVar(&generateUseWebSocket, "websocket", false, "use WebSocket for real-time progress (requires SwarmUI)")
@@ -224,6 +231,7 @@ func init() {
 	viper.BindPFlag("generate.length", generateImageCmd.Flags().Lookup("length"))
 	viper.BindPFlag("generate.height", generateImageCmd.Flags().Lookup("height")) // Backward compatibility alias
 	viper.BindPFlag("generate.cfg-scale", generateImageCmd.Flags().Lookup("cfg-scale"))
+	viper.BindPFlag("generate.style-prefix", generateImageCmd.Flags().Lookup("style-prefix"))
 	viper.BindPFlag("generate.sampler", generateImageCmd.Flags().Lookup("sampler"))
 	viper.BindPFlag("generate.scheduler", generateImageCmd.Flags().Lookup("scheduler"))
 	viper.BindPFlag("generate.skimmed-cfg", generateImageCmd.Flags().Lookup("skimmed-cfg"))
@@ -260,9 +268,15 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("prompt is required")
 	}
 
+	// Apply style prefix to prompt if specified
+	finalPrompt := generatePrompt
+	if generateStylePrefix != "" {
+		finalPrompt = generateStylePrefix + ", " + generatePrompt
+	}
+
 	// Build generation request
 	req := &client.GenerationRequest{
-		Prompt: generatePrompt,
+		Prompt: finalPrompt,
 		Parameters: map[string]interface{}{
 			"steps":     generateSteps,
 			"width":     generateWidth,
@@ -332,9 +346,9 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 	if !quiet {
 		// Provide clear feedback about batch generation
 		if generateBatchSize > 1 {
-			fmt.Fprintf(os.Stderr, "Generating %d images with prompt: %s\n", generateBatchSize, generatePrompt)
+			fmt.Fprintf(os.Stderr, "Generating %d images with prompt: %s\n", generateBatchSize, finalPrompt)
 		} else {
-			fmt.Fprintf(os.Stderr, "Generating image with prompt: %s\n", generatePrompt)
+			fmt.Fprintf(os.Stderr, "Generating image with prompt: %s\n", finalPrompt)
 		}
 		if verbose {
 			fmt.Fprintf(os.Stderr, "Model: %s\n", req.Model)

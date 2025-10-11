@@ -24,6 +24,7 @@ var (
 	pipelineCfgScale      float64
 	pipelineSampler       string
 	pipelineScheduler     string
+	pipelineStylePrefix   string
 	pipelineStyleSuffix   string
 	pipelineNegPrompt     string
 	pipelineDryRun        bool
@@ -94,8 +95,9 @@ Examples:
   asset-generator pipeline --file assets-spec.yaml \
     --base-seed 42 --steps 40 --width 768 --height 1344
   
-  # Add style suffix to all prompts
+  # Add style prefix and suffix to all prompts
   asset-generator pipeline --file assets-spec.yaml \
+    --style-prefix "masterpiece, high quality" \
     --style-suffix "detailed illustration, ornate border, rich colors"
   
   # Continue on error (don't stop if one asset fails)
@@ -165,6 +167,7 @@ func init() {
 	pipelineCmd.Flags().StringVar(&pipelineScheduler, "scheduler", "simple", "scheduler/noise schedule (simple, normal, karras, exponential, sgm_uniform)")
 
 	// Prompt enhancement
+	pipelineCmd.Flags().StringVar(&pipelineStylePrefix, "style-prefix", "", "prefix to prepend to all prompts")
 	pipelineCmd.Flags().StringVar(&pipelineStyleSuffix, "style-suffix", "", "suffix to append to all prompts")
 	pipelineCmd.Flags().StringVar(&pipelineNegPrompt, "negative-prompt", "", "negative prompt for all generations")
 
@@ -432,10 +435,13 @@ func loadPipelineSpec(filename string) (*PipelineSpec, error) {
 }
 
 func generateAsset(ctx context.Context, prompt, name, outputPath string, seed int64, metadata map[string]interface{}) error {
-	// Build full prompt with style suffix
+	// Build full prompt with style prefix and suffix
 	fullPrompt := prompt
+	if pipelineStylePrefix != "" {
+		fullPrompt = pipelineStylePrefix + ", " + fullPrompt
+	}
 	if pipelineStyleSuffix != "" {
-		fullPrompt = fmt.Sprintf("%s, %s", prompt, pipelineStyleSuffix)
+		fullPrompt = fullPrompt + ", " + pipelineStyleSuffix
 	}
 
 	// Build generation request
@@ -533,6 +539,9 @@ func previewPipeline(spec *PipelineSpec) error {
 	fmt.Printf("  Scheduler: %s\n", pipelineScheduler)
 	if pipelineModel != "" {
 		fmt.Printf("  Model: %s\n", pipelineModel)
+	}
+	if pipelineStylePrefix != "" {
+		fmt.Printf("  Style Prefix: %s\n", pipelineStylePrefix)
 	}
 	if pipelineStyleSuffix != "" {
 		fmt.Printf("  Style Suffix: %s\n", pipelineStyleSuffix)
