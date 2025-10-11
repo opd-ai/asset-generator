@@ -23,6 +23,7 @@ var (
 	pipelineHeight        int
 	pipelineCfgScale      float64
 	pipelineSampler       string
+	pipelineScheduler     string
 	pipelineStyleSuffix   string
 	pipelineNegPrompt     string
 	pipelineDryRun        bool
@@ -161,6 +162,7 @@ func init() {
 	pipelineCmd.Flags().IntVar(&pipelineHeight, "height", 1344, "image height")
 	pipelineCmd.Flags().Float64Var(&pipelineCfgScale, "cfg-scale", 7.5, "CFG scale (guidance)")
 	pipelineCmd.Flags().StringVar(&pipelineSampler, "sampler", "euler_a", "sampling method")
+	pipelineCmd.Flags().StringVar(&pipelineScheduler, "scheduler", "simple", "scheduler/noise schedule (simple, normal, karras, exponential, sgm_uniform)")
 
 	// Prompt enhancement
 	pipelineCmd.Flags().StringVar(&pipelineStyleSuffix, "style-suffix", "", "suffix to append to all prompts")
@@ -440,13 +442,14 @@ func generateAsset(ctx context.Context, prompt, name, outputPath string, seed in
 	req := &client.GenerationRequest{
 		Prompt: fullPrompt,
 		Parameters: map[string]interface{}{
-			"steps":    pipelineSteps,
-			"width":    pipelineWidth,
-			"height":   pipelineHeight,
-			"cfgscale": pipelineCfgScale,
-			"sampler":  pipelineSampler,
-			"seed":     seed,
-			"images":   1, // Always generate one at a time for pipelines
+			"steps":     pipelineSteps,
+			"width":     pipelineWidth,
+			"height":    pipelineHeight,
+			"cfgscale":  pipelineCfgScale,
+			"sampler":   pipelineSampler,
+			"scheduler": pipelineScheduler,
+			"seed":      seed,
+			"images":    1, // Always generate one at a time for pipelines
 		},
 	}
 
@@ -527,6 +530,7 @@ func previewPipeline(spec *PipelineSpec) error {
 	fmt.Printf("  Steps: %d\n", pipelineSteps)
 	fmt.Printf("  CFG Scale: %.1f\n", pipelineCfgScale)
 	fmt.Printf("  Sampler: %s\n", pipelineSampler)
+	fmt.Printf("  Scheduler: %s\n", pipelineScheduler)
 	if pipelineModel != "" {
 		fmt.Printf("  Model: %s\n", pipelineModel)
 	}

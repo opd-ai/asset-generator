@@ -76,6 +76,8 @@ asset-generator generate image \
   --height 1024 \
   --steps 30 \
   --cfg-scale 7.5 \
+  --sampler euler_a \
+  --scheduler karras \
   --model stable-diffusion-xl
 ```
 
@@ -343,6 +345,28 @@ asset-generator generate image \
 ```
 
 Available samplers: euler_a, euler, heun, dpm_2, dpm_2_ancestral, lms, dpm_fast, dpm_adaptive
+
+### Scheduler Selection
+
+Choose different schedulers (noise schedules) for quality/speed tradeoffs:
+
+```bash
+# Use Karras scheduler for high-quality outputs
+asset-generator generate image \
+  --prompt "detailed portrait photograph" \
+  --scheduler karras \
+  --steps 35
+
+# Use simple scheduler (default) for fast iteration
+asset-generator generate image \
+  --prompt "concept sketch" \
+  --scheduler simple \
+  --steps 20
+```
+
+Available schedulers: simple (default), normal, karras, exponential, sgm_uniform
+
+**Learn more:** See [SCHEDULER_FEATURE.md](SCHEDULER_FEATURE.md) for detailed scheduler comparison and usage guide.
 
 ### High-Quality Generation
 

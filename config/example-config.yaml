@@ -21,6 +21,7 @@ generate:
   length: 512  # Note: 'height' also supported as alias
   cfg-scale: 7.5
   sampler: euler_a
+  scheduler: simple  # Scheduler/noise schedule (simple, normal, karras, exponential, sgm_uniform)
   
   # SkimmedCFG (Distilled CFG) settings - advanced sampling technique
   # Enables improved quality and faster generation with compatible models

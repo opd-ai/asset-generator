@@ -27,6 +27,7 @@ var (
 	generateCfgScale         float64
 	generateNegPrompt        string
 	generateSampler          string
+	generateScheduler        string // Scheduler/noise schedule to use
 	generateUseWebSocket     bool   // Enable WebSocket for real-time progress
 	generateSaveImages       bool   // Download and save images locally
 	generateOutputDir        string // Directory to save downloaded images
@@ -189,6 +190,7 @@ func init() {
 	generateImageCmd.Flags().Float64Var(&generateCfgScale, "cfg-scale", 7.5, "CFG scale (guidance)")
 	generateImageCmd.Flags().StringVarP(&generateNegPrompt, "negative-prompt", "n", "", "negative prompt")
 	generateImageCmd.Flags().StringVar(&generateSampler, "sampler", "euler_a", "sampling method")
+	generateImageCmd.Flags().StringVar(&generateScheduler, "scheduler", "simple", "scheduler/noise schedule (simple, normal, karras, exponential, sgm_uniform)")
 	generateImageCmd.Flags().BoolVar(&generateUseWebSocket, "websocket", false, "use WebSocket for real-time progress (requires SwarmUI)")
 	generateImageCmd.Flags().BoolVar(&generateSaveImages, "save-images", false, "download and save generated images to local disk")
 	generateImageCmd.Flags().StringVar(&generateOutputDir, "output-dir", ".", "directory to save downloaded images (default: current directory)")
@@ -223,6 +225,7 @@ func init() {
 	viper.BindPFlag("generate.height", generateImageCmd.Flags().Lookup("height")) // Backward compatibility alias
 	viper.BindPFlag("generate.cfg-scale", generateImageCmd.Flags().Lookup("cfg-scale"))
 	viper.BindPFlag("generate.sampler", generateImageCmd.Flags().Lookup("sampler"))
+	viper.BindPFlag("generate.scheduler", generateImageCmd.Flags().Lookup("scheduler"))
 	viper.BindPFlag("generate.skimmed-cfg", generateImageCmd.Flags().Lookup("skimmed-cfg"))
 	viper.BindPFlag("generate.skimmed-cfg-scale", generateImageCmd.Flags().Lookup("skimmed-cfg-scale"))
 	viper.BindPFlag("generate.skimmed-cfg-start", generateImageCmd.Flags().Lookup("skimmed-cfg-start"))
@@ -261,12 +264,13 @@ func runGenerateImage(cmd *cobra.Command, args []string) error {
 	req := &client.GenerationRequest{
 		Prompt: generatePrompt,
 		Parameters: map[string]interface{}{
-			"steps":    generateSteps,
-			"width":    generateWidth,
-			"height":   generateHeight,
-			"cfgscale": generateCfgScale, // SwarmUI API parameter name
-			"sampler":  generateSampler,
-			"images":   generateBatchSize, // SwarmUI uses "images" for batch size
+			"steps":     generateSteps,
+			"width":     generateWidth,
+			"height":    generateHeight,
+			"cfgscale":  generateCfgScale, // SwarmUI API parameter name
+			"sampler":   generateSampler,
+			"scheduler": generateScheduler, // SwarmUI API parameter name for noise schedule
+			"images":    generateBatchSize, // SwarmUI uses "images" for batch size
 		},
 	}
 

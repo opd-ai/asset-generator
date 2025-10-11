@@ -74,7 +74,8 @@ asset-generator generate image \
   --length 1024 \
   --steps 30 \
   --cfg-scale 7.5 \
-  --sampler euler_a
+  --sampler euler_a \
+  --scheduler karras
 
 # Save output to file
 asset-generator generate image \
@@ -295,6 +296,7 @@ Available for all commands:
 | `--steps` | | Inference steps | `20` |
 | `--cfg-scale` | | CFG scale (guidance) | `7.5` |
 | `--sampler` | | Sampling method | `euler_a` |
+| `--scheduler` | | Scheduler/noise schedule (simple, normal, karras, exponential, sgm_uniform) | `simple` |
 | `--batch` | `-b` | Number of images to generate | `1` |
 | `--seed` | | Random seed (-1 for random) | `-1` |
 | `--negative-prompt` | `-n` | Negative prompt | |
@@ -328,6 +330,25 @@ Skimmed CFG (also known as Distilled CFG or Dynamic CFG) is an advanced sampling
 - Not all models support this feature - check your model documentation
 
 **Learn more:** See the [Skimmed CFG documentation](docs/SKIMMED_CFG.md) for detailed usage examples and best practices.
+
+### About Scheduler Selection
+
+The scheduler (also called noise schedule) controls how noise is added and removed during the diffusion process. Different schedulers can significantly impact generation quality and speed.
+
+**Available schedulers:**
+- `simple` (default): Fast, reliable, good for general use
+- `normal`: Standard schedule, balanced quality
+- `karras`: High-quality, detailed images (recommended for final renders)
+- `exponential`: Smooth transitions, good for artistic work
+- `sgm_uniform`: Specialized for certain models
+
+**Usage tips:**
+- Use `simple` for quick iteration and testing
+- Use `karras` for high-quality final outputs
+- Different schedulers work better with different samplers
+- Increase steps (30-50) when using `karras` for best results
+
+**Learn more:** See the [Scheduler documentation](docs/SCHEDULER_FEATURE.md) for detailed comparisons and usage examples.
 
 ## LoRA Support
 
