@@ -263,5 +263,5 @@ asset-generator crop image.png --preserve-aspect
 ## See Also
 
 - [Downscaling Feature](DOWNSCALING_FEATURE.md) - Resize images after generation
-- [Image Download Feature](IMAGE_DOWNLOAD_FEATURE.md) - Save generated images locally
-- [Custom Filenames](CUSTOM_FILENAMES.md) - Template-based filename generation
+- [Image Download](IMAGE_DOWNLOAD.md) - Save generated images locally
+- [Filename Templates](FILENAME_TEMPLATES.md) - Template-based filename generation

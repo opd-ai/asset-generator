@@ -321,7 +321,7 @@ result, err := converter.ConvertWithGotraceDefault("input.png", "output.svg")
 ## See Also
 
 - [Image Download Feature](IMAGE_DOWNLOAD.md)
-- [Custom Filenames](CUSTOM_FILENAMES.md)
+- [Filename Templates](FILENAME_TEMPLATES.md)
 - [API Documentation](API.md)
 
 ## License

@@ -205,5 +205,4 @@ Valid seed values:
 ## See Also
 
 - [Pipeline Documentation](PIPELINE.md)
-- [Generic Pipeline System](GENERIC_PIPELINE.md)
-- [Random Seed Default Behavior](RANDOM_SEED_DEFAULT.md)
+- [Generate Command](../README.md#image-generation)

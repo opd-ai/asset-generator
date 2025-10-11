@@ -357,9 +357,7 @@ Potential improvements:
 
 ## Related Documentation
 
-- [Generation Detection](STATUS_GENERATION_DETECTION.md) - How detection works
-- [Status Command](STATUS_COMMAND.md) - Full status command documentation
-- [Active Generations](STATUS_ACTIVE_GENERATIONS.md) - Feature overview
+- [Status Command](STATUS_COMMAND.md) - Full status command documentation with active generation tracking
 
 ## Summary
 

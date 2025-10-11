@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Generic seed offset and filename management
   - **Breaking**: Old tarot YAML format no longer supported
   - Migration guide provided in docs/PIPELINE_MIGRATION.md
-  - Complete documentation in docs/GENERIC_PIPELINE.md
+  - Complete documentation in docs/PIPELINE.md
   - Example conversion in examples/tarot-deck-converted.yaml
   - New generic examples in examples/generic-pipeline.yaml
   - Demo script updated (demo-generic-pipeline.sh)

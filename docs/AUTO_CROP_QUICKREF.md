@@ -168,4 +168,4 @@ asset-generator crop *.jpg \
 
 - [Full Documentation](AUTO_CROP_FEATURE.md)
 - [Downscaling Feature](DOWNSCALING_FEATURE.md)
-- [Image Download](IMAGE_DOWNLOAD_FEATURE.md)
+- [Image Download](IMAGE_DOWNLOAD.md)
