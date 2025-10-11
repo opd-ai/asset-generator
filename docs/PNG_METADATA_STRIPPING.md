@@ -185,10 +185,82 @@ No. The metadata stripping process only removes metadata chunks; it does not re-
 ### What about animated PNGs (APNG)?
 Currently, only static PNG files are supported. APNG files may lose animation data if processed.
 
+---
+
+## Quick Reference
+
+### What It Does
+**Automatically removes all PNG metadata from downloaded and processed images.**
+
+### Why It Matters
+- 🔒 **Privacy**: Prevents leaking prompts, API keys, or generation parameters
+- 🔐 **Security**: No sensitive data embedded in images
+- 📦 **Clean Output**: Professional deliverables without metadata bloat
+- 💾 **Smaller Files**: Reduced file size by removing unnecessary chunks
+
+### When It Happens
+Metadata is **automatically stripped** (no action required):
+1. ✅ When downloading images via `generate` command
+2. ✅ When cropping images via `crop` command  
+3. ✅ When downscaling images via `downscale` command
+
+### What Gets Removed
+All PNG ancillary chunks:
+- `tEXt`, `zTXt`, `iTXt` - Text metadata (prompts, parameters)
+- `tIME` - Timestamps
+- `pHYs` - Physical dimensions/DPI
+- `gAMA` - Gamma correction
+- `iCCP` - Color profiles
+- All other non-critical chunks
+
+### What Stays
+Only critical display chunks:
+- `IHDR` - Image header (dimensions, bit depth)
+- `PLTE` - Color palette (if needed)
+- `IDAT` - Image pixel data
+- `IEND` - End marker
+
+### Usage
+**No flags or configuration needed!** It happens automatically.
+
+```bash
+# Download with automatic metadata stripping
+asset-generator generate --prompt "..." --save-images
+
+# Crop with automatic metadata stripping
+asset-generator crop image.png -o cropped.png
+
+# Downscale with automatic metadata stripping
+asset-generator downscale image.png --width 512
+```
+
+### Verification
+
+Check if metadata was removed:
+
+```bash
+# Using exiftool
+exiftool image.png
+
+# Using pngcheck (shows chunk structure)
+pngcheck -v image.png
+
+# Using ImageMagick
+identify -verbose image.png
+```
+
+### FAQ
+
+**Can I disable it?** No, this is a mandatory security feature.
+
+**Does it affect quality?** No, only metadata is removed, not pixel data.
+
+**What about other formats?** Currently PNG only.
+
 ## Related Documentation
 
 - [Image Download](IMAGE_DOWNLOAD.md) - Downloading images from APIs
-- [Auto Crop](docs/AUTO_CROP_QUICKREF.md) - Automatic whitespace removal
+- [Auto Crop](AUTO_CROP_FEATURE.md) - Automatic whitespace removal
 - [Downscaling](DOWNSCALING_FEATURE.md) - Image resizing
 
 ## Implementation Details

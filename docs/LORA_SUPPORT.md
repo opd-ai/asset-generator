@@ -310,6 +310,65 @@ The CLI automatically converts the `--lora` flags into this format.
 5. **Test weight ranges**: Small weight adjustments (±0.1) can make big differences
 6. **Document your setups**: Save working LoRA combinations in config files
 
+---
+
+## Quick Reference
+
+### Common Commands
+
+```bash
+# Single LoRA with default weight
+asset-generator generate image --prompt "anime character" --lora "anime-style"
+
+# Single LoRA with custom weight
+asset-generator generate image --prompt "portrait" --lora "realistic-faces:0.8"
+
+# Multiple LoRAs
+asset-generator generate image --prompt "cyberpunk city" \
+  --lora "cyberpunk:1.0" --lora "neon-lights:0.7"
+
+# Negative weight (remove style)
+asset-generator generate image --prompt "character" \
+  --lora "realistic:1.0" --lora "cartoon:-0.5"
+```
+
+### Weight Guidelines
+
+| Weight | Effect |
+|--------|--------|
+| `-0.5 to 0.0` | Removes/reduces style elements |
+| `0.0` | No effect |
+| `0.5-0.7` | Subtle influence |
+| `0.8-1.0` | Standard strength |
+| `1.1-1.5` | Strong influence |
+| `1.6-2.0` | Very strong (may overpower) |
+
+### Quick Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| LoRA not taking effect | Check name (case-sensitive), increase weight |
+| Too strong/overpowering | Reduce weight (try 0.6-0.8) |
+| Unexpected results | Use fewer LoRAs (2-3 max) |
+| Conflicts between LoRAs | Reorder or reduce weights |
+
+### Common Use Cases
+
+**Anime Style:**
+```bash
+--lora "anime-style-v2:0.9" --lora "detailed-eyes:0.7"
+```
+
+**Photorealistic:**
+```bash
+--lora "realistic-faces:1.0" --lora "professional-photo:0.8"
+```
+
+**Fantasy Art:**
+```bash
+--lora "fantasy-art:0.9" --lora "detailed-background:0.6"
+```
+
 ## See Also
 
 - [SwarmUI Documentation](https://github.com/mcmonkeyprojects/SwarmUI) - SwarmUI API reference

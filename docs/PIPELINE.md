@@ -1,52 +1,31 @@
-# Pipeline Processing Guide# Pipeline Processing Guide
+# Pipeline Processing Guide
 
+The `pipeline` command allows you to process YAML pipeline files for automated batch asset generation. This eliminates the need for external shell scripts and provides a native, cross-platform solution for complex generation workflows.
 
+## Table of Contents
 
-The `pipeline` command allows you to process YAML pipeline files for automated batch asset generation. This eliminates the need for external shell scripts and provides a native, cross-platform solution for complex generation workflows.The `pipeline` command allows you to process YAML pipeline files for automated batch asset generation. This eliminates the need for external shell scripts and provides a native, cross-platform solution for complex generation workflows.
-
-
-
-## Table of Contents## Table of Contents
-
-
-
-- [Overview](#overview)- [Overview](#overview)
-
-- [Pipeline File Format](#pipeline-file-format)- [Pipeline File Format](#pipeline-file-format)
-
-- [Command Reference](#command-reference)- [Command Reference](#command-reference)
-
-- [Examples](#examples)- [Examples](#examples)
-
-- [Best Practices](#best-practices)- [Best Practices](#best-practices)
-
-- [Troubleshooting](#troubleshooting)- [Troubleshooting](#troubleshooting)
-
+- [Overview](#overview)
+- [Pipeline File Format](#pipeline-file-format)
+- [Command Reference](#command-reference)
+- [Examples](#examples)
+- [Best Practices](#best-practices)
+- [Troubleshooting](#troubleshooting)
 - [Legacy Format Support](#legacy-format-support)
 
 ## Overview
 
-## Overview
-
-The pipeline feature is designed for projects that require generating multiple related assets with:
-
 The pipeline feature is a fully generic system that works with any multi-asset generation project. It supports:
 
+- **Hierarchical organization** with unlimited nesting of asset groups
+- **Metadata cascading** that automatically enhances prompts
 - **Consistent styling** across all assets
-
-- **Hierarchical organization** with unlimited nesting of asset groups- **Organized output structure** with subdirectories
-
-- **Metadata cascading** that automatically enhances prompts- **Reproducible results** using seed-based generation
-
-- **Consistent styling** across all assets- **Progress tracking** with detailed status updates
-
-- **Organized output structure** with subdirectories- **Error handling** with continue-on-error support
-
-- **Reproducible results** using seed-based generation- **Postprocessing** including auto-crop and downscaling
-
+- **Organized output structure** with subdirectories
+- **Reproducible results** using seed-based generation
 - **Progress tracking** with detailed status updates
+- **Error handling** with continue-on-error support
+- **Postprocessing** including auto-crop and downscaling
 
-- **Error handling** with continue-on-error support### Use Cases
+### Use Cases
 
 - **Postprocessing** including auto-crop and downscaling
 

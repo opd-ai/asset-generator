@@ -293,6 +293,60 @@ asset-generator generate image \
   --websocket
 ```
 
+---
+
+## Quick Reference
+
+### Common Commands
+
+```bash
+# Enable with defaults
+asset-generator generate image --prompt "..." --skimmed-cfg
+
+# Custom scale (typically 2.0-4.0)
+asset-generator generate image --prompt "..." --skimmed-cfg --skimmed-cfg-scale 3.0
+
+# Phase-specific (0.0-1.0)
+asset-generator generate image --prompt "..." \
+  --skimmed-cfg --skimmed-cfg-start 0.2 --skimmed-cfg-end 0.8
+```
+
+### Flag Reference
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--skimmed-cfg` | bool | false | Enable Skimmed CFG |
+| `--skimmed-cfg-scale` | float | 3.0 | Scale value (lower than standard CFG) |
+| `--skimmed-cfg-start` | float | 0.0 | Start phase (0.0 = beginning) |
+| `--skimmed-cfg-end` | float | 1.0 | End phase (1.0 = end) |
+
+### Recommended Settings by Use Case
+
+| Use Case | Scale | Start | End | Steps |
+|----------|-------|-------|-----|-------|
+| **Photorealistic** | 3.5 | 0.0 | 1.0 | 30 |
+| **Artistic/Stylized** | 2.5 | 0.2 | 0.8 | 25 |
+| **Fast Iteration** | 2.0 | 0.0 | 1.0 | 15 |
+| **High Detail** | 4.0 | 0.1 | 0.9 | 40 |
+
+### Config File Example
+
+```yaml
+generate:
+  skimmed-cfg: true
+  skimmed-cfg-scale: 3.0
+  skimmed-cfg-start: 0.0
+  skimmed-cfg-end: 1.0
+```
+
+### Quick Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| No visible effect | Verify model compatibility, try scale 2.0 vs 4.0 |
+| Unexpected results | Start with scale 3.0, try mid-phase only (0.3-0.7) |
+| Generation fails | Check SwarmUI version, ensure start < end |
+
 ## See Also
 
 - [Generation Parameters](../README.md#generation-parameters)

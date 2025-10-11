@@ -260,6 +260,50 @@ asset-generator crop image.png --preserve-aspect
 
 **Note**: Auto-crop only detects light/white backgrounds. For colored backgrounds, consider using different threshold values or manual cropping tools.
 
+---
+
+## Quick Reference
+
+### Common Use Cases
+
+```bash
+# Remove whitespace from generated images
+asset-generator generate image --prompt "logo design" --save-images --auto-crop
+
+# Crop existing image
+asset-generator crop image.png
+
+# Crop preserving aspect ratio
+asset-generator crop photo.jpg --preserve-aspect --in-place
+
+# Batch crop multiple images
+asset-generator crop *.png --in-place
+
+# Crop then downscale
+asset-generator generate image \
+  --prompt "artwork" \
+  --width 2048 --height 2048 \
+  --save-images --auto-crop --downscale-width 1024
+```
+
+### Sensitivity Presets
+
+| Setting | Flags | Detects |
+|---------|-------|---------|
+| **Default** | `--threshold 250 --tolerance 10` | RGB > 240 (very light) |
+| **Aggressive** | `--threshold 255 --tolerance 5` | RGB > 250 (pure white) |
+| **Light Gray** | `--threshold 230 --tolerance 20` | RGB > 210 (light grays) |
+| **Conservative** | `--threshold 200 --tolerance 30` | RGB > 170 (broader range) |
+
+### Quick Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| Too much cropped | Lower threshold: `--threshold 245 --tolerance 15` |
+| Not enough cropped | Increase threshold: `--threshold 252 --tolerance 3` |
+| Aspect ratio changed | Enable preservation: `--preserve-aspect` |
+| Colored background | Use manual tools (auto-crop is for white/light only) |
+
 ## See Also
 
 - [Downscaling Feature](DOWNSCALING_FEATURE.md) - Resize images after generation
