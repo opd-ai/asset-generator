@@ -16,6 +16,7 @@
 
 - **[Quick Start Guide](QUICKSTART.md)** - Installation and basic usage
 - **[Command Reference](COMMANDS.md)** - Comprehensive command documentation
+- **[Integration Guide](INTEGRATE_PROMPT.md)** - Add asset-generator to your project
 
 ### Feature Guides
 
@@ -64,6 +65,7 @@
 
 #### Build Workflows
 - Create pipelines → [Pipeline Processing](PIPELINE.md)
+- Integrate into projects → [Integration Guide](INTEGRATE_PROMPT.md)
 - Reproducible generation → [Seed Behavior](SEED_BEHAVIOR.md)
 - Automated scripts → [Quick Start: Scripting](QUICKSTART.md#scripting-examples)
 
@@ -121,6 +123,7 @@ docs/
 ├── README.md                    ← You are here
 ├── QUICKSTART.md                Quick start guide
 ├── COMMANDS.md                  Command reference
+├── INTEGRATE_PROMPT.md          Integration guide
 ├── CHANGELOG.md                 Version history
 │
 ├── Feature Guides
