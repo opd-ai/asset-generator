@@ -20,7 +20,7 @@ set -e
 
 # Configuration
 OUTPUT_DIR="${OUTPUT_DIR:-./tarot-deck-output}"
-BASE_SEED="${BASE_SEED:-42}"
+BASE_SEED="${BASE_SEED:-0}"
 MODEL="${MODEL:-XE-_Pixel_Flux_-_0-1.safetensors}"
 SPEC_FILE="tarot-spec.yaml"
 
@@ -75,6 +75,7 @@ asset-generator pipeline \
     --height "$HEIGHT" \
     --steps "$STEPS" \
     --cfg-scale "$CFG_SCALE" \
+    --scheduler "simple" \
     --model "$MODEL" \
     --style-suffix "$STYLE_SUFFIX" \
     --negative-prompt "$NEGATIVE_PROMPT" \
