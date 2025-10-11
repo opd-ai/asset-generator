@@ -1205,10 +1205,10 @@ minor_arcana:
 
 ### Migration to Generic Format
 
-For new projects, use the generic format. See [PIPELINE_MIGRATION.md](PIPELINE_MIGRATION.md) for detailed migration guide.
+For new projects, use the generic format. The legacy tarot-specific format (`major_arcana`, `minor_arcana`) is still supported for backward compatibility but is deprecated.
 
-**Key differences:**
-- Generic format uses `assets` instead of `major_arcana` and `minor_arcana`
+**Key differences in generic format:**
+- Uses `assets` instead of `major_arcana` and `minor_arcana`
 - Supports unlimited nesting with `subgroups`
 - Metadata is explicitly defined and cascaded
 - More flexible file naming and organization
@@ -1216,6 +1216,5 @@ For new projects, use the generic format. See [PIPELINE_MIGRATION.md](PIPELINE_M
 ## See Also
 
 - [PIPELINE_QUICKREF.md](PIPELINE_QUICKREF.md) - Quick reference guide
-- [PIPELINE_MIGRATION.md](PIPELINE_MIGRATION.md) - Migration from legacy format
-- [PIPELINE_VS_SCRIPTS.md](PIPELINE_VS_SCRIPTS.md) - Comparison with shell scripts
-- [GENERATE_PIPELINE.md](GENERATE_PIPELINE.md) - Comprehensive tutorial with examples
+- [QUICKSTART.md](QUICKSTART.md) - Getting started guide
+- [README.md](../README.md) - Project overview and features

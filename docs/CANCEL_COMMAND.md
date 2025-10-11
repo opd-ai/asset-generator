@@ -324,9 +324,8 @@ asset-generator cancel -v
 ## See Also
 
 - [Status Command](STATUS_COMMAND.md) - Check server and generation status
-- [Generate Command](GENERATE_PIPELINE.md) - Start image generation
 - [API Documentation](API.md) - SwarmUI API details
-- [Quick Reference](QUICKSTART.md) - Getting started guide
+- [Quick Start Guide](QUICKSTART.md) - Getting started guide
 
 ## Summary
 
