@@ -366,7 +366,7 @@ asset-generator generate image \
 
 Available schedulers: simple (default), normal, karras, exponential, sgm_uniform
 
-**Learn more:** See [SCHEDULER_FEATURE.md](SCHEDULER_FEATURE.md) for detailed scheduler comparison and usage guide.
+**Learn more:** See [GENERATION_FEATURES.md](GENERATION_FEATURES.md) for detailed scheduler comparison and usage guide.
 
 ### High-Quality Generation
 

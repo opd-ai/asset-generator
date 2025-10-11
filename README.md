@@ -193,7 +193,7 @@ asset-generator status
 
 State is persisted to `.asset-generator-state.json` in the working directory, enabling accurate cross-process tracking while maintaining project isolation.
 
-See [docs/STATUS_COMMAND.md](docs/STATUS_COMMAND.md) and [docs/STATE_FILE_SHARING.md](docs/STATE_FILE_SHARING.md) for complete documentation.
+See [docs/COMMANDS.md](docs/COMMANDS.md) and [docs/STATE_FILE_SHARING.md](docs/STATE_FILE_SHARING.md) for complete documentation.
 
 ### Cancel Generations
 
@@ -215,7 +215,7 @@ Useful for:
 - Clearing a backlog of queued generations
 - Recovering from stuck generations
 
-See [docs/CANCEL_COMMAND.md](docs/CANCEL_COMMAND.md) for complete documentation.
+See [docs/COMMANDS.md](docs/COMMANDS.md) for complete documentation.
 
 ### Configuration
 
@@ -329,7 +329,7 @@ Skimmed CFG (also known as Distilled CFG or Dynamic CFG) is an advanced sampling
 - Adjust `--skimmed-cfg-start` and `--skimmed-cfg-end` to apply only during specific phases of generation
 - Not all models support this feature - check your model documentation
 
-**Learn more:** See the [Skimmed CFG documentation](docs/SKIMMED_CFG.md) for detailed usage examples and best practices.
+**Learn more:** See the [Generation Features documentation](docs/GENERATION_FEATURES.md) for detailed usage examples and best practices.
 
 ### About Scheduler Selection
 
@@ -348,7 +348,7 @@ The scheduler (also called noise schedule) controls how noise is added and remov
 - Different schedulers work better with different samplers
 - Increase steps (30-50) when using `karras` for best results
 
-**Learn more:** See the [Scheduler documentation](docs/SCHEDULER_FEATURE.md) for detailed comparisons and usage examples.
+**Learn more:** See the [Generation Features documentation](docs/GENERATION_FEATURES.md) for detailed comparisons and usage examples.
 
 ## LoRA Support
 
@@ -379,7 +379,6 @@ asset-generator generate image \
 
 **Learn more:** 
 - [LoRA Support Documentation](docs/LORA_SUPPORT.md) - Complete guide with examples
-- [LoRA Quick Reference](docs/LORA_QUICKREF.md) - Quick command reference
 
 ## Image Download Feature
 
@@ -444,7 +443,7 @@ asset-generator generate image \
 
 **Available placeholders:** `{index}`, `{i1}`, `{timestamp}`, `{datetime}`, `{date}`, `{time}`, `{seed}`, `{model}`, `{width}`, `{height}`, `{prompt}`, `{original}`, `{ext}`
 
-See [Image Download Documentation](docs/IMAGE_DOWNLOAD.md) for complete placeholder reference.
+See [Filename Templates documentation](docs/FILENAME_TEMPLATES.md) for complete placeholder reference.
 
 ### Behavior
 

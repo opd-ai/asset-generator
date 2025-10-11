@@ -27,57 +27,53 @@ The pipeline feature is a fully generic system that works with any multi-asset g
 
 ### Use Cases
 
-- **Postprocessing** including auto-crop and downscaling
-
 - **Tarot decks**: 78 cards organized by Major/Minor Arcana and suits
-
-### Use Cases- **Game sprites**: Character sets, enemy variants, item collections
-
 - **Card games**: Deck of cards with multiple suits and ranks
-
-- **Game sprites**: Character sets, enemy variants, item collections- **Character sheets**: Multiple poses, expressions, or equipment variants
-
-- **Card games**: Deck of cards with multiple suits and ranks (including tarot decks)- **Icon sets**: Consistent icon families with variations
-
+- **Game sprites**: Character sets, enemy variants, item collections
 - **Character sheets**: Multiple poses, expressions, or equipment variants
-
-- **Icon sets**: Consistent icon families with variations## Pipeline File Format
-
+- **Icon sets**: Consistent icon families with variations
 - **UI elements**: Buttons, badges, and interface components
-
-- **Environment assets**: Tiles, backgrounds, propsPipeline files use YAML format with a specific structure:
-
+- **Environment assets**: Tiles, backgrounds, props
 - **Any multi-asset project** with structured organization
-
-### Basic Structure
 
 ## Pipeline File Format
 
+Pipeline files use YAML format with a flexible, generic structure.
+
+### Basic Structure
+
 ```yaml
-
-Pipeline files use YAML format with a flexible, generic structure.major_arcana:
-
-  - number: 0
-
-### Basic Structure    name: The Fool
-
-    prompt: "detailed description of the asset"
-
-```yaml  
-
-assets:  - number: 1
-
-  - name: Character Sprites    name: The Magician
-
-    output_dir: sprites/characters    prompt: "another detailed description"
-
+assets:
+  - name: Character Sprites
+    output_dir: sprites/characters
     seed_offset: 0
+    metadata:
+      style: "pixel art"
+      quality: "16-bit"
+    assets:
+      - id: hero_idle
+        name: Hero Idle Animation
+        prompt: "knight standing idle, animation frame"
+      - id: hero_walk
+        name: Hero Walk Animation
+        prompt: "knight walking, animation frame"
+```
 
-    metadata:minor_arcana:
+### Hierarchical Structure with Subgroups
 
-      style: "pixel art"  wands:
+```yaml
+major_arcana:
+  - number: 0
+    name: The Fool
+    prompt: "detailed description of the asset"
+  - number: 1
+    name: The Magician
+    prompt: "another detailed description"
 
-      quality: "16-bit"    suit_element: fire
+minor_arcana:
+  wands:
+    suit_element: fire
+    suit_color: red
 
     assets:    suit_color: red
 
@@ -1213,8 +1209,95 @@ For new projects, use the generic format. The legacy tarot-specific format (`maj
 - Metadata is explicitly defined and cascaded
 - More flexible file naming and organization
 
+---
+
+## Quick Reference
+
+### Basic Usage
+
+```bash
+asset-generator pipeline --file pipeline.yaml
+```
+
+### Common Commands
+
+```bash
+# Preview pipeline (dry run)
+asset-generator pipeline --file deck.yaml --dry-run
+
+# Generate with custom output directory
+asset-generator pipeline --file deck.yaml --output-dir ./my-output
+
+# High quality with postprocessing
+asset-generator pipeline --file deck.yaml \
+  --steps 50 \
+  --scheduler karras \
+  --auto-crop \
+  --downscale-width 1024
+
+# Continue on errors
+asset-generator pipeline --file deck.yaml --continue-on-error
+
+# Add style to all prompts
+asset-generator pipeline --file deck.yaml \
+  --style-suffix "detailed, professional quality, rich colors"
+```
+
+### Key Flags
+
+#### Required
+- `--file` - Pipeline YAML file path
+
+#### Generation
+- `--output-dir` - Output directory (default: `./pipeline-output`)
+- `--base-seed` - Base seed for reproducibility (default: `-1` for random)
+- `--steps` - Inference steps (default: `40`)
+- `--width` - Image width (default: `768`)
+- `--height` - Image height (default: `1344`)
+- `--cfg-scale` - CFG scale/guidance (default: `7.5`)
+- `--model` - Model to use for generation
+- `--scheduler` - Scheduler (simple, normal, karras, exponential, sgm_uniform)
+
+#### Prompt Enhancement
+- `--style-suffix` - Append to all prompts
+- `--negative-prompt` - Negative prompt for all
+
+#### Control
+- `--dry-run` - Preview without generating
+- `--continue-on-error` - Don't stop on failures
+- `-v, --verbose` - Show detailed progress
+
+#### Postprocessing
+- `--auto-crop` - Remove whitespace borders
+- `--downscale-width` - Downscale to width
+- `--downscale-height` - Downscale to height
+- `--downscale-filter` - Filter: lanczos, bilinear, nearest
+
+### Troubleshooting
+
+```bash
+# Preview first
+asset-generator pipeline --file deck.yaml --dry-run
+
+# Check configuration
+asset-generator config view
+
+# Test connection
+asset-generator models list
+
+# Enable verbose output
+asset-generator pipeline --file deck.yaml --verbose
+
+# Continue on errors for large pipelines
+asset-generator pipeline --file deck.yaml --continue-on-error
+```
+
+---
+
 ## See Also
 
-- [PIPELINE_QUICKREF.md](PIPELINE_QUICKREF.md) - Quick reference guide
-- [QUICKSTART.md](QUICKSTART.md) - Getting started guide
-- [README.md](../README.md) - Project overview and features
+- [Generation Features](GENERATION_FEATURES.md) - Scheduler, Skimmed CFG
+- [Postprocessing](POSTPROCESSING.md) - Auto-crop, downscaling, metadata stripping
+- [Seed Behavior](SEED_BEHAVIOR.md) - Random vs explicit seeds
+- [Quick Start Guide](QUICKSTART.md) - Getting started
+- [Examples](../examples/) - Sample pipeline files

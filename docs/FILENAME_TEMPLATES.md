@@ -1,12 +1,52 @@
-# Filename Templates Guide
-
-This guide explains how to use custom filename templates when downloading generated images.
+# Image Download & Filename Templates Guide
 
 ## Overview
 
+The `--save-images` flag downloads generated images from the SwarmUI server directly to your local disk. When combined with the `--filename-template` flag, you can customize filenames using various placeholders for maximum organization.
+
+### Why Use Image Download?
+
+- 💾 **Preserve images locally** - Keep permanent copies on your disk
+- 📂 **Organize images** in custom directories
+- 🏷️ **Use custom filenames** with metadata (seed, model, dimensions, etc.)
+- 🔄 **Work offline** with generated images
+- 🎨 **Build local collections** of generated art
+- ⚡ **Automatic download** after generation completes
+- 🎯 **Batch processing** support for multiple images
+
+## Quick Start
+
+### Enable Image Download
+
+```bash
+# Download to current directory
+asset-generator generate image --prompt "your prompt" --save-images
+
+# Download to specific directory
+asset-generator generate image --prompt "your prompt" --save-images --output-dir ./my-images
+
+# Download with custom filenames
+asset-generator generate image --prompt "fantasy landscape" --batch 5 --save-images \
+  --filename-template "landscape-{index}-seed{seed}.png"
+```
+
+## Image Download Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--save-images` | `false` | Enable image downloading |
+| `--output-dir` | `.` | Directory where images will be saved |
+| `--filename-template` | (empty) | Template for custom filenames (see below) |
+
+**Note:** Directory is created automatically if it doesn't exist.
+
+## Filename Templates
+
 By default, downloaded images keep their original filename from the server. However, you can customize filenames using the `--filename-template` flag with various placeholders that get replaced with actual values.
 
-## Basic Usage
+## Template Examples
+
+### Basic Template Usage
 
 ```bash
 asset-generator generate image \
@@ -241,8 +281,103 @@ asset-generator generate image \
 
 This generates images with custom names AND saves the metadata to a JSON file.
 
+## Output and Progress
+
+When `--save-images` is enabled, you'll see download progress:
+
+```
+Generating image with prompt: your prompt
+Downloading generated images...
+  [1/3] Saved: ./my-images/image-000.png
+  [2/3] Saved: ./my-images/image-001.png
+  [3/3] Saved: ./my-images/image-002.png
+✓ Generation completed successfully (3 images)
+```
+
+### Batch Download
+
+Works seamlessly with batch generation:
+
+```bash
+asset-generator generate image \
+  --prompt "your prompt" \
+  --batch 5 \
+  --save-images \
+  --output-dir ./batch
+```
+
+### Metadata Tracking
+
+Combine with metadata output for complete records:
+
+```bash
+asset-generator generate image \
+  --prompt "fantasy character portrait" \
+  --save-images \
+  --output-dir ./portraits \
+  --output metadata.json \
+  --format json
+```
+
+This saves both the images to `./portraits/` and the metadata (including local paths) to `metadata.json`.
+
+## Additional Examples
+
+### Save Landscape Images with Custom Filenames
+```bash
+asset-generator generate image \
+  --prompt "beautiful mountain landscape at sunset" \
+  --width 1024 \
+  --height 768 \
+  --save-images \
+  --output-dir ~/art/landscapes \
+  --filename-template "landscape-{date}-{index}.png"
+```
+
+### Generate Series with Seed in Filename
+```bash
+asset-generator generate image \
+  --prompt "cyberpunk city street, neon lights" \
+  --batch 10 \
+  --save-images \
+  --output-dir ./cyberpunk-series \
+  --seed 42 \
+  --filename-template "cyber-{seed}-{i1}.png"
+```
+
+### Organized by Model and Dimensions
+```bash
+asset-generator generate image \
+  --prompt "portrait of a warrior" \
+  --model "flux-dev" \
+  --width 768 \
+  --height 1024 \
+  --batch 5 \
+  --save-images \
+  --filename-template "{model}-{width}x{height}-{index}.png"
+```
+
+### Include Prompt in Filename
+```bash
+asset-generator generate image \
+  --prompt "red sports car in desert" \
+  --batch 3 \
+  --save-images \
+  --filename-template "{prompt}-{timestamp}-{i1}.png"
+# Results in: red_sports_car_in_desert-1696723200-1.png
+```
+
+## Error Handling
+
+- **Directory creation**: Directories specified in `--output-dir` or template paths are created automatically
+- **Original filenames preserved**: If no template specified, server filenames are used
+- **Partial failures handled gracefully**: If one image fails to download, others continue
+- **Path validation**: Invalid characters in templates are handled automatically
+
 ## See Also
 
-- [Image Download Guide](IMAGE_DOWNLOAD.md) - General image download documentation
-- [README](../README.md) - Main documentation
-- [Quick Start](../QUICKSTART.md) - Getting started guide
+- [Auto-Crop Feature](AUTO_CROP_FEATURE.md) - Automatically crop whitespace from downloaded images
+- [Downscaling Feature](DOWNSCALING_FEATURE.md) - Downscale images after download
+- [Pipeline Processing](PIPELINE.md) - Batch generation workflows
+- [Quick Start Guide](QUICKSTART.md) - Getting started with the CLI
+- [Project Summary](PROJECT_SUMMARY.md) - High-level project overview

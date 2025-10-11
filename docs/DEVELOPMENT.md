@@ -127,25 +127,141 @@ Configuration validation and management:
 3. Configuration file (~/.asset-generator/config.yaml)
 4. Default values
 
-## API Integration
+## SwarmUI API Integration
+
+**Note**: This document describes how the Asset Generator CLI integrates with the SwarmUI API. For complete SwarmUI API documentation, refer to the [official SwarmUI repository](https://github.com/mcmonkeyprojects/SwarmUI).
+
+### The Basics
+
+SwarmUI provides a full-capability network API for image generation and model management. The Asset Generator CLI wraps these APIs to provide a convenient command-line interface.
+
+The majority of API calls take the form of `POST` requests sent to `(your server)/API/(route)`, containing JSON formatted inputs and receiving JSON formatted outputs.
+
+### WebSocket Support
+
+The Asset Generator CLI supports WebSocket connections for real-time progress updates during image generation.
+
+**WebSocket Feature Status**: ✅ **IMPLEMENTED**
+
+Use the `--websocket` flag with the `generate image` command to enable real-time progress tracking:
+
+```bash
+asset-generator generate image --prompt "your prompt" --websocket
+```
+
+WebSocket connections provide:
+- Real-time progress updates (actual progress, not simulated)
+- Live generation status
+- Detailed feedback during long-running generations (e.g., Flux models: 5-10 minutes)
+- Automatic fallback to HTTP if WebSocket connection fails
+
+### Authorization
+
+All API routes, with the exception of `GetNewSession`, require a `session_id` input in the JSON. The Asset Generator CLI handles session management automatically.
+
+If the SwarmUI instance is configured to require accounts, set your API key:
+
+```bash
+asset-generator config set api-key your-api-key-here
+```
+
+### Error Handling
+
+The Asset Generator CLI handles SwarmUI API errors gracefully:
+- `invalid_session_id`: Automatically obtains a new session and retries
+- Other errors: Displays descriptive error messages with troubleshooting suggestions
+
+### CLI Integration Examples
+
+The Asset Generator CLI provides a simplified interface to SwarmUI's API:
+
+#### Example 1: Generate an Image
+```bash
+# Using the Asset Generator CLI
+asset-generator generate image --prompt "a cat"
+```
+
+This automatically:
+1. Obtains a session ID from `/API/GetNewSession`
+2. Submits generation request to `/API/GenerateText2Image`
+3. Parses the response and displays results
+
+#### Example 2: Generate with WebSocket Progress
+```bash
+# Use WebSocket for real-time progress
+asset-generator generate image --prompt "a cat" --websocket
+```
+
+This connects to `/API/GenerateText2ImageWS` for live updates.
+
+#### Example 3: Download and Save Images
+```bash
+# Download generated images to local disk
+asset-generator generate image \
+  --prompt "a cat" \
+  --save-images \
+  --output-dir ./my-images
+```
+
+### Implementation Details
+
+#### API Client Features
+
+The Asset Generator CLI's API client (`pkg/client/client.go`) implements:
+
+- **HTTP Generation**: `GenerateImage()` - Standard REST API calls
+- **WebSocket Generation**: `GenerateImageWS()` - Real-time progress updates
+- **Session Management**: Automatic session creation, caching, and renewal
+- **Error Handling**: Automatic retry on session expiration
+- **Context Support**: Cancellation for graceful shutdown
+- **Progress Tracking**: Simulated progress (HTTP) or real-time progress (WebSocket)
+
+#### Session Management
+
+Sessions are managed automatically:
+- First API call triggers session creation via `/API/GetNewSession`
+- Session ID is cached and reused for subsequent calls
+- Expired sessions are automatically renewed
+- Manual session management is not required
+
+See also: [State File Sharing](STATE_FILE_SHARING.md) for details on cross-process session tracking.
 
 ### Asset Generation API Endpoints
 
 The client currently implements:
 
-1. **Generate Text2Image**: `POST /API/GenerateText2Image`
+1. **Get New Session**: `POST /API/GetNewSession`
+   - Creates a new session for API calls
+   - Returns session ID
+
+2. **Generate Text2Image**: `POST /API/GenerateText2Image`
    - Generates images from text prompts
    - Supports various parameters (steps, size, seed, etc.)
 
-2. **List Models**: `GET /API/ListModels`
-   - Returns available models
+3. **Generate Text2Image WebSocket**: `WS /API/GenerateText2ImageWS`
+   - WebSocket endpoint for real-time progress
+   - Streams generation status updates
 
-3. **Get Model**: `GET /API/GetModel?name={name}`
-   - Returns model details
+4. **List Models**: `GET /API/ListModels`
+   - Returns available models
+   - Includes model metadata
+
+5. **Get Model**: `GET /API/GetModel?name={name}`
+   - Returns detailed model information
+
+6. **Server Status**: `GET /API/GetServerStatus`
+   - Server health and configuration
+   - Backend information
+
+7. **Interrupt Generation**: `POST /API/InterruptGeneration`
+   - Cancels current generation
+
+8. **Interrupt All**: `POST /API/InterruptAll`
+   - Cancels all queued generations
 
 ### Adding New Endpoints
 
-To add a new endpoint:
+To add a new SwarmUI endpoint:
 
 1. Add method to `AssetClient` in `pkg/client/client.go`:
 ```go
@@ -164,6 +280,38 @@ var newCmd = &cobra.Command{
 ```
 
 3. Add tests in `pkg/client/client_test.go`
+
+### API Request/Response Patterns
+
+#### Standard POST Request
+```go
+type Request struct {
+    SessionID  string                 `json:"session_id"`
+    Prompt     string                 `json:"prompt"`
+    Parameters map[string]interface{} `json:"parameters"`
+}
+
+resp, err := http.Post(endpoint, "application/json", body)
+```
+
+#### WebSocket Connection
+```go
+conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+if err != nil {
+    return fmt.Errorf("failed to connect to SwarmUI: %w", err)
+}
+defer conn.Close()
+
+// Send request
+err = conn.WriteJSON(request)
+
+// Read progress updates
+for {
+    var update ProgressUpdate
+    err := conn.ReadJSON(&update)
+    // Handle update
+}
+```
 
 ## Testing
 
