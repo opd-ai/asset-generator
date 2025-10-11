@@ -1,3 +1,8 @@
+````markdown
+[🏠 Docs Home](README.md) | [📚 Quick Start](QUICKSTART.md) | [🔧 Commands](COMMANDS.md) | [🔗 Pipeline](PIPELINE.md)
+
+---
+
 # Generation Features
 
 This document covers advanced generation-time parameters that control quality, speed, and output characteristics.
@@ -621,3 +626,4 @@ asset-generator generate image --prompt "..." \
 - [Postprocessing](POSTPROCESSING.md) - Auto-crop, downscaling, metadata stripping
 - [Seed Behavior](SEED_BEHAVIOR.md) - Reproducibility and random seed generation
 - [Quick Start Guide](QUICKSTART.md) - Getting started with the CLI
+- [Commands Reference](COMMANDS.md) - All available commands

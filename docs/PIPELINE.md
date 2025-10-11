@@ -1,3 +1,8 @@
+```````markdown
+[🏠 Docs Home](README.md) | [📚 Quick Start](QUICKSTART.md) | [🔧 Commands](COMMANDS.md) | [⚙️ Generation](GENERATION_FEATURES.md)
+
+---
+
 # Pipeline Processing Guide
 
 The `pipeline` command allows you to process YAML pipeline files for automated batch asset generation. This eliminates the need for external shell scripts and provides a native, cross-platform solution for complex generation workflows.

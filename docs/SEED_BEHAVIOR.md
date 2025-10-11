@@ -1,3 +1,8 @@
+````markdown
+[🏠 Docs Home](README.md) | [📚 Quick Start](QUICKSTART.md) | [🔗 Pipeline](PIPELINE.md) | [⚙️ Generation](GENERATION_FEATURES.md)
+
+---
+
 # Seed Behavior Reference
 
 ## Overview

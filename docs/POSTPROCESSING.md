@@ -1,3 +1,8 @@
+````markdown
+[🏠 Docs Home](README.md) | [📚 Quick Start](QUICKSTART.md) | [🎨 SVG Convert](SVG_CONVERSION.md) | [🔗 Pipeline](PIPELINE.md)
+
+---
+
 # Postprocessing Features
 
 This document covers all image postprocessing features that are applied after generation or as standalone operations.
@@ -522,8 +527,12 @@ Use `--auto-crop-preserve-aspect` for consistent dimensions:
 
 ## See Also
 
+- [SVG Conversion](SVG_CONVERSION.md) - Convert processed images to vector format
 - [Filename Templates](FILENAME_TEMPLATES.md) - Custom naming for downloaded images
 - [Generation Features](GENERATION_FEATURES.md) - Scheduler, Skimmed CFG
-- [Pipeline Processing](PIPELINE.md) - Batch generation workflows
-- [SVG Conversion](SVG_CONVERSION.md) - Convert images to vector format
+- [Pipeline Processing](PIPELINE.md) - Batch generation workflows with postprocessing
 - [Quick Start Guide](QUICKSTART.md) - Getting started with the CLI
+
+**Recommended Workflows:**
+- Generate → Download → Metadata Strip → Crop → Downscale (see examples above)
+- High-res generation → Auto-crop → Downscale → [Convert to SVG](SVG_CONVERSION.md)

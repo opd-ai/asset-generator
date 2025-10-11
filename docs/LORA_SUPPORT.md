@@ -1,3 +1,8 @@
+````markdown
+[🏠 Docs Home](README.md) | [📚 Quick Start](QUICKSTART.md) | [⚙️ Generation](GENERATION_FEATURES.md) | [🔗 Pipeline](PIPELINE.md)
+
+---
+
 # LoRA Support in Asset Generator
 
 ## Overview
@@ -371,7 +376,7 @@ asset-generator generate image --prompt "character" \
 
 ## See Also
 
+- [Generation Features](GENERATION_FEATURES.md) - Scheduler, Skimmed CFG, and other generation parameters
+- [Pipeline Processing](PIPELINE.md) - Batch generation workflows with LoRAs
+- [Quick Start Guide](QUICKSTART.md) - Basic usage guide
 - [SwarmUI Documentation](https://github.com/mcmonkeyprojects/SwarmUI) - SwarmUI API reference
-- [QUICKSTART.md](QUICKSTART.md) - Basic usage guide
-- [SKIMMED_CFG.md](SKIMMED_CFG.md) - Advanced sampling techniques
-- [PIPELINE.md](PIPELINE.md) - Complete postprocessing pipeline
