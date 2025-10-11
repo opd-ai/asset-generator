@@ -32,7 +32,7 @@ var (
 	generateSaveImages       bool   // Download and save images locally
 	generateOutputDir        string // Directory to save downloaded images
 	generateFilenameTemplate string // Template for custom filenames
-	generateStylePrefix     string // Prefix to prepend to all prompts
+	generateStylePrefix      string // Prefix to prepend to all prompts
 	// SkimmedCFG (Distilled CFG) options
 	generateSkimmedCFG      bool    // Enable Skimmed CFG for improved quality/speed
 	generateSkimmedCFGScale float64 // Skimmed CFG scale value
