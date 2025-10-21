@@ -17,6 +17,7 @@
 - **[Quick Start Guide](QUICKSTART.md)** - Installation and basic usage
 - **[Command Reference](COMMANDS.md)** - Comprehensive command documentation
 - **[Integration Guide](INTEGRATE_PROMPT.md)** - Add asset-generator to your project
+- **[Game Asset Pipeline Adapter](../adapter.md)** - Analyze game codebases and generate custom asset pipelines
 
 ### Feature Guides
 
@@ -66,6 +67,7 @@
 #### Build Workflows
 - Create pipelines → [Pipeline Processing](PIPELINE.md)
 - Integrate into projects → [Integration Guide](INTEGRATE_PROMPT.md)
+- Analyze games for assets → [Game Asset Adapter](../adapter.md)
 - Reproducible generation → [Seed Behavior](SEED_BEHAVIOR.md)
 - Automated scripts → [Quick Start: Scripting](QUICKSTART.md#scripting-examples)
 
