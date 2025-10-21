@@ -890,6 +890,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [SwarmUI Documentation](https://github.com/mcmonkeyprojects/SwarmUI)
 - [Report Issues](https://github.com/opd-ai/asset-generator/issues)
 - [Changelog](CHANGELOG.md)
+- [Game Asset Pipeline Adapter](adapter.md) - Analyze game codebases and generate asset pipelines
 - [PNG Metadata Stripping](PNG_METADATA_STRIPPING.md)
 - [Auto-Crop Feature](AUTO_CROP_FEATURE.md)
 - [Downscaling Feature](DOWNSCALING_FEATURE.md)
